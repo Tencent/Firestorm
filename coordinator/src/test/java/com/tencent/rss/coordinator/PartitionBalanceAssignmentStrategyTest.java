@@ -145,8 +145,6 @@ public class PartitionBalanceAssignmentStrategyTest {
       }
     });
     for (ServerNode node : list) {
-      System.out.println(node);
-      System.out.println(strategy.getServerToPartitions().get(node).getPartitionNum());
       assertEquals(expect.get(i).intValue(), strategy.getServerToPartitions().get(node).getPartitionNum());
       i++;
     }

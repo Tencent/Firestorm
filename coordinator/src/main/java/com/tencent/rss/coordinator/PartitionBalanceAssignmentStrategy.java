@@ -51,7 +51,7 @@ public class PartitionBalanceAssignmentStrategy implements AssignmentStrategy {
     }
 
     SortedMap<PartitionRange, List<ServerNode>> assignments = new TreeMap<>();
-    synchronized(this) {
+    synchronized (this) {
         List<ServerNode> nodes = clusterManager.getServerList(requiredTags);
         Map<ServerNode, PartitionInfo> newPartitionInfos = Maps.newConcurrentMap();
         for (ServerNode node : nodes) {
@@ -71,7 +71,6 @@ public class PartitionBalanceAssignmentStrategy implements AssignmentStrategy {
         int assignPartitions = totalPartitionNum * replica / clusterManager.getShuffleNodesMax();
         for (ServerNode node : nodes) {
           int p = serverToPartitions.get(node).getPartitionNum();
-          System.out.println("node: " + node.getId() + " " + node.getAvailableMemory() * 1.0 /(assignPartitions + p));
         }
         nodes.sort(new Comparator<ServerNode>() {
           @Override
