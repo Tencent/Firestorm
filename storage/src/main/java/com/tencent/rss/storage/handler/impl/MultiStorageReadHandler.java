@@ -18,12 +18,15 @@
 
 package com.tencent.rss.storage.handler.impl;
 
+import com.google.common.collect.Lists;
 import com.tencent.rss.common.ShuffleDataResult;
+import com.tencent.rss.common.ShuffleDataSegment;
 import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;
 import com.tencent.rss.storage.handler.api.ClientReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
 import com.tencent.rss.storage.util.StorageType;
+import java.util.List;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import java.io.IOException;
@@ -63,6 +66,7 @@ public class MultiStorageReadHandler extends AbstractFileClientReadHandler {
     } catch (Exception e) {
       LOG.info("Failed to read data from primary", e);
     }
+
     if (result != null && !result.isEmpty()) {
       return result;
     } else {
@@ -78,6 +82,7 @@ public class MultiStorageReadHandler extends AbstractFileClientReadHandler {
         }
       }
     }
+
     return null;
   }
 

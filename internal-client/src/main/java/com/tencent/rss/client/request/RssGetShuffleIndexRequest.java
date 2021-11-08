@@ -1,8 +1,8 @@
 /*
  * Tencent is pleased to support the open source community by making
- * Firestorm-Spark remote shuffle server available. 
+ * Firestorm-Spark remote shuffle server available.
  *
- * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved. 
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -18,29 +18,25 @@
 
 package com.tencent.rss.client.request;
 
-public class RssGetShuffleDataRequest {
+public class RssGetShuffleIndexRequest {
 
   private String appId;
   private int shuffleId;
   private int partitionId;
   private int partitionNumPerRange;
   private int partitionNum;
-  private int readBufferSize;
-  private int segmentIndex;
-  private long offset;
-  private int length;
 
-  public RssGetShuffleDataRequest(String appId, int shuffleId, int partitionId, int partitionNumPerRange,
-      int partitionNum, int readBufferSize, int segmentIndex, long offset, int length) {
+  public RssGetShuffleIndexRequest(
+      String appId,
+      int shuffleId,
+      int partitionId,
+      int partitionNumPerRange,
+      int partitionNum) {
     this.appId = appId;
     this.shuffleId = shuffleId;
     this.partitionId = partitionId;
     this.partitionNumPerRange = partitionNumPerRange;
     this.partitionNum = partitionNum;
-    this.readBufferSize = readBufferSize;
-    this.segmentIndex = segmentIndex;
-    this.offset = offset;
-    this.length = length;
   }
 
   public String getAppId() {
@@ -63,19 +59,4 @@ public class RssGetShuffleDataRequest {
     return partitionNum;
   }
 
-  public int getReadBufferSize() {
-    return readBufferSize;
-  }
-
-  public int getSegmentIndex() {
-    return segmentIndex;
-  }
-
-  public long getOffset() {
-    return offset;
-  }
-
-  public int getLength() {
-    return length;
-  }
 }

@@ -25,4 +25,5 @@ public interface ClientReadHandler {
   ShuffleDataResult readShuffleData(int segmentIndex);
 
   void close();
+
 }

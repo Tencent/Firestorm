@@ -1,8 +1,8 @@
 /*
  * Tencent is pleased to support the open source community by making
- * Firestorm-Spark remote shuffle server available. 
+ * Firestorm-Spark remote shuffle server available.
  *
- * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved. 
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -20,37 +20,36 @@ package com.tencent.rss.common;
 
 import java.util.List;
 
-public class ShuffleDataResult {
-
-  private byte[] data;
+public class ShuffleDataSegment {
+  private String path;
+  private long offset;
+  private int length;
   private List<BufferSegment> bufferSegments;
 
-  public ShuffleDataResult() {
-    this(new byte[0], null);
+  public ShuffleDataSegment(String path, long offset, int length, List<BufferSegment> bufferSegments) {
+    this(offset, length, bufferSegments);
+    this.path = path;
   }
 
-  public ShuffleDataResult(byte[] data) {
-    this(data, null);
-  }
-
-  public ShuffleDataResult(byte[] data, List<BufferSegment> bufferSegments) {
-    this.data = data;
+  public ShuffleDataSegment(long offset, int length, List<BufferSegment> bufferSegments) {
+    this.offset = offset;
+    this.length = length;
     this.bufferSegments = bufferSegments;
   }
 
-  public byte[] getData() {
-    return data;
+  public String getPath() {
+    return path;
+  }
+
+  public long getOffset() {
+    return offset;
+  }
+
+  public int getLength() {
+    return length;
   }
 
   public List<BufferSegment> getBufferSegments() {
     return bufferSegments;
-  }
-
-  public boolean isEmpty() {
-    return bufferSegments == null || bufferSegments.isEmpty() || data == null || data.length == 0;
-  }
-
-  public void setBufferSegments(List<BufferSegment> bufferSegments) {
-    this.bufferSegments = bufferSegments;
   }
 }

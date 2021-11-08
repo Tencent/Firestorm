@@ -1,8 +1,8 @@
 /*
  * Tencent is pleased to support the open source community by making
- * Firestorm-Spark remote shuffle server available. 
+ * Firestorm-Spark remote shuffle server available.
  *
- * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved. 
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -18,20 +18,20 @@
 
 package com.tencent.rss.client.response;
 
-public class RssGetShuffleDataResponse extends ClientResponse {
+import com.tencent.rss.common.ShuffleIndexResult;
 
-  private byte[] shuffleData;
+public class RssGetShuffleIndexResponse extends ClientResponse  {
+  private ShuffleIndexResult shuffleIndexResult;
 
-  public RssGetShuffleDataResponse(ResponseStatusCode statusCode) {
+  public RssGetShuffleIndexResponse(ResponseStatusCode statusCode) {
     super(statusCode);
   }
 
-  public byte[] getShuffleData() {
-    return shuffleData;
+  public ShuffleIndexResult getShuffleIndexResult() {
+    return shuffleIndexResult;
   }
 
-  public void setShuffleData(byte[] data) {
-    this.shuffleData = data;
+  public void setShuffleIndexResult(ShuffleIndexResult shuffleIndexResult) {
+    this.shuffleIndexResult = shuffleIndexResult;
   }
-
 }

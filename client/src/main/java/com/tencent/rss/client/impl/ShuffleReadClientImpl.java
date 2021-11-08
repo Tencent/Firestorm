@@ -79,6 +79,7 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
     this.partitionId = partitionId;
     this.blockIdBitmap = blockIdBitmap;
     this.taskIdBitmap = taskIdBitmap;
+
     CreateShuffleReadHandlerRequest request = new CreateShuffleReadHandlerRequest();
     request.setStorageType(storageType);
     request.setAppId(appId);

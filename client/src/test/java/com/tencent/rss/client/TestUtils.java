@@ -35,7 +35,12 @@ public class TestUtils {
 
   public static void validateResult(ShuffleReadClient readClient,
                                 Map<Long, byte[]> expectedData) {
-    ByteBuffer data = readClient.readShuffleBlockData().getByteBuffer();
+    ByteBuffer data = null;
+    CompressedShuffleBlock tmp = readClient.readShuffleBlockData();
+    if (tmp == null) {
+      System.out.println("MACDUAN tmp null");
+    }
+    data = tmp.getByteBuffer();
     int blockNum = 0;
     while (data != null) {
       blockNum++;
@@ -46,6 +51,7 @@ public class TestUtils {
         }
       }
       assertTrue(match);
+      System.out.println("MACDUAN read in while");
       CompressedShuffleBlock csb = readClient.readShuffleBlockData();
       if (csb == null) {
         data = null;

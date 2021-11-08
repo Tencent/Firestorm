@@ -24,6 +24,7 @@ import com.google.protobuf.ByteString;
 import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleDataResult;
+import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.common.ShufflePartitionedData;
 import com.tencent.rss.common.config.RssBaseConf;
@@ -34,6 +35,8 @@ import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
 import com.tencent.rss.proto.RssProtos.FinishShuffleResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataResponse;
+import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
+import com.tencent.rss.proto.RssProtos.GetShuffleIndexResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultResponse;
 import com.tencent.rss.proto.RssProtos.PartitionToBlockIds;
@@ -372,14 +375,15 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     int partitionNumPerRange = request.getPartitionNumPerRange();
     int partitionNum = request.getPartitionNum();
     int readBufferSize = request.getReadBufferSize();
-    int segmentIndex = request.getSegmentIndex();
+    long offset = request.getOffset();
+    int length = request.getLength();
     String storageType = shuffleServer.getShuffleServerConf().get(RssBaseConf.RSS_STORAGE_TYPE);
     StatusCode status = StatusCode.SUCCESS;
     String msg = "OK";
     GetShuffleDataResponse reply = null;
     ShuffleDataResult sdr;
     String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId["
-        + partitionId + "]";
+        + partitionId + "]" + "offset[" + offset + "]" + "length[" + length + "]";
 
     if (shuffleServer.getMultiStorageManager() != null) {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
@@ -389,18 +393,16 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       try {
         long start = System.currentTimeMillis();
         sdr = shuffleServer.getShuffleTaskManager().getShuffleData(appId, shuffleId, partitionId,
-            partitionNumPerRange, partitionNum, readBufferSize, storageType, segmentIndex);
+            partitionNumPerRange, partitionNum, storageType, offset, length);
         long readTime = System.currentTimeMillis() - start;
         ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
         ShuffleServerMetrics.counterTotalReadDataSize.inc(sdr.getData().length);
-        LOG.info("Successfully getShuffleData cost " + readTime + " ms for "
-            + requestInfo + " with " + sdr.getData().length + " bytes and "
-            + sdr.getBufferSegments().size() + " blocks");
+        LOG.info("Successfully getShuffleData cost {} ms for shuffle data offset={}, length={}, {} bytes.",
+            readTime, offset, length, sdr.getData().length);
         reply = GetShuffleDataResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg)
             .setData(ByteString.copyFrom(sdr.getData()))
-            .addAllBlockSegments(toBlockSegments(sdr.getBufferSegments()))
             .build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
@@ -426,21 +428,53 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     responseObserver.onCompleted();
   }
 
-  private List<ShuffleDataBlockSegment> toBlockSegments(List<BufferSegment> bufferSegments) {
-    List<ShuffleDataBlockSegment> ret = Lists.newArrayList();
+  @Override
+  public void getShuffleIndex(GetShuffleIndexRequest request,
+      StreamObserver<GetShuffleIndexResponse> responseObserver) {
+    ShuffleServerMetrics.counterTotalRequest.inc();
 
-    for (BufferSegment segment : bufferSegments) {
-      ret.add(ShuffleDataBlockSegment.newBuilder()
-          .setBlockId(segment.getBlockId())
-          .setOffset(segment.getOffset())
-          .setLength(segment.getLength())
-          .setUncompressLength(segment.getUncompressLength())
-          .setCrc(segment.getCrc())
-          .setTaskAttemptId(segment.getTaskAttemptId())
-          .build());
+    String appId = request.getAppId();
+    int shuffleId = request.getShuffleId();
+    int partitionId = request.getPartitionId();
+    int partitionNumPerRange = request.getPartitionNumPerRange();
+    int partitionNum = request.getPartitionNum();
+    StatusCode status = StatusCode.SUCCESS;
+    String msg = "OK";
+    GetShuffleIndexResponse reply;
+    String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId["
+        + partitionId + "]";
+
+    if (shuffleServer.getMultiStorageManager() != null) {
+      shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    return ret;
+    try {
+      long start = System.currentTimeMillis();
+      ShuffleIndexResult shuffleIndexResult = shuffleServer.getShuffleTaskManager().getShuffleIndex(
+          appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
+      long readTime = System.currentTimeMillis() - start;
+
+      ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
+      GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
+          .setStatus(valueOf(status))
+          .setRetMsg(msg);
+      if (!shuffleIndexResult.isEmpty()) {
+        builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
+      }
+      reply = builder.build();
+    } catch (Exception e) {
+      status = StatusCode.INTERNAL_ERROR;
+      msg = "Error happened when get shuffle index for " + requestInfo + ", " + e.getMessage();
+      LOG.error(msg, e);
+      reply = GetShuffleIndexResponse.newBuilder()
+          .setStatus(valueOf(status))
+          .setRetMsg(msg)
+          .build();
+    } finally {
+      shuffleServer.getShuffleBufferManager().releaseReadMemory(0);
+    }
+    responseObserver.onNext(reply);
+    responseObserver.onCompleted();
   }
 
   private List<ShufflePartitionedData> toPartitionedData(SendShuffleDataRequest req) {
