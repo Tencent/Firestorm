@@ -162,13 +162,10 @@ public class PartitionBalanceAssignmentStrategyTest {
         return o1.getId().compareTo(o2.getId());
       }
     });
-    System.out.println("start");
     for (ServerNode node : list) {
-      System.out.println("index: " + i);
       assertEquals(expect.get(i).intValue(), strategy.getServerToPartitions().get(node).getPartitionNum());
       i++;
     }
-    System.out.println("end");
   }
 
   @After
