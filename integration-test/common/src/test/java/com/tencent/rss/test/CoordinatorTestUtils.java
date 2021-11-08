@@ -1,6 +1,6 @@
 /*
- *Tencent is pleased to support the open source community by making Firestorm-Spark remote shuffle server available.
-
+ * Tencent is pleased to support the open source community by making
+ * Firestorm-Spark remote shuffle server available.
  * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
@@ -14,6 +14,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package com.tencent.rss.test;
 
 import com.tencent.rss.client.impl.grpc.CoordinatorGrpcClient;
