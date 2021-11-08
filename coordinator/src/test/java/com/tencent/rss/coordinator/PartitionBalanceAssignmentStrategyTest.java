@@ -30,6 +30,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class PartitionBalanceAssignmentStrategyTest {
 
@@ -56,6 +57,18 @@ public class PartitionBalanceAssignmentStrategyTest {
     boolean isThrown = false;
     try {
       strategy.assign(100, 2, 1, tags);
+    } catch (Exception e) {
+      isThrown = true;
+    }
+    assertTrue(isThrown);
+    try {
+      strategy.assign(0, 1, 1, tags);
+    } catch (Exception e) {
+      fail();
+    }
+    isThrown = false;
+    try {
+      strategy.assign(10, 1, 1, Sets.newHashSet("fake"));
     } catch (Exception e) {
       isThrown = true;
     }
@@ -134,7 +147,6 @@ public class PartitionBalanceAssignmentStrategyTest {
   }
 
   private void valid(List<Long> expect) {
-    System.out.println("start");
     assertEquals(20, expect.size());
     int i = 0;
     List<ServerNode> list = clusterManager.getServerList(tags);
@@ -148,7 +160,6 @@ public class PartitionBalanceAssignmentStrategyTest {
       assertEquals(expect.get(i).intValue(), strategy.getServerToPartitions().get(node).getPartitionNum());
       i++;
     }
-    System.out.println("end");
   }
 
   @After
