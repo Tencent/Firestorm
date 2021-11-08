@@ -64,4 +64,5 @@ public class RssUtilsTest {
     assertEquals(bitmap1, bitmap2);
     assertEquals(Roaring64NavigableMap.bitmapOf(), RssUtils.deserializeBitMap(new byte[]{}));
   }
+
 }

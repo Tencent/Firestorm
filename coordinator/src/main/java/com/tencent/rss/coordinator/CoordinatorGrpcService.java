@@ -113,6 +113,7 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
       logAssignmentResult(appId, shuffleId, pra);
       responseObserver.onNext(response);
     } catch (Exception e) {
+      LOG.error(e.getMessage());
       response = GetShuffleAssignmentsResponse.newBuilder().setStatus(StatusCode.INTERNAL_ERROR).build();
       responseObserver.onNext(response);
     } finally {

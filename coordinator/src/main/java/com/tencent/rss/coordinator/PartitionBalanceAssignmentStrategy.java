@@ -110,20 +110,21 @@ public class PartitionBalanceAssignmentStrategy implements AssignmentStrategy {
         int expectNum = clusterManager.getShuffleNodesMax();
         if (nodes.size() < clusterManager.getShuffleNodesMax()) {
           LOG.warn("Can't get expected servers [" + expectNum + "] and found only [" + nodes.size() + "]");
-          expectNum = clusterManager.getShuffleNodesMax();
+          expectNum = nodes.size();
         }
 
         List<ServerNode> candidatesNodes = nodes.subList(0, expectNum);
         int idx = 0;
-        for (int partition = 0; partition < totalPartitionNum; partition++) {
+        List<PartitionRange> ranges = CoordinatorUtils.generateRanges(totalPartitionNum, 1);
+        for (PartitionRange range : ranges) {
           List<ServerNode> assignNodes = Lists.newArrayList();
           for (int rc = 0; rc < replica; rc++) {
-            idx = nextIdx(idx,  candidatesNodes.size());
             ServerNode node =  candidatesNodes.get(idx);
+            idx = CoordinatorUtils.nextIdx(idx,  candidatesNodes.size());
             serverToPartitions.get(node).incrementPartitionNum();;
             assignNodes.add(node);
           }
-          assignments.put(new PartitionRange(partition, partition), assignNodes);
+          assignments.put(range, assignNodes);
         }
     }
     return new PartitionRangeAssignment(assignments);
@@ -132,15 +133,6 @@ public class PartitionBalanceAssignmentStrategy implements AssignmentStrategy {
   @VisibleForTesting
   Map<ServerNode, PartitionAssignmentInfo> getServerToPartitions() {
     return serverToPartitions;
-  }
-
-  @VisibleForTesting
-  int nextIdx(int idx, int size) {
-    ++idx;
-    if (idx >= size) {
-      idx = 0;
-    }
-    return idx;
   }
 
   class PartitionAssignmentInfo {

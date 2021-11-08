@@ -20,6 +20,7 @@ package com.tencent.rss.coordinator;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +28,7 @@ import org.junit.Test;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -86,6 +88,7 @@ public class PartitionBalanceAssignmentStrategyTest {
         15L, 20L, 20L, 20L, 20L, 20L, 0L, 0L, 0L, 0L, 0L);
     valid(expect);
 
+    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MICROSECONDS);
     list = Lists.newArrayList(7L, 18L, 7L, 3L, 19L, 15L, 11L, 10L, 16L, 11L,
         14L, 17L, 15L, 17L, 8L, 1L, 3L, 3L, 6L, 12L);
     updateServerResource(list);
@@ -103,6 +106,7 @@ public class PartitionBalanceAssignmentStrategyTest {
         25L, 20L, 25L, 20L, 0L, 0L, 0L, 0L, 0L, 10L);
     valid(expect);
 
+    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MICROSECONDS);
     list = Lists.newArrayList(7L, 18L, 7L, 3L, 19L, 15L, 11L, 10L, 16L, 11L,
         14L, 17L, 15L, 17L, 8L, 1L, 3L, 3L, 6L, 12L);
     updateServerResource(list);
@@ -115,7 +119,7 @@ public class PartitionBalanceAssignmentStrategyTest {
         30L, 20L, 30L, 20L, 0L, 0L, 0L, 0L, 0L, 30L);
     valid(expect);
     strategy.assign(33, 1, 2, tags);
-    expect = Lists.newArrayList(0L, 33L, 0L, 0L, 50L, 30L, 13L, 13L, 20L, 14L,
+    expect = Lists.newArrayList(0L, 33L, 0L, 0L, 50L, 30L, 14L, 13L, 20L, 13L,
         30L, 20L, 30L, 20L, 13L, 0L, 0L, 0L, 0L, 30L);
     valid(expect);
 
@@ -127,22 +131,24 @@ public class PartitionBalanceAssignmentStrategyTest {
         list.add(20L);
       }
     }
+
+    Uninterruptibles.sleepUninterruptibly(10, TimeUnit.MICROSECONDS);
     updateServerResource(list);
     strategy.assign(33, 1, 1, tags);
-    expect = Lists.newArrayList(0L, 6L, 0L, 7L, 0L, 7L, 0L, 7L, 0L, 6L, 0L, 0L,
+    expect = Lists.newArrayList(0L, 7L, 0L, 7L, 0L, 7L, 0L, 6L, 0L, 6L, 0L, 0L,
         0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L);
     valid(expect);
     strategy.assign(41, 1, 2, tags);
-    expect = Lists.newArrayList(0L, 6L, 0L, 7L, 0L, 7L, 0L, 7L, 0L, 6L, 0L, 16L,
-        0L, 17L, 0L, 17L, 0L, 16L, 0L, 16L);
+    expect = Lists.newArrayList(0L, 7L, 0L, 7L, 0L, 7L, 0L, 6L, 0L, 6L, 0L, 17L,
+        0L, 17L, 0L, 16L, 0L, 16L, 0L, 16L);
     valid(expect);
     strategy.assign(23, 1, 1, tags);
-    expect = Lists.newArrayList(4L, 6L, 5L, 7L, 5L, 7L, 5L, 7L, 4L, 6L, 0L, 16L,
-        0L, 17L, 0L, 17L, 0L, 16L, 0L, 16L);
+    expect = Lists.newArrayList(5L, 7L, 5L, 7L, 5L, 7L, 4L, 6L, 4L, 6L, 0L, 17L,
+        0L, 17L, 0L, 16L, 0L, 16L, 0L, 16L);
     valid(expect);
     strategy.assign(11, 1, 3, tags);
-    expect = Lists.newArrayList(4L, 12L, 5L, 7L, 5L, 7L, 5L, 7L, 4L, 13L, 7L, 16L,
-        7L, 17L, 6L, 17L, 0L, 16L, 0L, 16L);
+    expect = Lists.newArrayList(5L, 7L, 5L, 7L, 5L, 7L, 4L, 13L, 4L, 13L, 7L, 17L,
+        6L, 17L, 6L, 16L, 0L, 16L, 0L, 16L);
     valid(expect);
   }
 
@@ -156,10 +162,13 @@ public class PartitionBalanceAssignmentStrategyTest {
         return o1.getId().compareTo(o2.getId());
       }
     });
+    System.out.println("start");
     for (ServerNode node : list) {
+      System.out.println("index: " + i);
       assertEquals(expect.get(i).intValue(), strategy.getServerToPartitions().get(node).getPartitionNum());
       i++;
     }
+    System.out.println("end");
   }
 
   @After
