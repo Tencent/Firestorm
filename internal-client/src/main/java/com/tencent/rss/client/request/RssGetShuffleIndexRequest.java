@@ -25,18 +25,21 @@ public class RssGetShuffleIndexRequest {
   private int partitionId;
   private int partitionNumPerRange;
   private int partitionNum;
+  private long length;
 
   public RssGetShuffleIndexRequest(
       String appId,
       int shuffleId,
       int partitionId,
       int partitionNumPerRange,
-      int partitionNum) {
+      int partitionNum,
+      long length) {
     this.appId = appId;
     this.shuffleId = shuffleId;
     this.partitionId = partitionId;
     this.partitionNumPerRange = partitionNumPerRange;
     this.partitionNum = partitionNum;
+    this.length = length;
   }
 
   public String getAppId() {
@@ -59,4 +62,7 @@ public class RssGetShuffleIndexRequest {
     return partitionNum;
   }
 
+  public long getLength() {
+    return length;
+  }
 }

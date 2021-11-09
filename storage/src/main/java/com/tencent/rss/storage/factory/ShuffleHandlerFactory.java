@@ -75,7 +75,7 @@ public class ShuffleHandlerFactory {
           Collectors.toList());
       return new LocalFileClientReadHandler(request.getAppId(), request.getShuffleId(), request.getPartitionId(),
           request.getIndexReadLimit(), request.getPartitionNumPerRange(), request.getPartitionNum(),
-          request.getReadBufferSize(), shuffleServerClients);
+          request.getReadBufferSize(), shuffleServerClients, request.getExpectBlockIds());
     } else if (StorageType.LOCALFILE_AND_HDFS.name().equals(request.getStorageType())) {
       return new MultiStorageReadHandler(
           StorageType.LOCALFILE,

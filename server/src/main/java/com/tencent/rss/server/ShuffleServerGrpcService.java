@@ -448,30 +448,40 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    try {
-      long start = System.currentTimeMillis();
-      ShuffleIndexResult shuffleIndexResult = shuffleServer.getShuffleTaskManager().getShuffleIndex(
-          appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
-      long readTime = System.currentTimeMillis() - start;
+    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(request.getLength())) {
+      try {
+        long start = System.currentTimeMillis();
+        ShuffleIndexResult shuffleIndexResult = shuffleServer.getShuffleTaskManager().getShuffleIndex(
+            appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
+        long readTime = System.currentTimeMillis() - start;
 
-      ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
-      GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
-          .setStatus(valueOf(status))
-          .setRetMsg(msg);
-      if (!shuffleIndexResult.isEmpty()) {
-        builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
+        ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
+        GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
+            .setStatus(valueOf(status))
+            .setRetMsg(msg);
+        if (!shuffleIndexResult.isEmpty()) {
+          builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
+        }
+        reply = builder.build();
+      } catch (Exception e) {
+        status = StatusCode.INTERNAL_ERROR;
+        msg = "Error happened when get shuffle index for " + requestInfo + ", " + e.getMessage();
+        LOG.error(msg, e);
+        reply = GetShuffleIndexResponse.newBuilder()
+            .setStatus(valueOf(status))
+            .setRetMsg(msg)
+            .build();
+      } finally {
+        shuffleServer.getShuffleBufferManager().releaseReadMemory(0);
       }
-      reply = builder.build();
-    } catch (Exception e) {
+    } else {
       status = StatusCode.INTERNAL_ERROR;
-      msg = "Error happened when get shuffle index for " + requestInfo + ", " + e.getMessage();
-      LOG.error(msg, e);
+      msg = "Can't require memory to get shuffle index";
+      LOG.error(msg + " for " + requestInfo);
       reply = GetShuffleIndexResponse.newBuilder()
           .setStatus(valueOf(status))
           .setRetMsg(msg)
           .build();
-    } finally {
-      shuffleServer.getShuffleBufferManager().releaseReadMemory(0);
     }
     responseObserver.onNext(reply);
     responseObserver.onCompleted();

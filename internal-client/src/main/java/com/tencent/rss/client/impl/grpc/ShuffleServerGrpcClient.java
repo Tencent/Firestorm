@@ -487,7 +487,6 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     return "ShuffleServerGrpcClient for host[" + host + "], port[" + port + "]";
   }
 
-
   private List<ShufflePartitionRange> toShufflePartitionRanges(List<PartitionRange> partitionRanges) {
     List<ShufflePartitionRange> ret = Lists.newArrayList();
     for (PartitionRange partitionRange : partitionRanges) {

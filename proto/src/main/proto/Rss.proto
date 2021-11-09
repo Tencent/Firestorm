@@ -89,6 +89,7 @@ message GetShuffleIndexRequest {
   int32 partitionId = 3;
   int32 partitionNumPerRange = 4;
   int32 partitionNum = 5;
+  int64 length = 6;
 }
 
 message GetShuffleIndexResponse {
