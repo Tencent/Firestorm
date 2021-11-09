@@ -551,7 +551,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     int index = 0;
     ShuffleDataResult result = null;
     List<ShuffleDataSegment> shuffleDataSegments = readShuffleIndexSegments(
-        shuffleServerClient, appId, shuffleId, partitionId, 1, 10, 1000, 1000);
+        shuffleServerClient, appId, shuffleId, partitionId, 1, 10, 1000);
     do {
       if (result != null) {
         byte[] buffer = result.getData();

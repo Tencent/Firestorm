@@ -124,7 +124,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
             + "] failed, try again, retryNum[" + retryNum + "]", e);
       }
     }
-    throw new RuntimeException("Send commit to host[" + host + "], port[" + port + "] failed");
+    throw new RssException("Send commit to host[" + host + "], port[" + port + "] failed");
   }
 
   private AppHeartBeatResponse doSendHeartBeat(String appId, long timeout) {
@@ -181,7 +181,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
             + " for appId[" + request.getAppId() + "], shuffleId[" + request.getShuffleId()
             + "], errorMsg:" + rpcResponse.getRetMsg();
         LOG.error(msg);
-        throw new RuntimeException(msg);
+        throw new RssException(msg);
     }
     return response;
   }
@@ -268,7 +268,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
             + "] failed, try again, retryNum[" + retryNum + "]", e);
       }
     }
-    throw new RuntimeException("Send data to host[" + host + "], port[" + port + "] failed");
+    throw new RssException("Send data to host[" + host + "], port[" + port + "] failed");
   }
 
   @Override
@@ -281,7 +281,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
           + " for [appId=" + request.getAppId() + ", shuffleId=" + request.getShuffleId() + "], "
           + "errorMsg:" + rpcResponse.getRetMsg();
       LOG.error(msg);
-      throw new RuntimeException(msg);
+      throw new RssException(msg);
     } else {
       response = new RssSendCommitResponse(ResponseStatusCode.SUCCESS);
       response.setCommitCount(rpcResponse.getCommitCount());
@@ -315,7 +315,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
           + " for [appId=" + request.getAppId() + ", shuffleId=" + request.getShuffleId() + "], "
           + "errorMsg:" + rpcResponse.getRetMsg();
       LOG.error(msg);
-      throw new RuntimeException(msg);
+      throw new RssException(msg);
     } else {
       response = new RssFinishShuffleResponse(ResponseStatusCode.SUCCESS);
     }
@@ -355,7 +355,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
             + " for [appId=" + request.getAppId() + ", shuffleId=" + request.getShuffleId()
             + ", errorMsg:" + rpcResponse.getRetMsg();
         LOG.error(msg);
-        throw new RuntimeException(msg);
+        throw new RssException(msg);
     }
 
     return response;
@@ -374,7 +374,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
             + "] failed, try again, retryNum[" + retryNum + "]", e);
       }
     }
-    throw new RuntimeException("Report shuffle result to host[" + host + "], port[" + port + "] failed");
+    throw new RssException("Report shuffle result to host[" + host + "], port[" + port + "] failed");
   }
 
   @Override
@@ -433,8 +433,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     RssGetShuffleDataResponse response;
     switch (statusCode) {
       case SUCCESS:
-        response = new RssGetShuffleDataResponse(ResponseStatusCode.SUCCESS);
-        response.setShuffleData(rpcResponse.getData().toByteArray());
+        response = new RssGetShuffleDataResponse(ResponseStatusCode.SUCCESS, rpcResponse.getData().toByteArray());
         break;
       default:
         String msg = "Can't get shuffle data from " + host + ":" + port

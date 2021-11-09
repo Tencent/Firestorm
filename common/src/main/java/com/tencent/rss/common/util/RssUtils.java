@@ -142,16 +142,17 @@ public class RssUtils {
     return bitmap;
   }
 
-  public static List<ShuffleDataSegment> transIndexDataToSegments(ShuffleIndexResult sir, int readBufferSize) {
-    if (sir == null || sir.isEmpty()) {
+  public static List<ShuffleDataSegment> transIndexDataToSegments(
+      ShuffleIndexResult shuffleIndexResult, int readBufferSize) {
+    if (shuffleIndexResult == null || shuffleIndexResult.isEmpty()) {
       return Lists.newLinkedList();
     }
 
-    byte[] indexData = sir.getIndexData();
+    byte[] indexData = shuffleIndexResult.getIndexData();
     return transIndexDataToSegments(indexData, readBufferSize);
   }
 
-  public static List<ShuffleDataSegment> transIndexDataToSegments(byte[] indexData, int readBufferSize) {
+  private static List<ShuffleDataSegment> transIndexDataToSegments(byte[] indexData, int readBufferSize) {
     ByteBuffer byteBuffer = ByteBuffer.wrap(indexData);
     List<BufferSegment> bufferSegments = Lists.newArrayList();
     List<ShuffleDataSegment> dataFileSegments = Lists.newArrayList();
@@ -166,8 +167,9 @@ public class RssUtils {
       long blockId = byteBuffer.getLong();
       long taskAttemptId = byteBuffer.getLong();
 
-      // The first index segment's offset should be the start position of the data file indexed
-      // by the the indices parsed by the index file part fetched this time.
+      // The index file is written, read and parsed sequentially, so these parsed index segments
+      // index a continuous shuffle data in the corresponding data file and the first segment's
+      // offset field is the offset of these shuffle data in the data file.
       if (fileOffset == -1) {
         fileOffset = offset;
       }

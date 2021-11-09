@@ -20,25 +20,19 @@ package com.tencent.rss.common;
 
 import java.util.List;
 
+/**
+ * ShuffleDataSegment is a view of a segment of shuffle data file, which is split according to the read buffer size.
+ * It contains a list of BufferSegment, they are indices of the block in the data file segment.
+ */
 public class ShuffleDataSegment {
-  private String path;
   private long offset;
   private int length;
   private List<BufferSegment> bufferSegments;
-
-  public ShuffleDataSegment(String path, long offset, int length, List<BufferSegment> bufferSegments) {
-    this(offset, length, bufferSegments);
-    this.path = path;
-  }
 
   public ShuffleDataSegment(long offset, int length, List<BufferSegment> bufferSegments) {
     this.offset = offset;
     this.length = length;
     this.bufferSegments = bufferSegments;
-  }
-
-  public String getPath() {
-    return path;
   }
 
   public long getOffset() {

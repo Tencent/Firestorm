@@ -27,10 +27,7 @@ import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleDataSegment;
 import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.util.RssUtils;
-import com.tencent.rss.storage.common.FileBasedShuffleSegment;
-import com.tencent.rss.storage.common.ShuffleSegment;
 import java.util.List;
-import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +39,6 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
   private int readBufferSize;
   private List<ShuffleServerClient> shuffleServerClients;
   private List<ShuffleDataSegment> shuffleDataSegments = Lists.newLinkedList();
-  private Roaring64NavigableMap expectBlockIds;
 
   public LocalFileClientReadHandler(
       String appId,
@@ -52,8 +48,7 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
       int partitionNumPerRange,
       int partitionNum,
       int readBufferSize,
-      List<ShuffleServerClient> shuffleServerClients,
-      Roaring64NavigableMap expectBlockIds) {
+      List<ShuffleServerClient> shuffleServerClients) {
     this.appId = appId;
     this.shuffleId = shuffleId;
     this.partitionId = partitionId;
@@ -62,15 +57,13 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
     this.partitionNum = partitionNum;
     this.readBufferSize = readBufferSize;
     this.shuffleServerClients = shuffleServerClients;
-    this.expectBlockIds = expectBlockIds;
   }
 
   public ShuffleIndexResult readShuffleIndex() {
     boolean readSuccessful = false;
     ShuffleIndexResult shuffleIndexResult = null;
-    long indexDataLength = expectBlockIds.getLongCardinality() * FileBasedShuffleSegment.SEGMENT_SIZE;
     RssGetShuffleIndexRequest request = new RssGetShuffleIndexRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, indexDataLength);
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
 
     for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
       try {
@@ -94,8 +87,8 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
     boolean readSuccessful = false;
     ShuffleDataResult result = null;
     RssGetShuffleDataRequest request = new RssGetShuffleDataRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
-        -1, shuffleDataSegment.getOffset(), shuffleDataSegment.getLength());
+        appId,shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
+        shuffleDataSegment.getOffset(), shuffleDataSegment.getLength());
     for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
       try {
         RssGetShuffleDataResponse response = shuffleServerClient.getShuffleData(request);

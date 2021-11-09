@@ -140,8 +140,6 @@ public class LocalFileHandlerTest {
 
   private List<ShuffleDataResult> readAll(ServerReadHandler readHandler) {
     List<ShuffleDataResult> shuffleDataResults = Lists.newLinkedList();
-
-
     ShuffleIndexResult sir = readHandler.getShuffleIndex();
     if (sir == null || sir.isEmpty()) {
       return shuffleDataResults;
@@ -150,9 +148,9 @@ public class LocalFileHandlerTest {
     List<ShuffleDataSegment> shuffleDataSegments = RssUtils.transIndexDataToSegments(sir, 32);
 
     for (ShuffleDataSegment shuffleDataSegment : shuffleDataSegments) {
-      ShuffleDataResult sdr =
-          readHandler.getShuffleData(shuffleDataSegment.getOffset(), shuffleDataSegment.getLength());
-      sdr.setBufferSegments(shuffleDataSegment.getBufferSegments());
+      byte[] shuffleData =
+          readHandler.getShuffleData(shuffleDataSegment.getOffset(), shuffleDataSegment.getLength()).getData();
+      ShuffleDataResult sdr = new ShuffleDataResult(shuffleData, shuffleDataSegment.getBufferSegments());
       shuffleDataResults.add(sdr);
     }
 

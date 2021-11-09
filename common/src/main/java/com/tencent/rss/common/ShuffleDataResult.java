@@ -18,6 +18,7 @@
 
 package com.tencent.rss.common;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 
 public class ShuffleDataResult {
@@ -26,11 +27,11 @@ public class ShuffleDataResult {
   private List<BufferSegment> bufferSegments;
 
   public ShuffleDataResult() {
-    this(new byte[0], null);
+    this(new byte[0]);
   }
 
   public ShuffleDataResult(byte[] data) {
-    this(data, null);
+    this(data, Lists.newArrayList());
   }
 
   public ShuffleDataResult(byte[] data, List<BufferSegment> bufferSegments) {
@@ -50,7 +51,4 @@ public class ShuffleDataResult {
     return bufferSegments == null || bufferSegments.isEmpty() || data == null || data.length == 0;
   }
 
-  public void setBufferSegments(List<BufferSegment> bufferSegments) {
-    this.bufferSegments = bufferSegments;
-  }
 }

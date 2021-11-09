@@ -20,31 +20,20 @@ package com.tencent.rss.common;
 
 public class ShuffleIndexResult {
   private byte[] indexData;
-  private String path;
 
   public ShuffleIndexResult() {
-    this(null, null);
+    this(new byte[0]);
   }
 
   public ShuffleIndexResult(byte[] bytes) {
-    this(bytes, null);
-  }
-
-  public ShuffleIndexResult(byte[] bytes, String path) {
     this.indexData = bytes;
-    this.path = path;
   }
 
   public byte[] getIndexData() {
     return indexData;
   }
 
-  public String getPath() {
-    return path;
-  }
-
   public boolean isEmpty() {
-    return indexData == null;
+    return indexData == null || indexData.length == 0;
   }
-
 }

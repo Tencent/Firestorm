@@ -122,11 +122,10 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
       int partitionId,
       int partitionNumPerRange,
       int partitionNum,
-      int readBufferSize,
-      long length) {
+      int readBufferSize) {
     // read index file
     RssGetShuffleIndexRequest rgsir = new RssGetShuffleIndexRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, length);
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
     ShuffleIndexResult sir = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
     return RssUtils.transIndexDataToSegments(sir, readBufferSize);
   }
@@ -149,7 +148,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     ShuffleDataSegment segment = sds.get(segmentIndex);
     RssGetShuffleDataRequest rgsdr = new RssGetShuffleDataRequest(
         appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
-        segmentIndex, segment.getOffset(), segment.getLength());
+        segment.getOffset(), segment.getLength());
 
     return new ShuffleDataResult(
         shuffleServerClient.getShuffleData(rgsdr).getShuffleData(),
@@ -167,7 +166,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
       int segmentIndex) {
     // read index file
     RssGetShuffleIndexRequest rgsir = new RssGetShuffleIndexRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize);
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
     ShuffleIndexResult sir = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
     if (sir == null) {
       return new ShuffleDataResult();
@@ -182,7 +181,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     ShuffleDataSegment segment = sds.get(segmentIndex);
     RssGetShuffleDataRequest rgsdr = new RssGetShuffleDataRequest(
         appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
-        segmentIndex, segment.getOffset(), segment.getLength());
+        segment.getOffset(), segment.getLength());
 
     return new ShuffleDataResult(
         shuffleServerClient.getShuffleData(rgsdr).getShuffleData(),

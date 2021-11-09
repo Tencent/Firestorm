@@ -38,7 +38,6 @@ public class LocalFileServerReadHandler implements ServerReadHandler {
   private String appId;
   private int shuffleId;
   private int partitionId;
-  private boolean hasRead = false;
 
   public LocalFileServerReadHandler(
       String appId,

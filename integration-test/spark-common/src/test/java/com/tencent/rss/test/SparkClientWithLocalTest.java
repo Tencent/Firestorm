@@ -96,7 +96,6 @@ public class SparkClientWithLocalTest extends ShuffleReadWriteBase {
     ShuffleReadClientImpl readClient;
     readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(), testAppId, 0, 0, 100, 1,
         10, 1000, "", blockIdBitmap, taskIdBitmap, shuffleServerInfo, null);
-    System.out.println("MACDUAN start to validate");
     validateResult(readClient, expectedData);
     try {
       // can't find all expected block id, data loss

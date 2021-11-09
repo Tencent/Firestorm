@@ -439,16 +439,17 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     int partitionNumPerRange = request.getPartitionNumPerRange();
     int partitionNum = request.getPartitionNum();
     StatusCode status = StatusCode.SUCCESS;
-    String msg = "OK";
+    String msg = "SUCCESS";
     GetShuffleIndexResponse reply;
     String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId["
         + partitionId + "]";
 
-    if (shuffleServer.getMultiStorageManager() != null) {
+    if (shuffleServer.isMultiStorageEnabled()) {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(request.getLength())) {
+    long indexFileSize = shuffleServer.getShuffleServerConf().getLong(ShuffleServerConf.SERVER_SHUFFLE_INDEX_SIZE_HINT);
+    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(indexFileSize)) {
       try {
         long start = System.currentTimeMillis();
         ShuffleIndexResult shuffleIndexResult = shuffleServer.getShuffleTaskManager().getShuffleIndex(
@@ -472,7 +473,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
             .setRetMsg(msg)
             .build();
       } finally {
-        shuffleServer.getShuffleBufferManager().releaseReadMemory(0);
+        shuffleServer.getShuffleBufferManager().releaseReadMemory(indexFileSize);
       }
     } else {
       status = StatusCode.INTERNAL_ERROR;
