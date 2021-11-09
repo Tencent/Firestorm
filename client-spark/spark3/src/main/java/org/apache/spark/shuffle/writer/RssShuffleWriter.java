@@ -44,6 +44,7 @@ import org.apache.spark.scheduler.MapStatus;
 import org.apache.spark.shuffle.RssClientConfig;
 import org.apache.spark.shuffle.RssShuffleHandle;
 import org.apache.spark.shuffle.RssShuffleManager;
+import org.apache.spark.shuffle.RssCausedException;
 import org.apache.spark.shuffle.ShuffleWriter;
 import org.apache.spark.storage.BlockManagerId;
 import org.slf4j.Logger;
