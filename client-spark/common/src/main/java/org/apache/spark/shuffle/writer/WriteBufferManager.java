@@ -35,6 +35,7 @@ import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.serializer.SerializationStream;
 import org.apache.spark.serializer.Serializer;
 import org.apache.spark.serializer.SerializerInstance;
+import org.apache.spark.shuffle.RssCausedException;
 import org.apache.spark.shuffle.RssShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -206,7 +207,8 @@ public class WriteBufferManager extends MemoryConsumer {
     int retry = 0;
     while (allocatedBytes.get() - usedBytes.get() < leastMem) {
       LOG.info("Can't get memory for now, sleep and try[" + retry
-          + "] again, request[" + askExecutorMemory + "], got[" + gotMem + "] less than " + leastMem);
+          + "] again, request[" + askExecutorMemory + "], got[" + gotMem + "] less than "
+          + leastMem);
       try {
         Thread.sleep(requireMemoryInterval);
       } catch (InterruptedException ie) {
@@ -217,10 +219,12 @@ public class WriteBufferManager extends MemoryConsumer {
       retry++;
       if (retry > requireMemoryRetryMax) {
         String message = "Can't get memory to cache shuffle data, request[" + askExecutorMemory
-            + "], got[" + gotMem + "]," + " WriteBufferManager allocated[" + allocatedBytes + "] task used[" + used
-            + "], consider to optimize 'spark.executor.memory'," + " 'spark.rss.writer.buffer.spill.size'.";
+            + "], got[" + gotMem + "]," + " WriteBufferManager allocated[" + allocatedBytes
+            + "] task used[" + used + "]. It may be caused by shuffle server is full of data"
+            + " or consider to optimize 'spark.executor.memory',"
+            + " 'spark.rss.writer.buffer.spill.size'.";
         LOG.error(message);
-        throw new OutOfMemoryError(message);
+        throw new RssCausedException(message);
       }
     }
   }
