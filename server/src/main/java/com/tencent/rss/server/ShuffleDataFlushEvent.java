@@ -19,6 +19,8 @@
 package com.tencent.rss.server;
 
 import com.tencent.rss.common.ShufflePartitionedBlock;
+import com.tencent.rss.storage.util.ShuffleStorageUtils;
+
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -32,6 +34,7 @@ public class ShuffleDataFlushEvent {
   private long size;
   private List<ShufflePartitionedBlock> shuffleBlocks;
   private Supplier<Boolean> valid = null;
+  private int index;
 
   public ShuffleDataFlushEvent(
       long eventId,
@@ -48,6 +51,7 @@ public class ShuffleDataFlushEvent {
     this.endPartition = endPartition;
     this.size = size;
     this.shuffleBlocks = shuffleBlocks;
+
   }
 
   public ShuffleDataFlushEvent(
@@ -102,6 +106,18 @@ public class ShuffleDataFlushEvent {
       return true;
     }
     return valid.get();
+  }
+
+  public void pickStorageIndex(int max) {
+    this.index = ShuffleStorageUtils.getStorageIndex(
+        max,
+        appId,
+        shuffleId,
+        startPartition);
+  }
+
+  public int getStorageIndex() {
+    return index;
   }
 
   @Override

@@ -225,12 +225,12 @@ public class MultiStorageManager {
   }
 
   public boolean canWrite(ShuffleDataFlushEvent event) {
-    DiskItem diskItem = getDiskItem(event);
+    DiskItem diskItem = diskItems.get(event.getStorageIndex());
     return diskItem.canWrite();
   }
 
   public void updateWriteEvent(ShuffleDataFlushEvent event) {
-    DiskItem diskItem = getDiskItem(event);
+    DiskItem diskItem = diskItems.get(event.getStorageIndex());
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
     String key = generateKey(appId, shuffleId);
@@ -285,7 +285,7 @@ public class MultiStorageManager {
   }
 
   public void createMetadataIfNotExist(ShuffleDataFlushEvent event) {
-    DiskItem diskItem = getDiskItem(event);
+    DiskItem diskItem = diskItems.get(event.getStorageIndex());
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
     String key = generateKey(appId, shuffleId);
@@ -293,7 +293,7 @@ public class MultiStorageManager {
   }
 
   public ReadWriteLock getForceUploadLock(ShuffleDataFlushEvent event) {
-    DiskItem diskItem = getDiskItem(event);
+    DiskItem diskItem = diskItems.get(event.getStorageIndex());
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
     String key = generateKey(appId, shuffleId);

@@ -38,9 +38,11 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import com.tencent.rss.storage.util.ShuffleStorageUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
@@ -74,6 +76,8 @@ public class ShuffleFlushManager {
   private final long pendingEventTimeoutSec;
   private final boolean useMultiStorage;
   private int processPendingEventIndex = 0;
+  private final long excludeStorageThreshold;
+  private final Map<Integer, AtomicInteger> storageErrorMap = Maps.newConcurrentMap();
 
   public ShuffleFlushManager(ShuffleServerConf shuffleServerConf, String shuffleServerId, ShuffleServer shuffleServer,
       MultiStorageManager multiStorageManager) {
@@ -89,6 +93,7 @@ public class ShuffleFlushManager {
     eventSizeThresholdL1 = shuffleServerConf.getLong(ShuffleServerConf.SERVER_EVENT_SIZE_THRESHOLD_L1);
     eventSizeThresholdL2 = shuffleServerConf.getLong(ShuffleServerConf.SERVER_EVENT_SIZE_THRESHOLD_L2);
     eventSizeThresholdL3 = shuffleServerConf.getLong(ShuffleServerConf.SERVER_EVENT_SIZE_THRESHOLD_L3);
+    excludeStorageThreshold = shuffleServerConf.getLong(ShuffleServerConf.SERVER_EXCLUDE_STORAGE_THRESHOLD);
     int waitQueueSize = shuffleServerConf.getInteger(
         ShuffleServerConf.SERVER_FLUSH_THREAD_POOL_QUEUE_SIZE);
     BlockingQueue<Runnable> waitQueue = Queues.newLinkedBlockingQueue(waitQueueSize);
@@ -145,6 +150,7 @@ public class ShuffleFlushManager {
 
   private void flushToFile(ShuffleDataFlushEvent event) {
 
+    event.pickStorageIndex(storageBasePaths.length);
     if (useMultiStorage && !multiStorageManager.canWrite(event)) {
       addPendingEvents(event);
       return;
@@ -156,83 +162,95 @@ public class ShuffleFlushManager {
     try {
       if (blocks == null || blocks.isEmpty()) {
         LOG.info("There is no block to be flushed: " + event);
-      } else if (!event.isValid()) {
+        return;
+      }
+      if (!event.isValid()) {
         LOG.warn("AppId {} was removed already, event {} should be dropped", event.getAppId(), event);
-      } else {
-        ShuffleWriteHandler handler = getHandler(event);
-        int retry = 0;
-        while (!writeSuccess) {
-          if (retry > retryMax) {
-            LOG.error("Failed to write data for " + event + " in " + retryMax + " times, shuffle data will be lost");
-            break;
-          }
-          if (!event.isValid()) {
-            LOG.warn("AppId {} was removed already, event {} should be dropped, may leak one handler",
-                event.getAppId(), event);
-            break;
-          }
-          ReadWriteLock lock = null;
-          if (useMultiStorage) {
-            multiStorageManager.createMetadataIfNotExist(event);
-            lock = multiStorageManager.getForceUploadLock(event);
-            if (lock == null) {
-              LOG.warn("Shuffle metadata of event {}/{} has been removed, ignore this flush event",
-                  event.getAppId(), event.getShuffleId());
-              return;
-            }
-            lock.readLock().lock();
-          }
-          try {
-            long startWrite = System.currentTimeMillis();
-            handler.write(blocks);
-            if (useMultiStorage) {
-              multiStorageManager.updateWriteEvent(event);
-            }
-            long writeTime = System.currentTimeMillis() - startWrite;
-            ShuffleServerMetrics.counterTotalWriteTime.inc(writeTime);
-            ShuffleServerMetrics.counterWriteTotal.inc();
-            if (writeTime > writeSlowThreshold) {
-              ShuffleServerMetrics.counterWriteSlow.inc();
-            }
-            updateCommittedBlockIds(event.getAppId(), event.getShuffleId(), blocks);
-            writeSuccess = true;
-            ShuffleServerMetrics.counterTotalWriteDataSize.inc(event.getSize());
-            ShuffleServerMetrics.counterTotalWriteBlockSize.inc(event.getShuffleBlocks().size());
-            if (event.getSize() < eventSizeThresholdL1) {
-              ShuffleServerMetrics.counterEventSizeThresholdLevel1.inc();
-            } else if (event.getSize() < eventSizeThresholdL2) {
-              ShuffleServerMetrics.counterEventSizeThresholdLevel2.inc();
-            } else if (event.getSize() < eventSizeThresholdL3) {
-              ShuffleServerMetrics.counterEventSizeThresholdLevel3.inc();
-            } else {
-              ShuffleServerMetrics.counterEventSizeThresholdLevel4.inc();
-            }
-          } catch (Exception e) {
-            LOG.warn("Exception happened when write data for " + event + ", try again", e);
-            ShuffleServerMetrics.counterWriteException.inc();
-            Thread.sleep(1000);
-          } finally {
-            if (useMultiStorage) {
-              lock.readLock().unlock();
-            }
-          }
-          retry++;
+        return;
+      }
+      int retry = 0;
+      while (retry <= retryMax) {
+
+        if (!event.isValid()) {
+          LOG.warn("AppId {} was removed already, event {} should be dropped, may leak one handler",
+              event.getAppId(), event);
+          break;
         }
+
+        try {
+          if (useMultiStorage) {
+            withMultiStorageProcessEvent(event);
+          } else {
+            processEvent(event);
+          }
+          writeSuccess = true;
+          break;
+        } catch (Exception e) {
+          LOG.warn("Exception happened when write data for " + event + ", try again", e);
+          ShuffleServerMetrics.counterWriteException.inc();
+          Thread.sleep(1000);
+        }
+
+        retry++;
       }
     } catch (Exception e) {
       // just log the error, don't throw the exception and stop the flush thread
       LOG.error("Exception happened when process flush shuffle data for " + event, e);
     } finally {
-      if (shuffleServer != null) {
-        shuffleServer.getShuffleBufferManager().releaseMemory(event.getSize(), true, false);
-        long duration = System.currentTimeMillis() - start;
-        if (writeSuccess) {
-          LOG.debug("Flush to file success in " + duration + " ms and release " + event.getSize() + " bytes");
-        } else {
-          LOG.error("Flush to file for " + event + " failed in "
-              + duration + " ms and release " + event.getSize() + " bytes");
+      long duration = System.currentTimeMillis() - start;
+      processWriteResult(event, duration, writeSuccess);
+    }
+  }
+
+  private void processWriteResult(ShuffleDataFlushEvent event, long duration, boolean writeSuccess) {
+    if (shuffleServer != null) {
+      shuffleServer.getShuffleBufferManager().releaseMemory(event.getSize(), true, false);
+      storageErrorMap.putIfAbsent(event.getStorageIndex(), new AtomicInteger(0));
+      AtomicInteger errors = storageErrorMap.get(event.getStorageIndex());
+      if (writeSuccess) {
+        errors.updateAndGet(x -> {
+          --x;
+          if (x < 0) {
+            return 0;
+          }
+          return x;
+        });
+        LOG.debug("Flush to file success in " + duration + " ms and release " + event.getSize() + " bytes");
+      } else {
+        if (storageBasePaths.length > 1 && errors.incrementAndGet() > excludeStorageThreshold) {
+          ShuffleStorageUtils.addExcludeStorage(event.getStorageIndex());
+          LOG.error("Add {} to exclude storage set", storageBasePaths[event.getStorageIndex()]);
         }
+        LOG.error("Flush to file for " + event + " failed in "
+            + duration + " ms and release " + event.getSize() + " bytes");
       }
+    }
+  }
+
+  private void processEvent(ShuffleDataFlushEvent event) throws Exception {
+    long startWrite = System.currentTimeMillis();
+    List<ShufflePartitionedBlock> blocks = event.getShuffleBlocks();
+    ShuffleWriteHandler handler = getHandler(event);
+    handler.write(blocks);
+    long writeTime = System.currentTimeMillis() - startWrite;
+    updateCommittedBlockIds(event.getAppId(), event.getShuffleId(), blocks);
+    updateSuccessEventMetrics(event, writeTime);
+  }
+
+  private void withMultiStorageProcessEvent(ShuffleDataFlushEvent event) throws Exception {
+    multiStorageManager.createMetadataIfNotExist(event);
+    ReadWriteLock lock = multiStorageManager.getForceUploadLock(event);
+    if (lock == null) {
+      LOG.warn("Shuffle metadata of event {}/{} has been removed, ignore this flush event",
+          event.getAppId(), event.getShuffleId());
+      throw new IllegalStateException("Shuffle " + event.getAppId() + "/" + event.getShuffleId() + " has been removed");
+    }
+    try {
+      lock.readLock().lock();
+      processEvent(event);
+      multiStorageManager.updateWriteEvent(event);
+    } finally {
+      lock.readLock().unlock();
     }
   }
 
@@ -256,9 +274,29 @@ public class ShuffleFlushManager {
                       storageBasePaths,
                       shuffleServerId,
                       hadoopConf,
-                      storageDataReplica)));
+                      storageDataReplica,
+                      event.getStorageIndex())));
     }
     return eventIdRangeMap.get(event.getStartPartition());
+  }
+
+  private void updateSuccessEventMetrics(ShuffleDataFlushEvent event, long writeTime) {
+    ShuffleServerMetrics.counterTotalWriteTime.inc(writeTime);
+    ShuffleServerMetrics.counterWriteTotal.inc();
+    if (writeTime > writeSlowThreshold) {
+      ShuffleServerMetrics.counterWriteSlow.inc();
+    }
+    ShuffleServerMetrics.counterTotalWriteDataSize.inc(event.getSize());
+    ShuffleServerMetrics.counterTotalWriteBlockSize.inc(event.getShuffleBlocks().size());
+    if (event.getSize() < eventSizeThresholdL1) {
+      ShuffleServerMetrics.counterEventSizeThresholdLevel1.inc();
+    } else if (event.getSize() < eventSizeThresholdL2) {
+      ShuffleServerMetrics.counterEventSizeThresholdLevel2.inc();
+    } else if (event.getSize() < eventSizeThresholdL3) {
+      ShuffleServerMetrics.counterEventSizeThresholdLevel3.inc();
+    } else {
+      ShuffleServerMetrics.counterEventSizeThresholdLevel4.inc();
+    }
   }
 
   private void updateCommittedBlockIds(String appId, int shuffleId, List<ShufflePartitionedBlock> blocks) {

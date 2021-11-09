@@ -117,7 +117,7 @@ public class ShuffleHandlerFactory {
           request.getShuffleId(),
           request.getStartPartition(),
           request.getEndPartition(),
-          request.getStorageBasePaths(),
+          request.getStorageBasePaths()[request.getStorageIndex()],
           request.getFileNamePrefix());
     } else {
       throw new UnsupportedOperationException("Doesn't support storage type for shuffle write handler:"

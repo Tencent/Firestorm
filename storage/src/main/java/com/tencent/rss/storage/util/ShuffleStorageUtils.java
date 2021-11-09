@@ -19,6 +19,7 @@
 package com.tencent.rss.storage.util;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
@@ -29,6 +30,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.tencent.rss.storage.handler.impl.HdfsFileWriter;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -45,6 +47,7 @@ public class ShuffleStorageUtils {
   static final String HDFS_PATH_SEPARATOR = "/";
   static final String HDFS_DIRNAME_SEPARATOR = "-";
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleStorageUtils.class);
+  private static final Set<Integer> excludeDisks = Sets.newConcurrentHashSet();
 
   private ShuffleStorageUtils() {
   }
@@ -199,12 +202,36 @@ public class ShuffleStorageUtils {
   }
 
   public static int getStorageIndex(int max, String appId, int shuffleId, int startPartition) {
-    String hash = appId + "_" + shuffleId + "_" + startPartition;
-    int index = MurmurHash.getInstance().hash(hash.getBytes()) % max;
-    if (index < 0) {
-      index = -index;
+    String origin = appId + "_" + shuffleId + "_" + startPartition;
+    String hash = origin;
+    int retry = 0;
+    int index;
+    int lastIndex  = max + 1;
+    int currentDiskTotals = max;
+    do {
+      index = MurmurHash.getInstance().hash(hash.getBytes()) % currentDiskTotals;
+      if (index < 0) {
+        index = -index;
+      }
+      if (index >= lastIndex) {
+        index++;
+      }
+      hash = origin + "_" + retry;
+      currentDiskTotals = max - 1;
+      retry++;
+    } while (isExcludeDisk(index) && retry < 2 * max);
+    if (isExcludeDisk(index)) {
+      throw new RuntimeException("Can't choose property disk");
     }
     return index;
+  }
+
+  private static boolean isExcludeDisk(int index) {
+    return excludeDisks.contains(index);
+  }
+
+  public static void addExcludeStorage(int index) {
+    excludeDisks.add(index);
   }
 
   public static void createDirIfNotExist(FileSystem fileSystem, String pathString) throws IOException {

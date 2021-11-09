@@ -258,6 +258,12 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(2 * 1024L * 1024L)
       .withDescription("The index file size hint");
 
+  public static final ConfigOption<Long> SERVER_EXCLUDE_STORAGE_THRESHOLD = ConfigOptions
+      .key("rss.server.exclude.storage.threshold")
+      .longType()
+      .defaultValue(10L)
+      .withDescription("The threshold of exclude storage");
+
   public ShuffleServerConf() {
   }
 

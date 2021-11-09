@@ -31,6 +31,7 @@ public class CreateShuffleWriteHandlerRequest {
   private String fileNamePrefix;
   private Configuration conf;
   private int storageDataReplica;
+  private int storageIndex;
 
   public CreateShuffleWriteHandlerRequest(
       String storageType,
@@ -41,7 +42,8 @@ public class CreateShuffleWriteHandlerRequest {
       String[] storageBasePaths,
       String fileNamePrefix,
       Configuration conf,
-      int storageDataReplica) {
+      int storageDataReplica,
+      int storageIndex) {
     this.storageType = storageType;
     this.appId = appId;
     this.shuffleId = shuffleId;
@@ -51,6 +53,7 @@ public class CreateShuffleWriteHandlerRequest {
     this.fileNamePrefix = fileNamePrefix;
     this.conf = conf;
     this.storageDataReplica = storageDataReplica;
+    this.storageIndex = storageIndex;
   }
 
   public String getStorageType() {
@@ -87,5 +90,9 @@ public class CreateShuffleWriteHandlerRequest {
 
   public int getStorageDataReplica() {
     return storageDataReplica;
+  }
+
+  public int getStorageIndex() {
+    return storageIndex;
   }
 }
