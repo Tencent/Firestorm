@@ -202,7 +202,13 @@ public class ShuffleFlushManager {
     }
   }
 
-  private void processWriteResult(ShuffleDataFlushEvent event, long duration, boolean writeSuccess) {
+  @VisibleForTesting
+  Map<Integer, AtomicInteger> getStorageErrorMap() {
+    return storageErrorMap;
+  }
+
+  @VisibleForTesting
+  void processWriteResult(ShuffleDataFlushEvent event, long duration, boolean writeSuccess) {
     if (shuffleServer != null) {
       shuffleServer.getShuffleBufferManager().releaseMemory(event.getSize(), true, false);
       storageErrorMap.putIfAbsent(event.getStorageIndex(), new AtomicInteger(0));

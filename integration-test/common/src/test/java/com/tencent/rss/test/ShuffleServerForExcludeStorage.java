@@ -27,7 +27,6 @@ public class ShuffleServerForExcludeStorage extends ShuffleReadWriteBase {
   public static void setupServers() throws Exception {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
     ShuffleServerConf serverConf = getShuffleServerConf();
-    String basePath = generateBasePath();
-    serverConf.setString();
+    createAndStartServers(serverConf, coordinatorConf);
   }
 }
