@@ -44,7 +44,7 @@ import org.apache.spark.scheduler.MapStatus$;
 import org.apache.spark.shuffle.RssClientConfig;
 import org.apache.spark.shuffle.RssShuffleHandle;
 import org.apache.spark.shuffle.RssShuffleManager;
-import org.apache.spark.shuffle.RssCausedException;
+import com.tencent.rss.common.exception.RssException;
 import org.apache.spark.shuffle.ShuffleWriter;
 import org.apache.spark.storage.BlockManagerId;
 import org.slf4j.Logger;
@@ -232,7 +232,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     try {
       // check if commit/finish rpc is successful
       if (!future.get()) {
-        throw new RssCausedException("Failed to commit task to shuffle server");
+        throw new RssException("Failed to commit task to shuffle server");
       }
     } catch (InterruptedException ie) {
       LOG.warn("Ignore the InterruptedException which should be caused by internal killed");
@@ -253,7 +253,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
             "Send failed: Task[" + taskId + "] failed because " + failedBlockIds.size()
                 + " blocks can't be sent to shuffle server.";
         LOG.error(errorMsg);
-        throw new RssCausedException(errorMsg);
+        throw new RssException(errorMsg);
       }
 
       // remove blockIds which was sent successfully, if there has none left, all data are sent
@@ -268,7 +268,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
             "Timeout: Task[" + taskId + "] failed because " + blockIds.size()
                 + " blocks can't be sent to shuffle server in " + sendCheckTimeout + " ms.";
         LOG.error(errorMsg);
-        throw new RssCausedException(errorMsg);
+        throw new RssException(errorMsg);
       }
     }
   }

@@ -17,11 +17,11 @@
  */
 
 
-package org.apache.spark.shuffle;
+package com.tencent.rss.common.exception;
 
-public class RssCausedException extends RuntimeException {
+public class RssException extends RuntimeException {
 
-  public RssCausedException(String message) {
+  public RssException(String message) {
     super(message);
   }
 

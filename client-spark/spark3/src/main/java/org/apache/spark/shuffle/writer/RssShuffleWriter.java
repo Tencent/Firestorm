@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.util.ClientUtils;
+import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
 import java.io.IOException;
@@ -44,7 +45,6 @@ import org.apache.spark.scheduler.MapStatus;
 import org.apache.spark.shuffle.RssClientConfig;
 import org.apache.spark.shuffle.RssShuffleHandle;
 import org.apache.spark.shuffle.RssShuffleManager;
-import org.apache.spark.shuffle.RssCausedException;
 import org.apache.spark.shuffle.ShuffleWriter;
 import org.apache.spark.storage.BlockManagerId;
 import org.slf4j.Logger;
@@ -216,7 +216,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
             + " failed because " + failedBlockIds.size()
             + " blocks can't be sent to shuffle server.";
         LOG.error(errorMsg);
-        throw new RssCausedException(errorMsg);
+        throw new RssException(errorMsg);
       }
 
       blockIds.removeAll(successBlockIds);
@@ -229,7 +229,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         String errorMsg = "Timeout: Task[" + taskId + "] failed because " + blockIds.size()
             + " blocks can't be sent to shuffle server in " + sendCheckTimeout + " ms.";
         LOG.error(errorMsg);
-        throw new RssCausedException(errorMsg);
+        throw new RssException(errorMsg);
       }
     }
   }
@@ -250,7 +250,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     }
     try {
       if (!future.get()) {
-        throw new RssCausedException("Failed to commit task to shuffle server");
+        throw new RssException("Failed to commit task to shuffle server");
       }
     } catch (InterruptedException ie) {
       LOG.warn("Ignore the InterruptedException which should be caused by internal killed");

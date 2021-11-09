@@ -22,6 +22,7 @@ import com.clearspring.analytics.util.Lists;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.tencent.rss.client.util.ClientUtils;
+import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.ChecksumUtils;
@@ -35,7 +36,6 @@ import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.serializer.SerializationStream;
 import org.apache.spark.serializer.Serializer;
 import org.apache.spark.serializer.SerializerInstance;
-import org.apache.spark.shuffle.RssCausedException;
 import org.apache.spark.shuffle.RssShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,7 +224,7 @@ public class WriteBufferManager extends MemoryConsumer {
             + " or consider to optimize 'spark.executor.memory',"
             + " 'spark.rss.writer.buffer.spill.size'.";
         LOG.error(message);
-        throw new RssCausedException(message);
+        throw new RssException(message);
       }
     }
   }
