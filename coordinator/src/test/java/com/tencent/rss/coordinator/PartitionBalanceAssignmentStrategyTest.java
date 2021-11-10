@@ -183,7 +183,7 @@ public class PartitionBalanceAssignmentStrategyTest {
           5L,
           resources.get(i),
           5,
-          tags);
+          tags, true);
       clusterManager.add(node);
     }
   }

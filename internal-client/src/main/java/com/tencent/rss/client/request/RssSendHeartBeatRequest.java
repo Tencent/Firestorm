@@ -31,9 +31,19 @@ public class RssSendHeartBeatRequest {
   private int eventNumInFlush;
   private Set<String> tags;
   private long timeout;
+  private boolean isHealthy;
 
-  public RssSendHeartBeatRequest(String shuffleServerId, String shuffleServerIp, int shuffleServerPort, long usedMemory,
-      long preAllocatedMemory, long availableMemory, int eventNumInFlush, long timeout, Set<String> tags) {
+  public RssSendHeartBeatRequest(
+      String shuffleServerId,
+      String shuffleServerIp,
+      int shuffleServerPort,
+      long usedMemory,
+      long preAllocatedMemory,
+      long availableMemory,
+      int eventNumInFlush,
+      long timeout,
+      Set<String> tags,
+      boolean isHealthy) {
     this.shuffleServerId = shuffleServerId;
     this.shuffleServerIp = shuffleServerIp;
     this.shuffleServerPort = shuffleServerPort;
@@ -43,6 +53,7 @@ public class RssSendHeartBeatRequest {
     this.eventNumInFlush = eventNumInFlush;
     this.tags = tags;
     this.timeout = timeout;
+    this.isHealthy = isHealthy;
   }
 
   public String getShuffleServerId() {
