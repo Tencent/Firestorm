@@ -22,10 +22,6 @@ public class RssGetShuffleDataResponse extends ClientResponse {
 
   private byte[] shuffleData;
 
-  public RssGetShuffleDataResponse(ResponseStatusCode statusCode) {
-    this(statusCode, null);
-  }
-
   public RssGetShuffleDataResponse(ResponseStatusCode statusCode, byte[] data) {
     super(statusCode);
     this.shuffleData = data;

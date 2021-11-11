@@ -26,6 +26,7 @@ import com.tencent.rss.client.response.RssGetShuffleDataResponse;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleDataSegment;
 import com.tencent.rss.common.ShuffleIndexResult;
+import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.RssUtils;
 import java.util.List;
 import org.slf4j.Logger;
@@ -76,7 +77,7 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
     }
 
     if (!readSuccessful) {
-      throw new RuntimeException("Failed to read shuffle index for appId[" + appId + "], shuffleId["
+      throw new RssException("Failed to read shuffle index for appId[" + appId + "], shuffleId["
           + shuffleId + "], partitionId[" + partitionId + "]");
     }
 
@@ -86,23 +87,40 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
   public ShuffleDataResult readShuffleData(ShuffleDataSegment shuffleDataSegment) {
     boolean readSuccessful = false;
     ShuffleDataResult result = null;
+    int expectedLength = shuffleDataSegment.getLength();
+
+    if (expectedLength <= 0) {
+      throw new RssException("Failed to read shuffle data for appId[" + appId + "], shuffleId["
+          + shuffleId + "], partitionId[" + partitionId + "], "
+          + "the length field in the index segment is " + expectedLength + " <= 0!");
+    }
+
     RssGetShuffleDataRequest request = new RssGetShuffleDataRequest(
         appId,shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
-        shuffleDataSegment.getOffset(), shuffleDataSegment.getLength());
+        shuffleDataSegment.getOffset(), expectedLength);
+
     for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
       try {
         RssGetShuffleDataResponse response = shuffleServerClient.getShuffleData(request);
         result = new ShuffleDataResult(response.getShuffleData(), shuffleDataSegment.getBufferSegments());
+
+        if (result.getData().length != expectedLength) {
+          throw new RssException("Wrong data length expect " + result.getData().length
+              + " but actual is " + expectedLength);
+        }
+
         readSuccessful = true;
         break;
       } catch (Exception e) {
         LOG.warn("Failed to read shuffle data with " + shuffleServerClient.getClientInfo(), e);
       }
     }
+
     if (!readSuccessful) {
-      throw new RuntimeException("Failed to read shuffle data for appId[" + appId + "], shuffleId["
+      throw new RssException("Failed to read shuffle data for appId[" + appId + "], shuffleId["
           + shuffleId + "], partitionId[" + partitionId + "]");
     }
+
     return result;
   }
 

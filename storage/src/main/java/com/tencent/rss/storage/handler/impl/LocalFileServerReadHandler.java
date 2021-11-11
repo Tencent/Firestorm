@@ -125,7 +125,7 @@ public class LocalFileServerReadHandler implements ServerReadHandler {
 
   @Override
   public ShuffleDataResult getShuffleData(long offset, int length) {
-    byte[] readBuffer = new byte[]{};
+    byte[] readBuffer = new byte[0];
 
     try {
       long start = System.currentTimeMillis();

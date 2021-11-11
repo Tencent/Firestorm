@@ -460,9 +460,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg);
-        if (!shuffleIndexResult.isEmpty()) {
-          builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
-        }
+        builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
         reply = builder.build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;

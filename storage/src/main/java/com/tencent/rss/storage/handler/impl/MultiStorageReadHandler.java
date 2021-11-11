@@ -63,7 +63,6 @@ public class MultiStorageReadHandler extends AbstractFileClientReadHandler {
     } catch (Exception e) {
       LOG.info("Failed to read data from primary", e);
     }
-
     if (result != null && !result.isEmpty()) {
       return result;
     } else {
@@ -79,7 +78,6 @@ public class MultiStorageReadHandler extends AbstractFileClientReadHandler {
         }
       }
     }
-
     return null;
   }
 

@@ -395,7 +395,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
           response = new RssGetShuffleResultResponse(ResponseStatusCode.SUCCESS,
               rpcResponse.getSerializedBitmap().toByteArray());
         } catch (Exception e) {
-          throw new RuntimeException(e);
+          throw new RssException(e);
         }
         break;
       default:
@@ -433,7 +433,9 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     RssGetShuffleDataResponse response;
     switch (statusCode) {
       case SUCCESS:
-        response = new RssGetShuffleDataResponse(ResponseStatusCode.SUCCESS, rpcResponse.getData().toByteArray());
+        response = new RssGetShuffleDataResponse(
+            ResponseStatusCode.SUCCESS, rpcResponse.getData().toByteArray());
+
         break;
       default:
         String msg = "Can't get shuffle data from " + host + ":" + port
@@ -465,11 +467,9 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     RssGetShuffleIndexResponse response;
     switch (statusCode) {
       case SUCCESS:
-        response = new RssGetShuffleIndexResponse(ResponseStatusCode.SUCCESS);
-        if (!rpcResponse.getIndexData().isEmpty()) {
-          response.setShuffleIndexResult(
-              new ShuffleIndexResult(rpcResponse.getIndexData().toByteArray()));
-        }
+        response = new RssGetShuffleIndexResponse(
+            ResponseStatusCode.SUCCESS, rpcResponse.getIndexData().toByteArray());
+
         break;
       default:
         String msg = "Can't get shuffle index from " + host + ":" + port

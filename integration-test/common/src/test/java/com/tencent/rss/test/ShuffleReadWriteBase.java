@@ -128,6 +128,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
         appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
     ShuffleIndexResult sir = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
     return RssUtils.transIndexDataToSegments(sir, readBufferSize);
+
   }
 
   protected ShuffleDataResult readShuffleData(

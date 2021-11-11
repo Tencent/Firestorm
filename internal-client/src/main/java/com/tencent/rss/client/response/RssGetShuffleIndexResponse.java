@@ -23,15 +23,13 @@ import com.tencent.rss.common.ShuffleIndexResult;
 public class RssGetShuffleIndexResponse extends ClientResponse  {
   private ShuffleIndexResult shuffleIndexResult;
 
-  public RssGetShuffleIndexResponse(ResponseStatusCode statusCode) {
+  public RssGetShuffleIndexResponse(ResponseStatusCode statusCode, byte[] data) {
     super(statusCode);
+    this.shuffleIndexResult = new ShuffleIndexResult(data);
   }
 
   public ShuffleIndexResult getShuffleIndexResult() {
     return shuffleIndexResult;
   }
 
-  public void setShuffleIndexResult(ShuffleIndexResult shuffleIndexResult) {
-    this.shuffleIndexResult = shuffleIndexResult;
-  }
 }
