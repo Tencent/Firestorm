@@ -30,6 +30,8 @@ import com.tencent.rss.common.web.JettyServer;
 import com.tencent.rss.storage.util.StorageType;
 import io.prometheus.client.CollectorRegistry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -51,7 +53,9 @@ public class ShuffleServer {
   private ShuffleFlushManager shuffleFlushManager;
   private ShuffleBufferManager shuffleBufferManager;
   private MultiStorageManager multiStorageManager;
+  private HealthCheckService healthCheckService;
   private Set<String> tags = Sets.newHashSet();
+  private AtomicBoolean isHealthy = new AtomicBoolean(true);
 
   public ShuffleServer(ShuffleServerConf shuffleServerConf) throws Exception {
     this.shuffleServerConf = shuffleServerConf;
@@ -245,5 +249,9 @@ public class ShuffleServer {
 
   public Set<String> getTags() {
     return tags;
+  }
+
+  public boolean isHealthy() {
+    return isHealthy.get();
   }
 }

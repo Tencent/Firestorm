@@ -88,8 +88,16 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
   }
 
   public ShuffleServerHeartBeatResponse doSendHeartBeat(
-      String id, String ip, int port, long usedMemory, long preAllocatedMemory,
-      long availableMemory, int eventNumInFlush, long timeout, Set<String> tags) {
+      String id,
+      String ip,
+      int port,
+      long usedMemory,
+      long preAllocatedMemory,
+      long availableMemory,
+      int eventNumInFlush,
+      long timeout,
+      Set<String> tags,
+      boolean isHealthy) {
     ShuffleServerId serverId =
         ShuffleServerId.newBuilder().setId(id).setIp(ip).setPort(port).build();
     ShuffleServerHeartBeatRequest request =
@@ -100,6 +108,7 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
             .setAvailableMemory(availableMemory)
             .setEventNumInFlush(eventNumInFlush)
             .addAllTags(tags)
+            .setIsHealthy(RssProtos.BoolValue.newBuilder().setValue(isHealthy).build())
             .build();
 
     StatusCode status;
@@ -153,7 +162,7 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
         request.getAvailableMemory(),
         request.getEventNumInFlush(),
         request.getTimeout(),
-        request.getTags());
+        request.getTags(), true);
 
     RssSendHeartBeatResponse response;
     StatusCode statusCode = rpcResponse.getStatus();

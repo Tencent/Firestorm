@@ -75,7 +75,8 @@ public class RegisterHeartBeat {
             shuffleServer.getPreAllocatedMemory(),
             shuffleServer.getAvailableMemory(),
             shuffleServer.getEventNumInFlush(),
-            shuffleServer.getTags(), true);
+            shuffleServer.getTags(),
+            shuffleServer.isHealthy());
       } catch (Exception e) {
         LOG.warn("Error happened when send heart beat to coordinator");
       }
