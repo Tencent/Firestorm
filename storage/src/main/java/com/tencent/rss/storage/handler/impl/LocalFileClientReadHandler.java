@@ -96,7 +96,7 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
     }
 
     RssGetShuffleDataRequest request = new RssGetShuffleDataRequest(
-        appId,shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
+        appId,shuffleId, partitionId, partitionNumPerRange, partitionNum,
         shuffleDataSegment.getOffset(), expectedLength);
 
     for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
@@ -127,12 +127,12 @@ public class LocalFileClientReadHandler extends AbstractFileClientReadHandler {
   @Override
   public ShuffleDataResult readShuffleData(int segmentIndex) {
     if (shuffleDataSegments.isEmpty()) {
-      ShuffleIndexResult sir = readShuffleIndex();
-      if (sir == null || sir.isEmpty()) {
+      ShuffleIndexResult shuffleIndexResult = readShuffleIndex();
+      if (shuffleIndexResult == null || shuffleIndexResult.isEmpty()) {
         return null;
       }
 
-      shuffleDataSegments = RssUtils.transIndexDataToSegments(sir, readBufferSize);
+      shuffleDataSegments = RssUtils.transIndexDataToSegments(shuffleIndexResult, readBufferSize);
     }
 
     if (segmentIndex >= shuffleDataSegments.size()) {

@@ -19,7 +19,7 @@
 package com.tencent.rss.common;
 
 public class ShuffleIndexResult {
-  private byte[] indexData;
+  private final byte[] indexData;
 
   public ShuffleIndexResult() {
     this(new byte[0]);

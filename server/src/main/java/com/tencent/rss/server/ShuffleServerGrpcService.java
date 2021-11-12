@@ -21,7 +21,9 @@ package com.tencent.rss.server;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
-import com.tencent.rss.common.BufferSegment;
+import com.google.protobuf.BytesValue;
+import com.google.protobuf.ExtensionRegistry;
+import com.google.protobuf.UnsafeByteOperations;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleIndexResult;
@@ -39,6 +41,7 @@ import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleIndexResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultResponse;
+import com.tencent.rss.proto.RssProtos.GetShuffleResultResponseOrBuilder;
 import com.tencent.rss.proto.RssProtos.PartitionToBlockIds;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultResponse;
@@ -50,7 +53,6 @@ import com.tencent.rss.proto.RssProtos.ShuffleBlock;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitResponse;
 import com.tencent.rss.proto.RssProtos.ShuffleData;
-import com.tencent.rss.proto.RssProtos.ShuffleDataBlockSegment;
 import com.tencent.rss.proto.RssProtos.ShufflePartitionRange;
 import com.tencent.rss.proto.RssProtos.ShuffleRegisterRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleRegisterResponse;
@@ -338,27 +340,28 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     GetShuffleResultResponse reply;
     byte[] serializedBlockIds = null;
     String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId[" + partitionId + "]";
+    ByteString serializedBlockIdsBytes = ByteString.EMPTY;
 
     try {
       serializedBlockIds = shuffleServer.getShuffleTaskManager().getFinishedBlockIds(
           appId, shuffleId, partitionId);
+      if (serializedBlockIds == null) {
+        status = StatusCode.INTERNAL_ERROR;
+        msg = "Can't get shuffle result for " + requestInfo;
+        LOG.warn(msg);
+      } else {
+        serializedBlockIdsBytes = UnsafeByteOperations.unsafeWrap(serializedBlockIds);
+      }
     } catch (Exception e) {
       status = StatusCode.INTERNAL_ERROR;
       msg = e.getMessage();
-      LOG.error("Error happened when get shuffle result for " + requestInfo, e);
-    }
-
-    if (serializedBlockIds == null) {
-      serializedBlockIds = new byte[]{};
-      status = StatusCode.INTERNAL_ERROR;
-      msg = "can't find shuffle data";
-      LOG.error("Error happened when get shuffle result for " + requestInfo + " because " + msg);
+      LOG.error("Error happened when get shuffle result for {}", requestInfo, e);
     }
 
     reply = GetShuffleResultResponse.newBuilder()
         .setStatus(valueOf(status))
         .setRetMsg(msg)
-        .setSerializedBitmap(ByteString.copyFrom(serializedBlockIds))
+        .setSerializedBitmap(serializedBlockIdsBytes)
         .build();
     responseObserver.onNext(reply);
     responseObserver.onCompleted();
@@ -374,7 +377,6 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     int partitionId = request.getPartitionId();
     int partitionNumPerRange = request.getPartitionNumPerRange();
     int partitionNum = request.getPartitionNum();
-    int readBufferSize = request.getReadBufferSize();
     long offset = request.getOffset();
     int length = request.getLength();
     String storageType = shuffleServer.getShuffleServerConf().get(RssBaseConf.RSS_STORAGE_TYPE);
@@ -389,7 +391,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(readBufferSize)) {
+    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(length)) {
       try {
         long start = System.currentTimeMillis();
         sdr = shuffleServer.getShuffleTaskManager().getShuffleData(appId, shuffleId, partitionId,
@@ -402,7 +404,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         reply = GetShuffleDataResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg)
-            .setData(ByteString.copyFrom(sdr.getData()))
+            .setData(UnsafeByteOperations.unsafeWrap(sdr.getData()))
             .build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
@@ -413,7 +415,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
             .setRetMsg(msg)
             .build();
       } finally {
-        shuffleServer.getShuffleBufferManager().releaseReadMemory(readBufferSize);
+        shuffleServer.getShuffleBufferManager().releaseReadMemory(length);
       }
     } else {
       status = StatusCode.INTERNAL_ERROR;
@@ -439,7 +441,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     int partitionNumPerRange = request.getPartitionNumPerRange();
     int partitionNum = request.getPartitionNum();
     StatusCode status = StatusCode.SUCCESS;
-    String msg = "SUCCESS";
+    String msg = "OK";
     GetShuffleIndexResponse reply;
     String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId["
         + partitionId + "]";
@@ -448,8 +450,13 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    long indexFileSize = shuffleServer.getShuffleServerConf().getLong(ShuffleServerConf.SERVER_SHUFFLE_INDEX_SIZE_HINT);
-    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(indexFileSize)) {
+    // Use an default file size here because the index file size is very small and not need to get the precise size
+    // from the client side by using the bitmap cardinality nor in the server side by using the read handler.
+    // A index segment has 40B and a block's average size is about 10MB, so an index file with the default size 2MB
+    // could index about 500GB shuffle data and the default size is big enough to hold all the index data in memory.
+    long assumedFileSize = shuffleServer
+        .getShuffleServerConf().getLong(ShuffleServerConf.SERVER_SHUFFLE_INDEX_SIZE_HINT);
+    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(assumedFileSize)) {
       try {
         long start = System.currentTimeMillis();
         ShuffleIndexResult shuffleIndexResult = shuffleServer.getShuffleTaskManager().getShuffleIndex(
@@ -460,7 +467,8 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg);
-        builder.setIndexData(ByteString.copyFrom(shuffleIndexResult.getIndexData()));
+
+        builder.setIndexData(UnsafeByteOperations.unsafeWrap(shuffleIndexResult.getIndexData()));
         reply = builder.build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
@@ -471,7 +479,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
             .setRetMsg(msg)
             .build();
       } finally {
-        shuffleServer.getShuffleBufferManager().releaseReadMemory(indexFileSize);
+        shuffleServer.getShuffleBufferManager().releaseReadMemory(assumedFileSize);
       }
     } else {
       status = StatusCode.INTERNAL_ERROR;

@@ -71,9 +71,8 @@ message GetShuffleDataRequest {
   int32 partitionId = 3;
   int32 partitionNumPerRange = 4;
   int32 partitionNum = 5;
-  int32 readBufferSize = 6;
-  int64 offset = 7;
-  int32 length = 8;
+  int64 offset = 6;
+  int32 length = 7;
 }
 
 message GetShuffleDataResponse {

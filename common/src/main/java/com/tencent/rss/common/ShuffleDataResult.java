@@ -23,8 +23,8 @@ import java.util.List;
 
 public class ShuffleDataResult {
 
-  private byte[] data;
-  private List<BufferSegment> bufferSegments;
+  private final byte[] data;
+  private final List<BufferSegment> bufferSegments;
 
   public ShuffleDataResult() {
     this(new byte[0]);

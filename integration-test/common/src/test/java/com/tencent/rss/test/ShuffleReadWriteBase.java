@@ -126,8 +126,8 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     // read index file
     RssGetShuffleIndexRequest rgsir = new RssGetShuffleIndexRequest(
         appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
-    ShuffleIndexResult sir = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
-    return RssUtils.transIndexDataToSegments(sir, readBufferSize);
+    ShuffleIndexResult shuffleIndexResult = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
+    return RssUtils.transIndexDataToSegments(shuffleIndexResult, readBufferSize);
 
   }
 
@@ -138,7 +138,6 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
       int partitionId,
       int partitionNumPerRange,
       int partitionNum,
-      int readBufferSize,
       int segmentIndex,
       List<ShuffleDataSegment> sds) {
     if (segmentIndex >= sds.size()) {
@@ -148,7 +147,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     // read shuffle data
     ShuffleDataSegment segment = sds.get(segmentIndex);
     RssGetShuffleDataRequest rgsdr = new RssGetShuffleDataRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum,
         segment.getOffset(), segment.getLength());
 
     return new ShuffleDataResult(
@@ -168,11 +167,11 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     // read index file
     RssGetShuffleIndexRequest rgsir = new RssGetShuffleIndexRequest(
         appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
-    ShuffleIndexResult sir = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
-    if (sir == null) {
+    ShuffleIndexResult shuffleIndexResult = shuffleServerClient.getShuffleIndex(rgsir).getShuffleIndexResult();
+    if (shuffleIndexResult == null) {
       return new ShuffleDataResult();
     }
-    List<ShuffleDataSegment> sds = RssUtils.transIndexDataToSegments(sir, readBufferSize);
+    List<ShuffleDataSegment> sds = RssUtils.transIndexDataToSegments(shuffleIndexResult, readBufferSize);
 
     if (segmentIndex >= sds.size()) {
       return new ShuffleDataResult();
@@ -181,7 +180,7 @@ public abstract class ShuffleReadWriteBase extends IntegrationTestBase {
     // read shuffle data
     ShuffleDataSegment segment = sds.get(segmentIndex);
     RssGetShuffleDataRequest rgsdr = new RssGetShuffleDataRequest(
-        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, readBufferSize,
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum,
         segment.getOffset(), segment.getLength());
 
     return new ShuffleDataResult(

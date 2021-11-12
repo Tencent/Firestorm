@@ -567,7 +567,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
         }
       }
       result = readShuffleData(shuffleServerClient, appId, shuffleId, partitionId,
-          1, 10, 1000, index, shuffleDataSegments);
+          1, 10, index, shuffleDataSegments);
       ++index;
     } while(result != null && result.getData() != null
       && result.getBufferSegments() != null && !result.getBufferSegments().isEmpty());

@@ -255,7 +255,7 @@ public class ShuffleServerConf extends RssBaseConf {
   public static final ConfigOption<Long> SERVER_SHUFFLE_INDEX_SIZE_HINT = ConfigOptions
       .key("rss.server.index.size.hint")
       .longType()
-      .defaultValue(1024L * 1024L)
+      .defaultValue(2 * 1024L * 1024L)
       .withDescription("The index file size hint");
 
   public ShuffleServerConf() {

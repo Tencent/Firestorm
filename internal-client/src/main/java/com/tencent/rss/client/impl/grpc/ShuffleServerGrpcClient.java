@@ -418,7 +418,6 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setPartitionId(request.getPartitionId())
         .setPartitionNumPerRange(request.getPartitionNumPerRange())
         .setPartitionNum(request.getPartitionNum())
-        .setReadBufferSize(request.getReadBufferSize())
         .setOffset(request.getOffset())
         .setLength(request.getLength())
         .build();
@@ -479,7 +478,6 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     }
     return response;
   }
-
 
   @Override
   public String getClientInfo() {

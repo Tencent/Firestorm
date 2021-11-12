@@ -25,9 +25,9 @@ import java.util.List;
  * It contains a list of BufferSegment, they are indices of the block in the data file segment.
  */
 public class ShuffleDataSegment {
-  private long offset;
-  private int length;
-  private List<BufferSegment> bufferSegments;
+  private final long offset;
+  private final int length;
+  private final List<BufferSegment> bufferSegments;
 
   public ShuffleDataSegment(long offset, int length, List<BufferSegment> bufferSegments) {
     this.offset = offset;

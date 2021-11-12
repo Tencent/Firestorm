@@ -145,7 +145,7 @@ public class RssUtils {
   public static List<ShuffleDataSegment> transIndexDataToSegments(
       ShuffleIndexResult shuffleIndexResult, int readBufferSize) {
     if (shuffleIndexResult == null || shuffleIndexResult.isEmpty()) {
-      return Lists.newLinkedList();
+      return Lists.newArrayList();
     }
 
     byte[] indexData = shuffleIndexResult.getIndexData();
@@ -178,8 +178,8 @@ public class RssUtils {
       bufferOffset += length;
 
       if (bufferOffset >= readBufferSize) {
-        ShuffleDataSegment dfs = new ShuffleDataSegment(fileOffset, bufferOffset, bufferSegments);
-        dataFileSegments.add(dfs);
+        ShuffleDataSegment sds = new ShuffleDataSegment(fileOffset, bufferOffset, bufferSegments);
+        dataFileSegments.add(sds);
         bufferSegments = Lists.newArrayList();
         bufferOffset = 0;
         fileOffset = -1;
@@ -187,8 +187,8 @@ public class RssUtils {
     }
 
     if (bufferOffset > 0) {
-      ShuffleDataSegment dfs = new ShuffleDataSegment(fileOffset, bufferOffset, bufferSegments);
-      dataFileSegments.add(dfs);
+      ShuffleDataSegment sds = new ShuffleDataSegment(fileOffset, bufferOffset, bufferSegments);
+      dataFileSegments.add(sds);
     }
 
     return dataFileSegments;
