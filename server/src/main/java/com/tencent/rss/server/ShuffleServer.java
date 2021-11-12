@@ -53,7 +53,7 @@ public class ShuffleServer {
   private ShuffleFlushManager shuffleFlushManager;
   private ShuffleBufferManager shuffleBufferManager;
   private MultiStorageManager multiStorageManager;
-  private HealthCheckService healthCheckService;
+  private HealthCheck healthCheck;
   private Set<String> tags = Sets.newHashSet();
   private AtomicBoolean isHealthy = new AtomicBoolean(true);
 
@@ -111,6 +111,10 @@ public class ShuffleServer {
     if (multiStorageManager != null) {
       multiStorageManager.stop();
       LOG.info("MultiStorage Stopped!");
+    }
+    if (healthCheck != null) {
+      healthCheck.stop();
+      LOG.info("HealthCheck stopped!");
     }
     server.stop();
     LOG.info("RPC Server Stopped!");

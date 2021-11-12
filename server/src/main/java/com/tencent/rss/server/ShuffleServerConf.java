@@ -257,6 +257,32 @@ public class ShuffleServerConf extends RssBaseConf {
       .longType()
       .defaultValue(2 * 1024L * 1024L)
       .withDescription("The index file size hint");
+  public static final ConfigOption<Double> RSS_STORAGE_MAX_USAGE_PERCENTAGE = ConfigOptions
+      .key("rss.server.max.storage.usage.percentage")
+      .doubleType()
+      .defaultValue(90.0)
+      .withDescription("The usage percentage of a disk exceed the value, the disk become unavailable");
+
+  public static final ConfigOption<Double> RSS_STORAGE_RECOVERY_USAGE_PERCENTAGE = ConfigOptions
+      .key("rss.server.storage.recovery.usage.percentage")
+      .doubleType()
+      .defaultValue(80.0)
+      .withDescription("The usage percentage of an unavailable disk decline the value, the disk" +
+          " will become available");
+
+  public static final ConfigOption<Long> RSS_HEALTH_CHECK_INTERVAL = ConfigOptions
+      .key("rss.server.health.check.interval.ms")
+      .longType()
+      .defaultValue(5000L)
+      .withDescription("The interval for health check");
+
+  public static final ConfigOption<Double> RSS_MIN_STORAGE_HEALTHY_PERCENTAGE = ConfigOptions
+      .key("rss.server.min.healthy.storage.percentage")
+      .doubleType()
+      .defaultValue(80.0)
+      .withDescription("The minimum fraction of storage that must pass the check mark the node as healthy");
+
+>>>>>>> f7815bd (Code)
 
   public ShuffleServerConf() {
   }
