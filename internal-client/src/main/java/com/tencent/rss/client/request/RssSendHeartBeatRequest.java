@@ -22,16 +22,16 @@ import java.util.Set;
 
 public class RssSendHeartBeatRequest {
 
-  private String shuffleServerId;
-  private String shuffleServerIp;
-  private int shuffleServerPort;
-  private long usedMemory;
-  private long preAllocatedMemory;
-  private long availableMemory;
-  private int eventNumInFlush;
-  private Set<String> tags;
-  private long timeout;
-  private boolean isHealthy;
+  private final String shuffleServerId;
+  private final String shuffleServerIp;
+  private final int shuffleServerPort;
+  private final long usedMemory;
+  private final long preAllocatedMemory;
+  private final long availableMemory;
+  private final int eventNumInFlush;
+  private final Set<String> tags;
+  private final long timeout;
+  private final boolean isHealthy;
 
   public RssSendHeartBeatRequest(
       String shuffleServerId,
@@ -90,5 +90,9 @@ public class RssSendHeartBeatRequest {
 
   public Set<String> getTags() {
     return tags;
+  }
+
+  public boolean isHealthy() {
+    return isHealthy;
   }
 }

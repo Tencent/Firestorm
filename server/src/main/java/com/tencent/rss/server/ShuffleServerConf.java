@@ -267,8 +267,8 @@ public class ShuffleServerConf extends RssBaseConf {
       .key("rss.server.storage.recovery.usage.percentage")
       .doubleType()
       .defaultValue(80.0)
-      .withDescription("The usage percentage of an unavailable disk decline the value, the disk" +
-          " will become available");
+      .withDescription("The usage percentage of an unavailable disk decline the value, the disk"
+          + " will become available");
 
   public static final ConfigOption<Long> RSS_HEALTH_CHECK_INTERVAL = ConfigOptions
       .key("rss.server.health.check.interval.ms")

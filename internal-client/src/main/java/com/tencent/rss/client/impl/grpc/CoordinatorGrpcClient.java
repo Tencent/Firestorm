@@ -21,6 +21,7 @@ package com.tencent.rss.client.impl.grpc;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.protobuf.BoolValue;
 import com.google.protobuf.Empty;
 import com.tencent.rss.client.api.CoordinatorClient;
 import com.tencent.rss.client.request.RssAppHeartBeatRequest;
@@ -108,7 +109,7 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
             .setAvailableMemory(availableMemory)
             .setEventNumInFlush(eventNumInFlush)
             .addAllTags(tags)
-            .setIsHealthy(RssProtos.BoolValue.newBuilder().setValue(isHealthy).build())
+            .setIsHealthy(BoolValue.newBuilder().setValue(isHealthy).build())
             .build();
 
     StatusCode status;
@@ -162,7 +163,8 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
         request.getAvailableMemory(),
         request.getEventNumInFlush(),
         request.getTimeout(),
-        request.getTags(), true);
+        request.getTags(),
+        request.isHealthy());
 
     RssSendHeartBeatResponse response;
     StatusCode statusCode = rpcResponse.getStatus();

@@ -18,6 +18,7 @@
 
 package com.tencent.rss.server;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import org.slf4j.Logger;
@@ -67,7 +68,8 @@ public class HealthCheck {
     thread.setDaemon(true);
   }
 
-  public void check() {
+  @VisibleForTesting
+  void check() {
     int num = 0;
     for (StorageInfo storageInfo : storageInfos) {
       if (storageInfo.checkIsHealthy()) {
@@ -97,7 +99,7 @@ public class HealthCheck {
   }
 
   // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
-  class StorageInfo {
+  private class StorageInfo {
 
     private final File storageDir;
     private boolean isHealthy;
