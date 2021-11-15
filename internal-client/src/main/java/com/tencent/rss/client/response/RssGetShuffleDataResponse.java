@@ -20,7 +20,7 @@ package com.tencent.rss.client.response;
 
 public class RssGetShuffleDataResponse extends ClientResponse {
 
-  private byte[] shuffleData;
+  private final byte[] shuffleData;
 
   public RssGetShuffleDataResponse(ResponseStatusCode statusCode, byte[] data) {
     super(statusCode);

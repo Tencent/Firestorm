@@ -20,11 +20,11 @@ package com.tencent.rss.client.request;
 
 public class RssGetShuffleIndexRequest {
 
-  private String appId;
-  private int shuffleId;
-  private int partitionId;
-  private int partitionNumPerRange;
-  private int partitionNum;
+  private final String appId;
+  private final int shuffleId;
+  private final int partitionId;
+  private final int partitionNumPerRange;
+  private final int partitionNum;
 
   public RssGetShuffleIndexRequest(
       String appId,

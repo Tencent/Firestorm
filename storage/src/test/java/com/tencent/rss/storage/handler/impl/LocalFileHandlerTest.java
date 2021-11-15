@@ -20,6 +20,7 @@ package com.tencent.rss.storage.handler.impl;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Lists;
@@ -38,7 +39,6 @@ import com.tencent.rss.storage.handler.api.ServerReadHandler;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -98,6 +98,17 @@ public class LocalFileHandlerTest {
     // new data should be read
     validateResult(readHandler1, expectedBlockIds1, expectedData);
 
+    File targetDataFile = new File(possiblePath1, "pre.data");
+    ShuffleIndexResult shuffleIndexResult = readIndex(readHandler1);
+    assertFalse(shuffleIndexResult.isEmpty());
+    List<ShuffleDataResult> shuffleDataResults = readData(readHandler1, shuffleIndexResult);
+    assertFalse(shuffleDataResults.isEmpty());
+    targetDataFile.delete();
+    shuffleDataResults = readData(readHandler1, shuffleIndexResult);
+    for (ShuffleDataResult shuffleData : shuffleDataResults) {
+      assertEquals(0, shuffleData.getData().length);
+      assertTrue(shuffleData.isEmpty());
+    }
   }
 
 
@@ -139,13 +150,23 @@ public class LocalFileHandlerTest {
   }
 
   private List<ShuffleDataResult> readAll(ServerReadHandler readHandler) {
-    List<ShuffleDataResult> shuffleDataResults = Lists.newLinkedList();
+    ShuffleIndexResult shuffleIndexResult = readIndex(readHandler);
+    return readData(readHandler, shuffleIndexResult);
+  }
+
+  private ShuffleIndexResult readIndex(ServerReadHandler readHandler) {
     ShuffleIndexResult shuffleIndexResult = readHandler.getShuffleIndex();
+    return shuffleIndexResult;
+  }
+
+  private List<ShuffleDataResult> readData(ServerReadHandler readHandler, ShuffleIndexResult shuffleIndexResult) {
+    List<ShuffleDataResult> shuffleDataResults = Lists.newLinkedList();
     if (shuffleIndexResult == null || shuffleIndexResult.isEmpty()) {
       return shuffleDataResults;
     }
 
-    List<ShuffleDataSegment> shuffleDataSegments = RssUtils.transIndexDataToSegments(shuffleIndexResult, 32);
+    List<ShuffleDataSegment> shuffleDataSegments =
+        RssUtils.transIndexDataToSegments(shuffleIndexResult, 32);
 
     for (ShuffleDataSegment shuffleDataSegment : shuffleDataSegments) {
       byte[] shuffleData =
@@ -156,4 +177,5 @@ public class LocalFileHandlerTest {
 
     return shuffleDataResults;
   }
+
 }

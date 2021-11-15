@@ -21,7 +21,7 @@ package com.tencent.rss.client.response;
 import com.tencent.rss.common.ShuffleIndexResult;
 
 public class RssGetShuffleIndexResponse extends ClientResponse  {
-  private ShuffleIndexResult shuffleIndexResult;
+  private final ShuffleIndexResult shuffleIndexResult;
 
   public RssGetShuffleIndexResponse(ResponseStatusCode statusCode, byte[] data) {
     super(statusCode);

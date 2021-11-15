@@ -42,7 +42,6 @@ import com.tencent.rss.client.response.RssSendCommitResponse;
 import com.tencent.rss.client.response.RssSendShuffleDataResponse;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
-import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
@@ -395,7 +394,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
           response = new RssGetShuffleResultResponse(ResponseStatusCode.SUCCESS,
               rpcResponse.getSerializedBitmap().toByteArray());
         } catch (Exception e) {
-          throw new RssException(e);
+          throw new RuntimeException(e);
         }
         break;
       default:

@@ -21,8 +21,6 @@ package com.tencent.rss.server;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.BytesValue;
-import com.google.protobuf.ExtensionRegistry;
 import com.google.protobuf.UnsafeByteOperations;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleDataResult;
@@ -41,7 +39,6 @@ import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleIndexResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultResponse;
-import com.tencent.rss.proto.RssProtos.GetShuffleResultResponseOrBuilder;
 import com.tencent.rss.proto.RssProtos.PartitionToBlockIds;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultResponse;
@@ -450,10 +447,8 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       shuffleServer.getMultiStorageManager().updateLastReadTs(appId, shuffleId, partitionId);
     }
 
-    // Use an default file size here because the index file size is very small and not need to get the precise size
-    // from the client side by using the bitmap cardinality nor in the server side by using the read handler.
-    // A index segment has 40B and a block's average size is about 10MB, so an index file with the default size 2MB
-    // could index about 500GB shuffle data and the default size is big enough to hold all the index data in memory.
+    // Index file is expected small size and won't cause oom problem with the assumed size. An index segment is 40B,
+    // with the default size - 2MB, it can support 50k blocks for shuffle data.
     long assumedFileSize = shuffleServer
         .getShuffleServerConf().getLong(ShuffleServerConf.SERVER_SHUFFLE_INDEX_SIZE_HINT);
     if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(assumedFileSize)) {
