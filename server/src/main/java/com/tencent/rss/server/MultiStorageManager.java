@@ -26,7 +26,7 @@ import com.tencent.rss.storage.handler.api.ShuffleDeleteHandler;
 import com.tencent.rss.storage.request.CreateShuffleDeleteHandlerRequest;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 import com.tencent.rss.storage.util.StorageType;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

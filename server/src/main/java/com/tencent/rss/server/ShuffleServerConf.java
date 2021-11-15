@@ -257,16 +257,17 @@ public class ShuffleServerConf extends RssBaseConf {
       .longType()
       .defaultValue(2 * 1024L * 1024L)
       .withDescription("The index file size hint");
-  public static final ConfigOption<Double> RSS_STORAGE_MAX_USAGE_PERCENTAGE = ConfigOptions
-      .key("rss.server.max.storage.usage.percentage")
+
+  public static final ConfigOption<Double> RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE = ConfigOptions
+      .key("rss.server.health.max.storage.usage.percentage")
       .doubleType()
       .checkValue(ConfigUtils.percentageDoubleValidator,
           "The max usage percentage must be between 0.0 and 100.0")
       .defaultValue(90.0)
       .withDescription("The usage percentage of a storage exceed the value, the disk become unavailable");
 
-  public static final ConfigOption<Double> RSS_STORAGE_RECOVERY_USAGE_PERCENTAGE = ConfigOptions
-      .key("rss.server.storage.recovery.usage.percentage")
+  public static final ConfigOption<Double> RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE = ConfigOptions
+      .key("rss.server.health.storage.recovery.usage.percentage")
       .doubleType()
       .checkValue(ConfigUtils.percentageDoubleValidator,
           "The recovery usage percentage must be between 0.0 and 100.0")
@@ -281,8 +282,8 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(5000L)
       .withDescription("The interval for health check");
 
-  public static final ConfigOption<Double> RSS_MIN_STORAGE_HEALTHY_PERCENTAGE = ConfigOptions
-      .key("rss.server.min.healthy.storage.percentage")
+  public static final ConfigOption<Double> RSS_HEALTH_MIN_STORAGE_PERCENTAGE = ConfigOptions
+      .key("rss.server.health.min.storage.percentage")
       .doubleType()
       .checkValue(ConfigUtils.percentageDoubleValidator,
           "The minimum for healthy storage percentage must be between 0.0 and 100.0")

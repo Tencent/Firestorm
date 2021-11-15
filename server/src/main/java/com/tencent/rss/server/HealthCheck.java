@@ -48,14 +48,19 @@ public class HealthCheck {
 
   public HealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
     this.isHealthy = isHealthy;
-    String[] storagePaths = conf.get(ShuffleServerConf.RSS_STORAGE_BASE_PATH).split(",");
+    String basePathStr = conf.get(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
+    if (basePathStr == null) {
+      throw new IllegalArgumentException("The base path cannot be empty");
+    }
+    String[] storagePaths = basePathStr.split(",");
+
     for (String path : storagePaths) {
       storageInfos.add(new StorageInfo(path));
     }
-    this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_STORAGE_MAX_USAGE_PERCENTAGE);
-    this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_STORAGE_RECOVERY_USAGE_PERCENTAGE);
+    this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE);
+    this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE);
     this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
-    this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_MIN_STORAGE_HEALTHY_PERCENTAGE);
+    this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE);
     this.thread = new Thread(() -> {
       try {
         check();
@@ -90,6 +95,19 @@ public class HealthCheck {
     }
   }
 
+  // Only for testing
+  @VisibleForTesting
+  long getTotalSpace(File file) {
+    return file.getTotalSpace();
+  }
+
+  // Only for testing
+  @VisibleForTesting
+  long getUsableSpace(File file) {
+    return file.getUsableSpace();
+  }
+
+
   public void start() {
     thread.start();
   }
@@ -99,7 +117,7 @@ public class HealthCheck {
   }
 
   // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
-  private class StorageInfo {
+  class StorageInfo {
 
     private final File storageDir;
     private boolean isHealthy;
@@ -110,11 +128,11 @@ public class HealthCheck {
     }
 
     boolean checkIsHealthy() {
-      if (Double.compare(0.0, storageDir.getTotalSpace()) == 0) {
+      if (Double.compare(0.0, getTotalSpace(storageDir)) == 0) {
         this.isHealthy = false;
         return false;
       }
-      double usagePercent = storageDir.getUsableSpace() * 100.0 / storageDir.getTotalSpace();
+      double usagePercent = getUsableSpace(storageDir) * 100.0 / getTotalSpace(storageDir);
       if (isHealthy) {
         if (Double.compare(usagePercent, diskMaxUsagePercentage) >= 0) {
           isHealthy = false;

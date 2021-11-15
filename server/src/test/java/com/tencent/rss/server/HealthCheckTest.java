@@ -19,19 +19,147 @@ package com.tencent.rss.server;
 
 import org.junit.Test;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class HealthCheckTest {
 
+  private int mode = 0;
+
   @Test
-  public void checkTest() {
+  public void constructorTest() {
+    ShuffleServerConf conf = new ShuffleServerConf();
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "s1");
+    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 102.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 1.0);
+    conf.set(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, -1L);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1L);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, -1.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 101.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 1.0);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, -1.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 101.0);
+    assertConf(conf);
+    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 1.0);
+    new HealthCheck(new AtomicBoolean(), conf);
+  }
+
+  private void assertConf(ShuffleServerConf conf) {
+    boolean isThrown;
+    isThrown = false;
+    try {
+      new HealthCheck(new AtomicBoolean(), conf);
+    } catch (IllegalArgumentException e) {
+      isThrown = true;
+    }
+    assertTrue(isThrown);
+  }
+
+  @Test
+  public void checkTest() throws Exception {
     AtomicBoolean health = new AtomicBoolean(true);
     ShuffleServerConf conf = new ShuffleServerConf();
-    HealthCheck checker = new HealthCheck(health, conf);
+    conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
+    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
+    HealthCheck checker = new MockHealthCheck(health, conf);
+    checker.check();
+    assertTrue(health.get());
+
+    mode++;
+    checker.check();
+    assertTrue(health.get());
+
+    mode++;
+    checker.check();
+    assertFalse(health.get());
+
+    mode++;
+    checker.check();
+    assertTrue(health.get());
+    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
+    checker = new MockHealthCheck(health, conf);
+    checker.check();
+    assertFalse(health.get());
+
+    mode++;
     checker.check();
     assertTrue(health.get());
   }
 
+  private class MockHealthCheck extends HealthCheck {
+    public MockHealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
+      super(isHealthy, conf);
+    }
+
+    @Override
+    long getTotalSpace(File file) {
+      return 1000;
+    }
+
+    @Override
+    long getUsableSpace(File file) {
+      long result = 0;
+      switch (file.getPath()) {
+        case "st1":
+          switch (mode) {
+            case 0:
+              result = 100;
+              break;
+            case 1:
+            case 2:
+            case 3:
+              result = 900;
+              break;
+            case 4:
+              result = 150;
+              break;
+            default:
+              break;
+          }
+          break;
+        case "st2":
+          switch (mode) {
+            case 0:
+            case 1:
+              result = 200;
+              break;
+            case 2:
+              result = 900;
+              break;
+            case 3:
+              result = 400;
+              break;
+            case 4:
+              result = 100;
+            default:
+              break;
+          }
+          break;
+        case "st3":
+          switch (mode) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+              result = 300;
+              break;
+            default:
+              break;
+          }
+          break;
+      }
+      return result;
+    }
+  }
 }
