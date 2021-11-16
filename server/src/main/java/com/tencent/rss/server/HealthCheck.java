@@ -63,7 +63,7 @@ public class HealthCheck {
     this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
     this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE);
     this.thread = new Thread(() -> {
-      while(!isStop) {
+      while (!isStop) {
         try {
           check();
           Uninterruptibles.sleepUninterruptibly(checkIntervalMs, TimeUnit.MICROSECONDS);
@@ -130,6 +130,7 @@ public class HealthCheck {
   }
 
   // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
+  // todo: We should extract an interface named Checker
   class StorageInfo {
 
     private final File storageDir;
