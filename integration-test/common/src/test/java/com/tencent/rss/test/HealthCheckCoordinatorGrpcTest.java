@@ -19,6 +19,9 @@ package com.tencent.rss.test;
 
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.tencent.rss.client.request.RssGetShuffleAssignmentsRequest;
+import com.tencent.rss.client.response.ResponseStatusCode;
+import com.tencent.rss.client.response.RssGetShuffleAssignmentsResponse;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.coordinator.ServerNode;
@@ -48,10 +51,12 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
   public static void setupServers() throws Exception {
     serverTmpDir.deleteOnExit();
     long totalSize = serverTmpDir.getTotalSpace();
-    long usedSize = serverTmpDir.getUsableSpace();
+    long usedSize = serverTmpDir.getTotalSpace() - serverTmpDir.getUsableSpace();
     File data1 = new File(serverTmpDir, "data1");
+    data1.mkdirs();
     File data2 = new File(serverTmpDir, "data2");
-    long freeSize = totalSize - usedSize;
+    data2.mkdirs();
+    long freeSize = serverTmpDir.getUsableSpace();
     double maxUsage;
     double healthUsage;
     if (freeSize > 400 * 1024 * 1024) {
@@ -71,6 +76,7 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, data1.getAbsolutePath());
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
+    shuffleServerConf.setLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1000L);
     createShuffleServer(shuffleServerConf);
     shuffleServerConf.setInteger(ShuffleServerConf.RPC_SERVER_PORT, SHUFFLE_SERVER_PORT + 1);
     shuffleServerConf.setInteger(ShuffleServerConf.JETTY_HTTP_PORT, 18081);
@@ -78,6 +84,7 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, data2.getAbsolutePath());
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
+    shuffleServerConf.setLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1000L);
     shuffleServerConf.setBoolean(ShuffleServerConf.RSS_USE_HEALTH_CHECK, true);
     createShuffleServer(shuffleServerConf);
     startServers();
@@ -85,10 +92,23 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
 
   @Test
   public void healthCheckTest() throws Exception {
+    RssGetShuffleAssignmentsRequest request =
+      new RssGetShuffleAssignmentsRequest(
+          "1",
+          1,
+          1,
+          1,
+          1,
+          Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
     Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
     assertEquals(2, coordinatorClient.getShuffleServerList().getServersCount());
     List<ServerNode> nodes  = coordinators.get(0).getClusterManager()
         .getServerList(Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
+    assertEquals(2, coordinatorClient.getShuffleServerList().getServersCount());
+    assertEquals(2, nodes.size());
+    RssGetShuffleAssignmentsResponse response =
+        coordinatorClient.getShuffleAssignments(request);
+    assertFalse(response.getPartitionToServers().isEmpty());
     for (ServerNode node : nodes) {
       assertTrue(node.isHealthy());
     }
@@ -103,6 +123,10 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     for (ServerNode node : nodes) {
       assertFalse(node.isHealthy());
     }
+    assertEquals(0, nodes.size());
+    response = coordinatorClient.getShuffleAssignments(request);
+    assertEquals(ResponseStatusCode.INTERNAL_ERROR, response.getStatusCode());
+
     tempDataFile.delete();
     Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
     nodes  = coordinators.get(0).getClusterManager()
@@ -110,5 +134,9 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     for (ServerNode node : nodes) {
       assertTrue(node.isHealthy());
     }
+    assertEquals(2, nodes.size());
+    response =
+        coordinatorClient.getShuffleAssignments(request);
+    assertFalse(response.getPartitionToServers().isEmpty());
   }
 }

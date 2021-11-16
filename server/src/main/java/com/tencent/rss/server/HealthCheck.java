@@ -45,6 +45,7 @@ public class HealthCheck {
   private final double minStorageHealthyPercentage;
   private final Thread thread;
   private final List<StorageInfo> storageInfos  = Lists.newArrayList();
+  private volatile boolean isStop = false;
 
   public HealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
     this.isHealthy = isHealthy;
@@ -62,11 +63,13 @@ public class HealthCheck {
     this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
     this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE);
     this.thread = new Thread(() -> {
-      try {
-        check();
-        Uninterruptibles.sleepUninterruptibly(checkIntervalMs, TimeUnit.MICROSECONDS);
-      } catch (Exception e) {
-        LOG.error(e.getMessage());
+      while(!isStop) {
+        try {
+          check();
+          Uninterruptibles.sleepUninterruptibly(checkIntervalMs, TimeUnit.MICROSECONDS);
+        } catch (Exception e) {
+          LOG.error(e.getMessage());
+        }
       }
     });
     thread.setName("HealthCheckService");
@@ -83,14 +86,23 @@ public class HealthCheck {
     }
 
     if (storageInfos.isEmpty()) {
+      if (isHealthy.get()) {
+        LOG.info("shuffle server become unhealthy because of empty storage");
+      }
       isHealthy.set(false);
       return;
     }
 
     double availablePercentage = num * 100.0 / storageInfos.size();
     if (Double.compare(availablePercentage, minStorageHealthyPercentage) >= 0) {
+      if (!isHealthy.get()) {
+        LOG.info("shuffle server become healthy");
+      }
       isHealthy.set(true);
     } else {
+      if (isHealthy.get()) {
+        LOG.info("shuffle server become unhealthy");
+      }
       isHealthy.set(false);
     }
   }
@@ -103,8 +115,8 @@ public class HealthCheck {
 
   // Only for testing
   @VisibleForTesting
-  long getUsableSpace(File file) {
-    return file.getUsableSpace();
+  long getUsedSpace(File file) {
+    return file.getTotalSpace() - file.getUsableSpace();
   }
 
 
@@ -113,6 +125,7 @@ public class HealthCheck {
   }
 
   public void stop() throws InterruptedException {
+    isStop = true;
     thread.join();
   }
 
@@ -132,14 +145,16 @@ public class HealthCheck {
         this.isHealthy = false;
         return false;
       }
-      double usagePercent = getUsableSpace(storageDir) * 100.0 / getTotalSpace(storageDir);
+      double usagePercent = getUsedSpace(storageDir) * 100.0 / getTotalSpace(storageDir);
       if (isHealthy) {
         if (Double.compare(usagePercent, diskMaxUsagePercentage) >= 0) {
           isHealthy = false;
+          LOG.info("storage {} become unhealthy", storageDir.getAbsolutePath());
         }
       } else {
         if (Double.compare(usagePercent, diskRecoveryUsagePercentage) <= 0) {
           isHealthy = true;
+          LOG.info("storage {} become healthy", storageDir.getAbsolutePath());
         }
       }
       return isHealthy;

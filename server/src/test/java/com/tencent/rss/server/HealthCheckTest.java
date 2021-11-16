@@ -108,7 +108,7 @@ public class HealthCheckTest {
     }
 
     @Override
-    long getUsableSpace(File file) {
+    long getUsedSpace(File file) {
       long result = 0;
       switch (file.getPath()) {
         case "st1":
