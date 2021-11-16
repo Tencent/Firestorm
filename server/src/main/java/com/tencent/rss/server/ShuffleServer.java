@@ -146,6 +146,17 @@ public class ShuffleServer {
       multiStorageManager = new MultiStorageManager(shuffleServerConf, id);
       multiStorageManager.start();
     }
+
+    boolean useHealthCheck = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_USE_HEALTH_CHECK);
+    if (useHealthCheck) {
+      if (!StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)
+          && !StorageType.LOCALFILE.name().equals(storageType)) {
+        throw new IllegalArgumentException("Only StorageType LOCALFILE_AND_HDFS and LOCALFILE support health check");
+      }
+      healthCheck = new HealthCheck(isHealthy, shuffleServerConf);
+      healthCheck.start();
+    }
+
     registerHeartBeat = new RegisterHeartBeat(this);
     shuffleFlushManager = new ShuffleFlushManager(shuffleServerConf, id, this, multiStorageManager);
     shuffleBufferManager = new ShuffleBufferManager(shuffleServerConf, shuffleFlushManager);

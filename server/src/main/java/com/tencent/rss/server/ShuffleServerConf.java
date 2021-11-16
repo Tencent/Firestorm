@@ -290,7 +290,11 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(80.0)
       .withDescription("The minimum fraction of storage that must pass the check mark the node as healthy");
 
->>>>>>> f7815bd (Code)
+  public static final ConfigOption<Boolean> RSS_USE_HEALTH_CHECK = ConfigOptions
+      .key("rss.server.use.health.check")
+      .booleanType()
+      .defaultValue(true)
+      .withDescription("The switch for the health check");
 
   public ShuffleServerConf() {
   }
