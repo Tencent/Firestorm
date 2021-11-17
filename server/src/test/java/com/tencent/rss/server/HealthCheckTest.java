@@ -33,9 +33,9 @@ public class HealthCheckTest {
   public void constructorTest() {
     ShuffleServerConf conf = new ShuffleServerConf();
     assertConf(conf);
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKERS, "");
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, "");
     assertConf(conf);
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKERS, "com.tencent.rss.server.StorageChecker");
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, "com.tencent.rss.server.StorageChecker");
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "s1");
     conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);
     assertConf(conf);

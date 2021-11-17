@@ -48,7 +48,7 @@ public class HealthCheck {
   public HealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
     this.isHealthy = isHealthy;
     this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
-    String checkersStr = conf.getString(ShuffleServerConf.RSS_HEALTH_CHECKERS);
+    String checkersStr = conf.getString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES);
     if (StringUtils.isEmpty(checkersStr)) {
       throw new IllegalArgumentException("The checkers cannot be empty");
     }
