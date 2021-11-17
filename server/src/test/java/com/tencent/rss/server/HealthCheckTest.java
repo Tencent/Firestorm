@@ -19,15 +19,12 @@ package com.tencent.rss.server;
 
 import org.junit.Test;
 
-import java.io.File;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class HealthCheckTest {
-
-  private int mode = 0;
 
   @Test
   public void constructorTest() {
@@ -58,6 +55,25 @@ public class HealthCheckTest {
     new HealthCheck(new AtomicBoolean(), conf);
   }
 
+  @Test
+  public void checkTest() {
+    AtomicBoolean healthy = new AtomicBoolean(false);
+    ShuffleServerConf conf = new ShuffleServerConf();
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, MockChecker2.class.getCanonicalName());
+    HealthCheck checker = new HealthCheck(healthy, conf);
+    checker.check();
+    assertTrue(healthy.get());
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, MockChecker1.class.getCanonicalName());
+    checker = new HealthCheck(healthy, conf);
+    checker.check();
+    assertFalse(healthy.get());
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES,
+        MockChecker1.class.getCanonicalName() + "," + MockChecker2.class.getCanonicalName());
+    checker = new HealthCheck(healthy, conf);
+    checker.check();
+    assertFalse(healthy.get());
+  }
+
   private void assertConf(ShuffleServerConf conf) {
     boolean isThrown;
     isThrown = false;
@@ -67,97 +83,5 @@ public class HealthCheckTest {
       isThrown = true;
     }
     assertTrue(isThrown);
-  }
-
-  @Test
-  public void checkTest() throws Exception {
-    ShuffleServerConf conf = new ShuffleServerConf();
-    conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
-    StorageChecker checker = new MockStorageChecker(conf);
-
-    assertTrue(checker.checkIsHealthy());
-
-    mode++;
-    assertTrue(checker.checkIsHealthy());
-
-    mode++;
-    assertFalse(checker.checkIsHealthy());
-
-    mode++;
-    assertTrue(checker.checkIsHealthy());
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
-    checker = new MockStorageChecker(conf);
-    assertFalse(checker.checkIsHealthy());
-
-    mode++;
-    checker.checkIsHealthy();
-    assertTrue(checker.checkIsHealthy());
-  }
-
-  private class MockStorageChecker extends StorageChecker {
-    public MockStorageChecker(ShuffleServerConf conf) {
-      super(conf);
-    }
-
-    @Override
-    long getTotalSpace(File file) {
-      return 1000;
-    }
-
-    @Override
-    long getUsedSpace(File file) {
-      long result = 0;
-      switch (file.getPath()) {
-        case "st1":
-          switch (mode) {
-            case 0:
-              result = 100;
-              break;
-            case 1:
-            case 2:
-            case 3:
-              result = 900;
-              break;
-            case 4:
-              result = 150;
-              break;
-            default:
-              break;
-          }
-          break;
-        case "st2":
-          switch (mode) {
-            case 0:
-            case 1:
-              result = 200;
-              break;
-            case 2:
-              result = 900;
-              break;
-            case 3:
-              result = 400;
-              break;
-            case 4:
-              result = 100;
-            default:
-              break;
-          }
-          break;
-        case "st3":
-          switch (mode) {
-            case 0:
-            case 1:
-            case 2:
-            case 3:
-              result = 300;
-              break;
-            default:
-              break;
-          }
-          break;
-      }
-      return result;
-    }
   }
 }
