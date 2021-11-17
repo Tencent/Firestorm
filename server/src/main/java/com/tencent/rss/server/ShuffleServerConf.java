@@ -290,11 +290,17 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(80.0)
       .withDescription("The minimum fraction of storage that must pass the check mark the node as healthy");
 
-  public static final ConfigOption<Boolean> RSS_USE_HEALTH_CHECK = ConfigOptions
-      .key("rss.server.use.health.check")
+  public static final ConfigOption<Boolean> RSS_HEALTH_CHECK_ENABLE = ConfigOptions
+      .key("rss.server.health.check.enable")
       .booleanType()
       .defaultValue(true)
       .withDescription("The switch for the health check");
+
+  public static final ConfigOption<String> RSS_HEALTH_CHECKERS = ConfigOptions
+      .key("rss.server.health.checkers")
+      .stringType()
+      .defaultValue("com.tencent.rss.server.StorageChecker")
+      .withDescription("The list of the Checker's name");
 
   public ShuffleServerConf() {
   }

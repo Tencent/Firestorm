@@ -21,10 +21,12 @@ package com.tencent.rss.server;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,29 +41,29 @@ public class HealthCheck {
   private static final Logger LOG = LoggerFactory.getLogger(HealthCheck.class);
 
   private final AtomicBoolean isHealthy;
-  private final double diskMaxUsagePercentage;
-  private final double diskRecoveryUsagePercentage;
   private final long checkIntervalMs;
-  private final double minStorageHealthyPercentage;
   private final Thread thread;
-  private final List<StorageInfo> storageInfos  = Lists.newArrayList();
   private volatile boolean isStop = false;
+  private List<Checker> checkers = Lists.newArrayList();
 
   public HealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
     this.isHealthy = isHealthy;
-    String basePathStr = conf.get(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
-    if (basePathStr == null) {
-      throw new IllegalArgumentException("The base path cannot be empty");
-    }
-    String[] storagePaths = basePathStr.split(",");
-
-    for (String path : storagePaths) {
-      storageInfos.add(new StorageInfo(path));
-    }
-    this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE);
-    this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE);
     this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
-    this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE);
+    String checkersStr = conf.getString(ShuffleServerConf.RSS_HEALTH_CHECKERS);
+    if (StringUtils.isEmpty(checkersStr)) {
+      throw new IllegalArgumentException("The checkers cannot be empty");
+    }
+    String[] checkerNames = checkersStr.split(",");
+    try {
+      for (String name : checkerNames) {
+        Class<?> cls = Class.forName(name);
+        Constructor<?> cons = cls.getConstructor(ShuffleServerConf.class);
+        checkers.add((Checker)cons.newInstance(conf));
+      }
+    } catch (Exception e) {
+      LOG.error(e.getMessage(), e);
+      throw new IllegalArgumentException("The checkers init fail");
+    }
     this.thread = new Thread(() -> {
       while (!isStop) {
         try {
@@ -78,47 +80,14 @@ public class HealthCheck {
 
   @VisibleForTesting
   void check() {
-    int num = 0;
-    for (StorageInfo storageInfo : storageInfos) {
-      if (storageInfo.checkIsHealthy()) {
-        num++;
+    for (Checker checker : checkers) {
+      if (!checker.checkIsHealthy()) {
+        isHealthy.set(false);
+        return;
       }
     }
-
-    if (storageInfos.isEmpty()) {
-      if (isHealthy.get()) {
-        LOG.info("shuffle server become unhealthy because of empty storage");
-      }
-      isHealthy.set(false);
-      return;
-    }
-
-    double availablePercentage = num * 100.0 / storageInfos.size();
-    if (Double.compare(availablePercentage, minStorageHealthyPercentage) >= 0) {
-      if (!isHealthy.get()) {
-        LOG.info("shuffle server become healthy");
-      }
-      isHealthy.set(true);
-    } else {
-      if (isHealthy.get()) {
-        LOG.info("shuffle server become unhealthy");
-      }
-      isHealthy.set(false);
-    }
+    isHealthy.set(true);
   }
-
-  // Only for testing
-  @VisibleForTesting
-  long getTotalSpace(File file) {
-    return file.getTotalSpace();
-  }
-
-  // Only for testing
-  @VisibleForTesting
-  long getUsedSpace(File file) {
-    return file.getTotalSpace() - file.getUsableSpace();
-  }
-
 
   public void start() {
     thread.start();
@@ -127,38 +96,5 @@ public class HealthCheck {
   public void stop() throws InterruptedException {
     isStop = true;
     thread.join();
-  }
-
-  // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
-  // todo: We should extract an interface named Checker
-  class StorageInfo {
-
-    private final File storageDir;
-    private boolean isHealthy;
-
-    StorageInfo(String path) {
-      this.storageDir = new File(path);
-      this.isHealthy = true;
-    }
-
-    boolean checkIsHealthy() {
-      if (Double.compare(0.0, getTotalSpace(storageDir)) == 0) {
-        this.isHealthy = false;
-        return false;
-      }
-      double usagePercent = getUsedSpace(storageDir) * 100.0 / getTotalSpace(storageDir);
-      if (isHealthy) {
-        if (Double.compare(usagePercent, diskMaxUsagePercentage) >= 0) {
-          isHealthy = false;
-          LOG.info("storage {} become unhealthy", storageDir.getAbsolutePath());
-        }
-      } else {
-        if (Double.compare(usagePercent, diskRecoveryUsagePercentage) <= 0) {
-          isHealthy = true;
-          LOG.info("storage {} become healthy", storageDir.getAbsolutePath());
-        }
-      }
-      return isHealthy;
-    }
   }
 }

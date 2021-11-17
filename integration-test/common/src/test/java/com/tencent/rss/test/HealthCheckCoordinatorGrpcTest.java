@@ -71,7 +71,7 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     coordinatorConf.setLong(CoordinatorConf.COORDINATOR_HEARTBEAT_TIMEOUT, 3000);
     createCoordinatorServer(coordinatorConf);
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
-    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_USE_HEALTH_CHECK, true);
+    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE, true);
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, data1.getAbsolutePath());
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
@@ -85,7 +85,7 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
     shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
     shuffleServerConf.setLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1000L);
-    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_USE_HEALTH_CHECK, true);
+    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE, true);
     createShuffleServer(shuffleServerConf);
     startServers();
   }

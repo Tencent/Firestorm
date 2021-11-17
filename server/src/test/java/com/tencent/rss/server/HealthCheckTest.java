@@ -33,6 +33,9 @@ public class HealthCheckTest {
   public void constructorTest() {
     ShuffleServerConf conf = new ShuffleServerConf();
     assertConf(conf);
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKERS, "");
+    assertConf(conf);
+    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKERS, "com.tencent.rss.server.StorageChecker");
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "s1");
     conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);
     assertConf(conf);
@@ -68,38 +71,33 @@ public class HealthCheckTest {
 
   @Test
   public void checkTest() throws Exception {
-    AtomicBoolean health = new AtomicBoolean(true);
     ShuffleServerConf conf = new ShuffleServerConf();
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
     conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
-    HealthCheck checker = new MockHealthCheck(health, conf);
-    checker.check();
-    assertTrue(health.get());
+    StorageChecker checker = new MockStorageChecker(conf);
+
+    assertTrue(checker.checkIsHealthy());
 
     mode++;
-    checker.check();
-    assertTrue(health.get());
+    assertTrue(checker.checkIsHealthy());
 
     mode++;
-    checker.check();
-    assertFalse(health.get());
+    assertFalse(checker.checkIsHealthy());
 
     mode++;
-    checker.check();
-    assertTrue(health.get());
+    assertTrue(checker.checkIsHealthy());
     conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
-    checker = new MockHealthCheck(health, conf);
-    checker.check();
-    assertFalse(health.get());
+    checker = new MockStorageChecker(conf);
+    assertFalse(checker.checkIsHealthy());
 
     mode++;
-    checker.check();
-    assertTrue(health.get());
+    checker.checkIsHealthy();
+    assertTrue(checker.checkIsHealthy());
   }
 
-  private class MockHealthCheck extends HealthCheck {
-    public MockHealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
-      super(isHealthy, conf);
+  private class MockStorageChecker extends StorageChecker {
+    public MockStorageChecker(ShuffleServerConf conf) {
+      super(conf);
     }
 
     @Override

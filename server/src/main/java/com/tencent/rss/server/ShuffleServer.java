@@ -147,8 +147,8 @@ public class ShuffleServer {
       multiStorageManager.start();
     }
 
-    boolean useHealthCheck = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_USE_HEALTH_CHECK);
-    if (useHealthCheck) {
+    boolean healthCheckEnable = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE);
+    if (healthCheckEnable) {
       if (!StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)
           && !StorageType.LOCALFILE.name().equals(storageType)) {
         throw new IllegalArgumentException("Only StorageType LOCALFILE_AND_HDFS and LOCALFILE support health check");
