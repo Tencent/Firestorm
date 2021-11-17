@@ -61,7 +61,7 @@ public class ShuffleTaskManagerTest extends HdfsTestBase {
     conf.setString("rss.storage.basePath", storageBasePath);
     conf.setString("rss.storage.type", "HDFS");
     conf.setString("rss.server.commit.timeout", "10000");
-    conf.setBoolean("rss.server.health.enable", false);
+    conf.setBoolean("rss.server.health.check.enable", false);
     ShuffleServer shuffleServer = new ShuffleServer(conf);
     ShuffleTaskManager shuffleTaskManager = new ShuffleTaskManager(conf,
         shuffleServer.getShuffleFlushManager(), shuffleServer.getShuffleBufferManager(), null);
