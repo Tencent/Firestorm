@@ -17,6 +17,7 @@
 
 package com.tencent.rss.server;
 
+import com.tencent.rss.storage.util.StorageType;
 import org.junit.Test;
 
 import java.io.File;
@@ -31,6 +32,7 @@ public class StorageCheckerTest {
   @Test
   public void checkTest() throws Exception {
     ShuffleServerConf conf = new ShuffleServerConf();
+    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
     StorageChecker checker = new MockStorageChecker(conf);
