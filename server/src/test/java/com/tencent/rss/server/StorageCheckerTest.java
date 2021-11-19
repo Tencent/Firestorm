@@ -26,30 +26,30 @@ import static org.junit.Assert.assertTrue;
 
 public class StorageCheckerTest {
 
-  private int mode = 0;
+  private int callTimes = 0;
 
   @Test
   public void checkTest() throws Exception {
     ShuffleServerConf conf = new ShuffleServerConf();
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
+    conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
     StorageChecker checker = new MockStorageChecker(conf);
 
     assertTrue(checker.checkIsHealthy());
 
-    mode++;
+    callTimes++;
     assertTrue(checker.checkIsHealthy());
 
-    mode++;
+    callTimes++;
     assertFalse(checker.checkIsHealthy());
 
-    mode++;
+    callTimes++;
     assertTrue(checker.checkIsHealthy());
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
+    conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
     checker = new MockStorageChecker(conf);
     assertFalse(checker.checkIsHealthy());
 
-    mode++;
+    callTimes++;
     checker.checkIsHealthy();
     assertTrue(checker.checkIsHealthy());
   }
@@ -64,12 +64,14 @@ public class StorageCheckerTest {
       return 1000;
     }
 
+    // we mock this method, and will return different values according
+    // to call times.
     @Override
     long getUsedSpace(File file) {
       long result = 0;
       switch (file.getPath()) {
         case "st1":
-          switch (mode) {
+          switch (callTimes) {
             case 0:
               result = 100;
               break;
@@ -86,7 +88,7 @@ public class StorageCheckerTest {
           }
           break;
         case "st2":
-          switch (mode) {
+          switch (callTimes) {
             case 0:
             case 1:
               result = 200;
@@ -104,7 +106,7 @@ public class StorageCheckerTest {
           }
           break;
         case "st3":
-          switch (mode) {
+          switch (callTimes) {
             case 0:
             case 1:
             case 2:

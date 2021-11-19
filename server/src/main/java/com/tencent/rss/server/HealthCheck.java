@@ -47,8 +47,8 @@ public class HealthCheck {
 
   public HealthCheck(AtomicBoolean isHealthy, ShuffleServerConf conf) {
     this.isHealthy = isHealthy;
-    this.checkIntervalMs = conf.getLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL);
-    String checkersStr = conf.getString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES);
+    this.checkIntervalMs = conf.getLong(ShuffleServerConf.HEALTH_CHECK_INTERVAL);
+    String checkersStr = conf.getString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES);
     if (StringUtils.isEmpty(checkersStr)) {
       throw new IllegalArgumentException("The checkers cannot be empty");
     }
@@ -60,7 +60,7 @@ public class HealthCheck {
         checkers.add((Checker)cons.newInstance(conf));
       }
     } catch (Exception e) {
-      LOG.error(e.getMessage(), e);
+      LOG.error("HealthCheck fail to init checkers", e);
       throw new IllegalArgumentException("The checkers init fail");
     }
     this.thread = new Thread(() -> {
@@ -69,7 +69,7 @@ public class HealthCheck {
           check();
           Uninterruptibles.sleepUninterruptibly(checkIntervalMs, TimeUnit.MICROSECONDS);
         } catch (Exception e) {
-          LOG.error(e.getMessage());
+          LOG.error("HealthCheck encounter the exception", e);
         }
       }
     });
@@ -92,8 +92,7 @@ public class HealthCheck {
     thread.start();
   }
 
-  public void stop() throws InterruptedException {
+  public void stop() {
     isStop = true;
-    thread.join();
   }
 }

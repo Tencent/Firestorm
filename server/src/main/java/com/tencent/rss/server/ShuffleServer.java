@@ -132,11 +132,11 @@ public class ShuffleServer {
     registerMetrics();
     addServlet(jettyServer);
 
-    boolean useMultiStorage = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_USE_MULTI_STORAGE);
+    boolean useMultiStorage = shuffleServerConf.getBoolean(ShuffleServerConf.USE_MULTI_STORAGE);
     String storageType = shuffleServerConf.getString(RssBaseConf.RSS_STORAGE_TYPE);
     if (StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)) {
       useMultiStorage = true;
-      shuffleServerConf.setBoolean(ShuffleServerConf.RSS_USE_MULTI_STORAGE, true);
+      shuffleServerConf.setBoolean(ShuffleServerConf.USE_MULTI_STORAGE, true);
       LOG.warn("StorageType LOCALFILE_HDFS will enable multistorage function");
     }
     if (useMultiStorage && !StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)) {
@@ -147,12 +147,8 @@ public class ShuffleServer {
       multiStorageManager.start();
     }
 
-    boolean healthCheckEnable = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE);
+    boolean healthCheckEnable = shuffleServerConf.getBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE);
     if (healthCheckEnable) {
-      if (!StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)
-          && !StorageType.LOCALFILE.name().equals(storageType)) {
-        throw new IllegalArgumentException("Only StorageType LOCALFILE_AND_HDFS and LOCALFILE support health check");
-      }
       healthCheck = new HealthCheck(isHealthy, shuffleServerConf);
       healthCheck.start();
     }

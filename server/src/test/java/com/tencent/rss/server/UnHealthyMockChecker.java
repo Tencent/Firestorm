@@ -18,14 +18,14 @@
 
 package com.tencent.rss.server;
 
-class MockChecker2 extends Checker {
+class UnHealthyMockChecker extends Checker {
 
-    public MockChecker2(ShuffleServerConf conf) {
-      super(conf);
-    }
+  public UnHealthyMockChecker(ShuffleServerConf conf) {
+    super(conf);
+  }
 
-    @Override
-    boolean checkIsHealthy() {
-      return true;
-    }
+  @Override
+  boolean checkIsHealthy() {
+    return false;
+  }
 }

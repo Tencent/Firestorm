@@ -30,28 +30,28 @@ public class HealthCheckTest {
   public void constructorTest() {
     ShuffleServerConf conf = new ShuffleServerConf();
     assertConf(conf);
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, "");
+    conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES, "");
     assertConf(conf);
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, "com.tencent.rss.server.StorageChecker");
+    conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES, "com.tencent.rss.server.StorageChecker");
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "s1");
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);
+    conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 102.0);
+    conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 102.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE, 1.0);
-    conf.set(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, -1L);
+    conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 1.0);
+    conf.set(ShuffleServerConf.HEALTH_CHECK_INTERVAL, -1L);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1L);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, -1.0);
+    conf.set(ShuffleServerConf.HEALTH_CHECK_INTERVAL, 1L);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, -1.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 101.0);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 101.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 1.0);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, -1.0);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, 1.0);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, -1.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 101.0);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 101.0);
     assertConf(conf);
-    conf.set(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 1.0);
+    conf.set(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, 1.0);
     new HealthCheck(new AtomicBoolean(), conf);
   }
 
@@ -59,16 +59,16 @@ public class HealthCheckTest {
   public void checkTest() {
     AtomicBoolean healthy = new AtomicBoolean(false);
     ShuffleServerConf conf = new ShuffleServerConf();
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, MockChecker2.class.getCanonicalName());
+    conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES, HealthyMockChecker.class.getCanonicalName());
     HealthCheck checker = new HealthCheck(healthy, conf);
     checker.check();
     assertTrue(healthy.get());
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES, MockChecker1.class.getCanonicalName());
+    conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES, UnHealthyMockChecker.class.getCanonicalName());
     checker = new HealthCheck(healthy, conf);
     checker.check();
     assertFalse(healthy.get());
-    conf.setString(ShuffleServerConf.RSS_HEALTH_CHECKER_CLASS_NAMES,
-        MockChecker1.class.getCanonicalName() + "," + MockChecker2.class.getCanonicalName());
+    conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES,
+        UnHealthyMockChecker.class.getCanonicalName() + "," + HealthyMockChecker.class.getCanonicalName());
     checker = new HealthCheck(healthy, conf);
     checker.check();
     assertFalse(healthy.get());

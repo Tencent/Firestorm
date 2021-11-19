@@ -19,6 +19,7 @@ package com.tencent.rss.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.tencent.rss.storage.util.StorageType;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +43,19 @@ public class StorageChecker extends Checker {
     if (StringUtils.isEmpty(basePathStr)) {
       throw new IllegalArgumentException("The base path cannot be empty");
     }
+    String storageType = conf.getString(ShuffleServerConf.RSS_STORAGE_TYPE);
+    if (!StorageType.LOCALFILE_AND_HDFS.name().equals(storageType)
+        && !StorageType.LOCALFILE.name().equals(storageType)) {
+      throw new IllegalArgumentException("Only StorageType LOCALFILE_AND_HDFS and LOCALFILE support storageChecker");
+    }
     String[] storagePaths = basePathStr.split(",");
 
     for (String path : storagePaths) {
       storageInfos.add(new StorageInfo(path));
     }
-    this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE);
-    this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE);
-    this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.RSS_HEALTH_MIN_STORAGE_PERCENTAGE);
+    this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE);
+    this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE);
+    this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE);
   }
 
   @Override

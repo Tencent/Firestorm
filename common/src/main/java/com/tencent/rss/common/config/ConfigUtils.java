@@ -162,7 +162,7 @@ public class ConfigUtils {
 
   public static Function<Long, Boolean> positiveLongValidator = value -> value > 0;
 
-  public static Function<Double, Boolean> percentageDoubleValidator = (Function<Double, Boolean>) value -> {
-     return Double.compare(value, 100.0) <= 0 && Double.compare(value, 0.0) >= 0;
-  };
+  public static Function<Double, Boolean> percentageDoubleValidator =
+      (Function<Double, Boolean>) value -> Double.compare(value, 100.0) <= 0 && Double.compare(value, 0.0) >= 0;
+  
 }

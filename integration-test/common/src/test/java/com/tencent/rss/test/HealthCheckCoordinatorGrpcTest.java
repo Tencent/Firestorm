@@ -27,6 +27,7 @@ import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.coordinator.ServerNode;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.storage.util.StorageType;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -71,21 +72,21 @@ public class HealthCheckCoordinatorGrpcTest extends CoordinatorTestBase  {
     coordinatorConf.setLong(CoordinatorConf.COORDINATOR_HEARTBEAT_TIMEOUT, 3000);
     createCoordinatorServer(coordinatorConf);
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
-    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE, true);
+    shuffleServerConf.setBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE, true);
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, data1.getAbsolutePath());
-    shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
-    shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
-    shuffleServerConf.setLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1000L);
+    shuffleServerConf.setDouble(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
+    shuffleServerConf.setDouble(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
+    shuffleServerConf.setLong(ShuffleServerConf.HEALTH_CHECK_INTERVAL, 1000L);
     createShuffleServer(shuffleServerConf);
     shuffleServerConf.setInteger(ShuffleServerConf.RPC_SERVER_PORT, SHUFFLE_SERVER_PORT + 1);
     shuffleServerConf.setInteger(ShuffleServerConf.JETTY_HTTP_PORT, 18081);
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, data2.getAbsolutePath());
-    shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
-    shuffleServerConf.setDouble(ShuffleServerConf.RSS_HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
-    shuffleServerConf.setLong(ShuffleServerConf.RSS_HEALTH_CHECK_INTERVAL, 1000L);
-    shuffleServerConf.setBoolean(ShuffleServerConf.RSS_HEALTH_CHECK_ENABLE, true);
+    shuffleServerConf.setDouble(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE, healthUsage);
+    shuffleServerConf.setDouble(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE, maxUsage);
+    shuffleServerConf.setLong(ShuffleServerConf.HEALTH_CHECK_INTERVAL, 1000L);
+    shuffleServerConf.setBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE, true);
     createShuffleServer(shuffleServerConf);
     startServers();
   }
