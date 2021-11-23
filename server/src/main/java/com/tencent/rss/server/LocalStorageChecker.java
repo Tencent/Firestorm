@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.List;
 
-public class StorageChecker extends Checker {
+public class LocalStorageChecker extends Checker {
 
-  private static final Logger LOG = LoggerFactory.getLogger(StorageChecker.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalStorageChecker.class);
 
   private final double diskMaxUsagePercentage;
   private final double diskRecoveryUsagePercentage;
@@ -37,7 +37,7 @@ public class StorageChecker extends Checker {
   private final List<StorageInfo> storageInfos  = Lists.newArrayList();
   private boolean isHealthy = true;
 
-  public StorageChecker(ShuffleServerConf conf) {
+  public LocalStorageChecker(ShuffleServerConf conf) {
     super(conf);
     String basePathStr = conf.get(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
     if (StringUtils.isEmpty(basePathStr)) {

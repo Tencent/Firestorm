@@ -20,7 +20,10 @@ package com.tencent.rss.server;
 
 public abstract class Checker {
 
+  protected ShuffleServerConf conf;
+
   Checker(ShuffleServerConf conf) {
+    this.conf = conf;
   }
 
   abstract boolean checkIsHealthy();

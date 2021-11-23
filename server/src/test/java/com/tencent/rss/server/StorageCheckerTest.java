@@ -35,7 +35,7 @@ public class StorageCheckerTest {
     conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
-    StorageChecker checker = new MockStorageChecker(conf);
+    LocalStorageChecker checker = new MockStorageChecker(conf);
 
     assertTrue(checker.checkIsHealthy());
 
@@ -56,7 +56,7 @@ public class StorageCheckerTest {
     assertTrue(checker.checkIsHealthy());
   }
 
-  private class MockStorageChecker extends StorageChecker {
+  private class MockStorageChecker extends LocalStorageChecker {
     public MockStorageChecker(ShuffleServerConf conf) {
       super(conf);
     }
