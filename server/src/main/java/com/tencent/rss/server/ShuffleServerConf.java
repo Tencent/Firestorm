@@ -299,7 +299,7 @@ public class ShuffleServerConf extends RssBaseConf {
   public static final ConfigOption<String> HEALTH_CHECKER_CLASS_NAMES = ConfigOptions
       .key("rss.server.health.checker.class.names")
       .stringType()
-      .defaultValue("com.tencent.rss.server.StorageChecker")
+      .defaultValue("com.tencent.rss.server.LocalStorageChecker")
       .withDescription("The list of the Checker's name");
 
   public ShuffleServerConf() {
