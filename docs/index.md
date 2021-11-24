@@ -12,8 +12,6 @@ to store shuffle data on remote servers.
 ![Rss Architecture](asset/rss_architecture.png)
 
 
-Here is the design document of [A](pageA.html). 
-
 
 Here you can read API docs for Firestorm along with its submodules.
 
