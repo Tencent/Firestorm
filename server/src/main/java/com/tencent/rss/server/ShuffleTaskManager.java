@@ -369,6 +369,10 @@ public class ShuffleTaskManager {
         }
       }
       ShuffleServerMetrics.gaugeAppNum.set(appIds.size());
+      if (useMultiStorage) {
+        int partitionNum = multiStorageManager.getTotalPartitionNum();
+        ShuffleServerMetrics.gaugePartitionNum.set(partitionNum);
+      }
     } catch (Exception e) {
       LOG.warn("Error happened in checkResourceStatus", e);
     }

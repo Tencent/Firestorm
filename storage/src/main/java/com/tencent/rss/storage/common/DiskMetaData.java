@@ -69,6 +69,17 @@ public class DiskMetaData {
         .map(Entry::getKey).collect(Collectors.toList());
   }
 
+  public int getTotalPartitionNum() {
+    int partitionNum = 0;
+    for (ShuffleMeta meta : shuffleMetaMap.values()) {
+      synchronized (meta.partitionBitmap) {
+        partitionNum += meta.partitionBitmap.getCardinality();
+      }
+    }
+    return partitionNum;
+  }
+
+
   public RoaringBitmap getNotUploadedPartitions(String shuffleKey) {
     ShuffleMeta shuffleMeta = getShuffleMeta(shuffleKey);
     if (shuffleMeta == null) {
