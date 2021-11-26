@@ -264,10 +264,6 @@ public class DiskItem {
     return expiredShuffleKeys;
   }
 
-  public int getTotalPartitionNum() {
-    return diskMetaData.getTotalPartitionNum();
-  }
-
   public static class Builder {
     private long capacity;
     private double lowWaterMarkOfWrite;
