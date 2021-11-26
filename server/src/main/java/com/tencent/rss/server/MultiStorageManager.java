@@ -299,12 +299,4 @@ public class MultiStorageManager {
     String key = generateKey(appId, shuffleId);
     return diskItem.getLock(key);
   }
-
-  public int getTotalPartitionNum() {
-    int partitionNum = 0;
-    for (DiskItem item : diskItems) {
-      partitionNum += item.getTotalPartitionNum();
-    }
-    return partitionNum;
-  }
 }

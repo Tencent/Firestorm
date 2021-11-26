@@ -66,6 +66,7 @@ public class ShuffleBufferManager {
     shuffleIdToBuffers.putIfAbsent(shuffleId, TreeRangeMap.create());
     RangeMap<Integer, ShuffleBuffer> bufferRangeMap = shuffleIdToBuffers.get(shuffleId);
     if (bufferRangeMap.get(startPartition) == null) {
+      ShuffleServerMetrics.gaugeTotalPartitionNum.inc();
       bufferRangeMap.put(Range.closed(startPartition, endPartition), new ShuffleBuffer(bufferSize));
     } else {
       LOG.warn("Already register for appId[" + appId + "], shuffleId[" + shuffleId + "], startPartition["
@@ -156,6 +157,7 @@ public class ShuffleBufferManager {
     long size = 0;
     for (RangeMap<Integer, ShuffleBuffer> rangeMap : shuffleIdToBuffers.values()) {
       if (rangeMap != null) {
+        ShuffleServerMetrics.gaugeTotalPartitionNum.dec();
         Collection<ShuffleBuffer> buffers = rangeMap.asMapOfRanges().values();
         if (buffers != null) {
           for (ShuffleBuffer buffer : buffers) {
