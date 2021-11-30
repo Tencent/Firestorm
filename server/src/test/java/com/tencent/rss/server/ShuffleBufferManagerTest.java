@@ -90,13 +90,16 @@ public class ShuffleBufferManagerTest {
     StatusCode sc = shuffleBufferManager.cacheShuffleData(appId, shuffleId, false, createData(0, 16));
     assertEquals(StatusCode.NO_REGISTER, sc);
     shuffleBufferManager.registerBuffer(appId, shuffleId + 1, 0, 1);
+    assertEquals(1, (int) ShuffleServerMetrics.gaugeTotalPartitionNum.get());
     sc = shuffleBufferManager.cacheShuffleData(appId, shuffleId, false, createData(0, 16));
     assertEquals(StatusCode.NO_REGISTER, sc);
     shuffleBufferManager.registerBuffer(appId, shuffleId, 100, 101);
+    assertEquals(2, (int) ShuffleServerMetrics.gaugeTotalPartitionNum.get());
     sc = shuffleBufferManager.cacheShuffleData(appId, shuffleId, false, createData(0, 16));
     assertEquals(StatusCode.NO_REGISTER, sc);
 
     shuffleBufferManager.registerBuffer(appId, shuffleId, 0, 1);
+    assertEquals(3, (int) ShuffleServerMetrics.gaugeTotalPartitionNum.get());
     sc = shuffleBufferManager.cacheShuffleData(appId, shuffleId, false, createData(0, 16));
     assertEquals(StatusCode.SUCCESS, sc);
 
@@ -135,6 +138,7 @@ public class ShuffleBufferManagerTest {
     // size won't be reduce which should be processed by flushManager, reset buffer size to 0
     shuffleBufferManager.resetSize();
     shuffleBufferManager.removeBuffer(appId);
+    assertEquals(0, (int) ShuffleServerMetrics.gaugeTotalPartitionNum.get());
     shuffleBufferManager.registerBuffer(appId, shuffleId, 2, 3);
     shuffleBufferManager.registerBuffer(appId, shuffleId, 4, 5);
     shuffleBufferManager.registerBuffer(appId, 2, 0, 1);
