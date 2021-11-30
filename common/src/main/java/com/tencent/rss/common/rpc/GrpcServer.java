@@ -25,12 +25,14 @@ import com.tencent.rss.common.util.ExitUtils;
 import io.grpc.BindableService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerInterceptors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GrpcServer implements ServerInterface {
 
@@ -52,12 +54,23 @@ public class GrpcServer implements ServerInterface {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Grpc-%d").build()
     );
 
-    this.server = ServerBuilder
-        .forPort(port)
-        .addService(service)
-        .executor(pool)
-        .maxInboundMessageSize(maxInboundMessageSize)
-        .build();
+    boolean isMetricsEnabled = conf.getBoolean(RssBaseConf.RPC_METRICS_ENABLED);
+    if (isMetricsEnabled) {
+      MonitoringServerInterceptor monitoringInterceptor = new MonitoringServerInterceptor();
+      this.server = ServerBuilder
+          .forPort(port)
+          .addService(ServerInterceptors.intercept(service, monitoringInterceptor))
+          .executor(pool)
+          .maxInboundMessageSize(maxInboundMessageSize)
+          .build();
+    } else {
+      this.server = ServerBuilder
+          .forPort(port)
+          .addService(service)
+          .executor(pool)
+          .maxInboundMessageSize(maxInboundMessageSize)
+          .build();
+    }
   }
 
   public void start() throws IOException {

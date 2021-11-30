@@ -18,24 +18,26 @@
 
 package com.tencent.rss.server;
 
-import static org.junit.Assert.assertEquals;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tencent.rss.common.metrics.GRPCMetrics;
 import com.tencent.rss.common.metrics.JvmMetrics;
+import com.tencent.rss.common.metrics.TestUtils;
 import com.tencent.rss.common.web.CommonMetricsServlet;
 import com.tencent.rss.common.web.JettyServer;
-import com.tencent.rss.common.metrics.TestUtils;
 import io.prometheus.client.CollectorRegistry;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class ShuffleServerMetricsTest {
 
@@ -51,6 +53,7 @@ public class ShuffleServerMetricsTest {
     server = new JettyServer(ssc);
     CollectorRegistry shuffleServerCollectorRegistry = new CollectorRegistry(true);
     ShuffleServerMetrics.register(shuffleServerCollectorRegistry);
+    GRPCMetrics.register(shuffleServerCollectorRegistry);
     CollectorRegistry jvmCollectorRegistry = new CollectorRegistry(true);
     JvmMetrics.register(jvmCollectorRegistry);
     server.addServlet(new CommonMetricsServlet(JvmMetrics.getCollectorRegistry()), "/metrics/jvm");
@@ -63,8 +66,6 @@ public class ShuffleServerMetricsTest {
     server.stop();
   }
 
-
-
   @Test
   public void testJvmMetrics() throws Exception {
     String content = TestUtils.httpGetMetrics(SERVER_JVM_URL);
@@ -75,15 +76,11 @@ public class ShuffleServerMetricsTest {
 
   @Test
   public void testServerMetrics() throws Exception {
-    ShuffleServerMetrics.counterTotalRequest.inc();
-    ShuffleServerMetrics.counterTotalRequest.inc();
-    ShuffleServerMetrics.counterTotalReceivedDataSize.inc();
-
     String content = TestUtils.httpGetMetrics(SERVER_METRICS_URL);
     ObjectMapper mapper = new ObjectMapper();
     JsonNode actualObj = mapper.readTree(content);
     assertEquals(2, actualObj.size());
-    assertEquals(30, actualObj.get("metrics").size());
+    assertEquals(52, actualObj.get("metrics").size());
   }
 
   @Test
