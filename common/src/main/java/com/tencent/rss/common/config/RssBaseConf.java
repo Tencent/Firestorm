@@ -119,7 +119,7 @@ public class RssBaseConf extends RssConf {
       .longType()
       .checkValue(ConfigUtils.positiveIntegerValidator,
         "The value must be positive integer")
-      .defaultValue(1024L * 1024L * 1024L)
+      .defaultValue(1g)
       .withDescription("Max size of rpc message (byte)");
 
   public static final ConfigOption<String> RSS_CLIENT_TYPE = ConfigOptions
