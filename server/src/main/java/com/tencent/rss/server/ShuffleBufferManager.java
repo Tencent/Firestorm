@@ -157,10 +157,10 @@ public class ShuffleBufferManager {
     long size = 0;
     for (RangeMap<Integer, ShuffleBuffer> rangeMap : shuffleIdToBuffers.values()) {
       if (rangeMap != null) {
-        ShuffleServerMetrics.gaugeTotalPartitionNum.dec();
         Collection<ShuffleBuffer> buffers = rangeMap.asMapOfRanges().values();
         if (buffers != null) {
           for (ShuffleBuffer buffer : buffers) {
+            ShuffleServerMetrics.gaugeTotalPartitionNum.dec();
             size += buffer.getSize();
           }
         }
