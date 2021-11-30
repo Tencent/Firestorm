@@ -20,6 +20,8 @@ package com.tencent.rss.common.config;
 
 import com.google.common.collect.Lists;
 
+import com.tencent.rss.common.util.UnitConverter;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.function.Function;
@@ -95,7 +97,20 @@ public class ConfigUtils {
     } else if (o.getClass() == Integer.class) {
       return ((Integer) o).longValue();
     }
-    return Long.parseLong(o.toString());
+    if (UnitConverter.isByteString(o.toString())) {
+      return UnitConverter.byteStringAsBytes(o.toString());
+    } else {
+      return Long.parseLong(o.toString());
+    }
+  }
+
+  static Long convertToSizeInBytes(Object o) {
+    if (o.getClass() == Long.class) {
+      return (Long) o;
+    } else if (o.getClass() == Integer.class) {
+      return ((Integer) o).longValue();
+    }
+    return UnitConverter.byteStringAsBytes(o.toString());
   }
 
   static Boolean convertToBoolean(Object o) {
