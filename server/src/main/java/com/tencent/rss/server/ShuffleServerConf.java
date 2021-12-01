@@ -230,7 +230,7 @@ public class ShuffleServerConf extends RssBaseConf {
   public static final ConfigOption<Long> CLEANUP_INTERVAL_MS = ConfigOptions
       .key("rss.server.cleanup.interval.ms")
       .longType()
-      .defaultValue(30000L)
+      .defaultValue(3000L)
       .withDescription("The interval for cleanup");
 
   public static final ConfigOption<Long> SHUFFLE_EXPIRED_TIMEOUT_MS = ConfigOptions
