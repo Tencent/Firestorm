@@ -18,23 +18,26 @@
 
 package com.tencent.rss.coordinator;
 
+import com.tencent.rss.common.metrics.GRPCMetrics;
 import com.tencent.rss.common.rpc.GrpcServer;
 import com.tencent.rss.common.rpc.ServerInterface;
 
-public class CoordinatorRpcServerFactory {
+public class CoordinatorFactory {
 
   private final CoordinatorServer coordinatorServer;
   private final CoordinatorConf conf;
+  private final GRPCMetrics grpcMetrics;
 
-  public CoordinatorRpcServerFactory(CoordinatorServer coordinatorServer) {
+  public CoordinatorFactory(CoordinatorServer coordinatorServer, GRPCMetrics grpcMetrics) {
     this.coordinatorServer = coordinatorServer;
     this.conf = coordinatorServer.getCoordinatorConf();
+    this.grpcMetrics = grpcMetrics;
   }
 
   public ServerInterface getServer() {
     String type = conf.getString(CoordinatorConf.RPC_SERVER_TYPE);
     if (type.equals(ServerType.GRPC.name())) {
-      return new GrpcServer(conf, new CoordinatorGrpcService(coordinatorServer));
+      return new GrpcServer(conf, new CoordinatorGrpcService(coordinatorServer), grpcMetrics);
     } else {
       throw new UnsupportedOperationException("Unsupported server type " + type);
     }

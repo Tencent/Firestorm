@@ -29,9 +29,9 @@ import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleRegisterInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.config.RssBaseConf;
-import com.tencent.rss.common.metrics.GRPCMetrics;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.coordinator.CoordinatorConf;
+import com.tencent.rss.coordinator.CoordinatorGrpcMetrics;
 import com.tencent.rss.coordinator.ServerNode;
 import com.tencent.rss.coordinator.SimpleClusterManager;
 import com.tencent.rss.proto.RssProtos;
@@ -242,22 +242,28 @@ public class CoordinatorGrpcTest extends CoordinatorTestBase {
   @Test
   public void rpcMetricsTest() throws Exception{
     String appId = "rpcMetricsTest";
-    double oldValue = GRPCMetrics.counterMap.get(GRPCMetrics.HEARTBEAT_METHOD).get();
+    double oldValue = coordinators.get(0).getGrpcMetrics().getCounterMap()
+        .get(CoordinatorGrpcMetrics.HEARTBEAT_METHOD).get();
     CoordinatorTestUtils.waitForRegister(coordinatorClient,2);
-    double newValue = GRPCMetrics.counterMap.get(GRPCMetrics.HEARTBEAT_METHOD).get();
+    double newValue = coordinators.get(0).getGrpcMetrics().getCounterMap()
+        .get(CoordinatorGrpcMetrics.HEARTBEAT_METHOD).get();
     assertTrue(newValue - oldValue > 1);
     assertEquals(0,
-        GRPCMetrics.gaugeMap.get(GRPCMetrics.HEARTBEAT_METHOD).get(), 0.5);
+        coordinators.get(0).getGrpcMetrics().getGaugeMap()
+            .get(CoordinatorGrpcMetrics.HEARTBEAT_METHOD).get(), 0.5);
 
     RssGetShuffleAssignmentsRequest request = new RssGetShuffleAssignmentsRequest(
         appId, 1, 10, 4, 1,
         Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
-    oldValue = GRPCMetrics.counterMap.get(GRPCMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get();
+    oldValue = coordinators.get(0).getGrpcMetrics().getCounterMap()
+        .get(CoordinatorGrpcMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get();
     coordinatorClient.getShuffleAssignments(request);
-    newValue = GRPCMetrics.counterMap.get(GRPCMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get();
+    newValue = coordinators.get(0).getGrpcMetrics().getCounterMap()
+        .get(CoordinatorGrpcMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get();
     assertEquals(oldValue + 1, newValue, 0.5);
     assertEquals(0,
-        GRPCMetrics.gaugeMap.get(GRPCMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get(), 0.5);
+        coordinators.get(0).getGrpcMetrics().getGaugeMap()
+            .get(CoordinatorGrpcMetrics.GET_SHUFFLE_ASSIGNMENTS_METHOD).get(), 0.5);
   }
 
   private GetShuffleAssignmentsResponse generateShuffleAssignmentsResponse() {

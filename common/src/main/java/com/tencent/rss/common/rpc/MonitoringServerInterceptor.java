@@ -26,6 +26,13 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 
 public class MonitoringServerInterceptor implements ServerInterceptor {
+
+  private final GRPCMetrics grpcMetrics;
+
+  public MonitoringServerInterceptor(GRPCMetrics grpcMetrics) {
+    this.grpcMetrics = grpcMetrics;
+  }
+
   @Override
   public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
       ServerCall<ReqT, RespT> serverCall,
@@ -34,9 +41,9 @@ public class MonitoringServerInterceptor implements ServerInterceptor {
     MethodDescriptor<ReqT, RespT> methodDescriptor = serverCall.getMethodDescriptor();
     String methodName = methodDescriptor.getBareMethodName();
     // a call is coming
-    GRPCMetrics.incCounter(methodName);
+    grpcMetrics.incCounter(methodName);
     MonitoringServerCall<ReqT, RespT> monitoringServerCall =
-        new MonitoringServerCall<>(serverCall, methodName);
+        new MonitoringServerCall<>(serverCall, methodName, grpcMetrics);
     return new MonitoringServerCallListener<>(
         serverCallHandler.startCall(monitoringServerCall, metadata));
   }

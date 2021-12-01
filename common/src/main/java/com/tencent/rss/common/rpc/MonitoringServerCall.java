@@ -27,10 +27,13 @@ import io.grpc.Status;
 public class MonitoringServerCall<R, S> extends ForwardingServerCall.SimpleForwardingServerCall<R, S> {
 
   private final String methodName;
+  private final GRPCMetrics grpcMetrics;
 
-  protected MonitoringServerCall(ServerCall<R, S> delegate, String methodName) {
+  protected MonitoringServerCall(
+      ServerCall<R, S> delegate, String methodName, GRPCMetrics grpcMetrics) {
     super(delegate);
     this.methodName = methodName;
+    this.grpcMetrics = grpcMetrics;
   }
 
   @Override
@@ -38,7 +41,7 @@ public class MonitoringServerCall<R, S> extends ForwardingServerCall.SimpleForwa
     try {
       super.close(status, responseHeaders);
     } finally {
-      GRPCMetrics.decCounter(methodName);
+      grpcMetrics.decCounter(methodName);
     }
   }
 }

@@ -21,6 +21,7 @@ package com.tencent.rss.common.rpc;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.tencent.rss.common.config.RssBaseConf;
+import com.tencent.rss.common.metrics.GRPCMetrics;
 import com.tencent.rss.common.util.ExitUtils;
 import io.grpc.BindableService;
 import io.grpc.Server;
@@ -41,7 +42,7 @@ public class GrpcServer implements ServerInterface {
   private final Server server;
   private final int port;
 
-  public GrpcServer(RssBaseConf conf, BindableService service) {
+  public GrpcServer(RssBaseConf conf, BindableService service, GRPCMetrics grpcMetrics) {
     this.port = conf.getInteger(RssBaseConf.RPC_SERVER_PORT);
     int maxInboundMessageSize = conf.getInteger(RssBaseConf.RPC_MESSAGE_MAX_SIZE);
     int rpcExecutorSize = conf.getInteger(RssBaseConf.RPC_EXECUTOR_SIZE);
@@ -56,7 +57,8 @@ public class GrpcServer implements ServerInterface {
 
     boolean isMetricsEnabled = conf.getBoolean(RssBaseConf.RPC_METRICS_ENABLED);
     if (isMetricsEnabled) {
-      MonitoringServerInterceptor monitoringInterceptor = new MonitoringServerInterceptor();
+      MonitoringServerInterceptor monitoringInterceptor =
+          new MonitoringServerInterceptor(grpcMetrics);
       this.server = ServerBuilder
           .forPort(port)
           .addService(ServerInterceptors.intercept(service, monitoringInterceptor))

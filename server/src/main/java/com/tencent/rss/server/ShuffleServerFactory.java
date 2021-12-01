@@ -18,23 +18,26 @@
 
 package com.tencent.rss.server;
 
+import com.tencent.rss.common.metrics.GRPCMetrics;
 import com.tencent.rss.common.rpc.GrpcServer;
 import com.tencent.rss.common.rpc.ServerInterface;
 
-public class RemoteServerFactory {
+public class ShuffleServerFactory {
 
   private final ShuffleServer shuffleServer;
   private final ShuffleServerConf conf;
+  private final GRPCMetrics grpcMetrics;
 
-  public RemoteServerFactory(ShuffleServer shuffleServer) {
+  public ShuffleServerFactory(ShuffleServer shuffleServer, GRPCMetrics grpcMetrics) {
     this.shuffleServer = shuffleServer;
     this.conf = shuffleServer.getShuffleServerConf();
+    this.grpcMetrics = grpcMetrics;
   }
 
   public ServerInterface getServer() {
     String type = conf.getString(ShuffleServerConf.RPC_SERVER_TYPE);
     if (type.equals(ServerType.GRPC.name())) {
-      return new GrpcServer(conf, new ShuffleServerGrpcService(shuffleServer));
+      return new GrpcServer(conf, new ShuffleServerGrpcService(shuffleServer), grpcMetrics);
     } else {
       throw new UnsupportedOperationException("Unsupported server type " + type);
     }

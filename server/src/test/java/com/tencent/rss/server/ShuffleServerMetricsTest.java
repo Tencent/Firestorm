@@ -39,6 +39,7 @@ public class ShuffleServerMetricsTest {
 
   private static final String SERVER_METRICS_URL = "http://127.0.0.1:12345/metrics/server";
   private static final String SERVER_JVM_URL = "http://127.0.0.1:12345/metrics/jvm";
+  private static final String SERVER_GRPC_URL = "http://127.0.0.1:12345/metrics/grpc";
   private static ShuffleServer shuffleServer;
 
   @BeforeClass
@@ -76,7 +77,16 @@ public class ShuffleServerMetricsTest {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode actualObj = mapper.readTree(content);
     assertEquals(2, actualObj.size());
-    assertEquals(52, actualObj.get("metrics").size());
+    assertEquals(26, actualObj.get("metrics").size());
+  }
+
+  @Test
+  public void testGrpcMetrics() throws Exception {
+    String content = TestUtils.httpGetMetrics(SERVER_GRPC_URL);
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode actualObj = mapper.readTree(content);
+    assertEquals(2, actualObj.size());
+    assertEquals(22, actualObj.get("metrics").size());
   }
 
   @Test

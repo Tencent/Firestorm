@@ -44,6 +44,7 @@ public class CoordinatorServer {
   private ClusterManager clusterManager;
   private AssignmentStrategy assignmentStrategy;
   private ApplicationManager applicationManager;
+  private GRPCMetrics grpcMetrics;
 
   public CoordinatorServer(CoordinatorConf coordinatorConf) throws FileNotFoundException {
     this.coordinatorConf = coordinatorConf;
@@ -106,22 +107,42 @@ public class CoordinatorServer {
         new AssignmentStrategyFactory(coordinatorConf, clusterManager);
     this.assignmentStrategy = assignmentStrategyFactory.getAssignmentStrategy();
 
-    CoordinatorRpcServerFactory coordinatorRpcServerFactory = new CoordinatorRpcServerFactory(this);
-    server = coordinatorRpcServerFactory.getServer();
     jettyServer = new JettyServer(coordinatorConf);
-
-    registerMetrics();
+    grpcMetrics = new CoordinatorGrpcMetrics();
+    registerMetrics(grpcMetrics);
     addServlet(jettyServer);
+    CoordinatorFactory coordinatorFactory = new CoordinatorFactory(this, grpcMetrics);
+    server = coordinatorFactory.getServer();
   }
 
-  private void registerMetrics() {
+  private void registerMetrics(GRPCMetrics grpcMetrics) {
     LOG.info("Register metrics");
     CollectorRegistry coordinatorCollectorRegistry = new CollectorRegistry(true);
-    CollectorRegistry jvmCollectorRegistry = new CollectorRegistry(true);
     CoordinatorMetrics.register(coordinatorCollectorRegistry);
-    GRPCMetrics.register(coordinatorCollectorRegistry);
+    grpcMetrics.register(new CollectorRegistry(true));
     boolean verbose = coordinatorConf.getBoolean(CoordinatorConf.RSS_JVM_METRICS_VERBOSE_ENABLE);
+    CollectorRegistry jvmCollectorRegistry = new CollectorRegistry(true);
     JvmMetrics.register(jvmCollectorRegistry, verbose);
+
+    LOG.info("Add metrics servlet");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(CoordinatorMetrics.getCollectorRegistry()),
+        "/metrics/server");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(grpcMetrics.getCollectorRegistry()),
+        "/metrics/grpc");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(JvmMetrics.getCollectorRegistry()),
+        "/metrics/jvm");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(CoordinatorMetrics.getCollectorRegistry(), true),
+        "/prometheus/metrics/server");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(grpcMetrics.getCollectorRegistry(), true),
+        "/prometheus/metrics/grpc");
+    jettyServer.addServlet(
+        new CommonMetricsServlet(JvmMetrics.getCollectorRegistry(), true),
+        "/prometheus/metrics/jvm");
   }
 
   private void addServlet(JettyServer jettyServer) {
@@ -154,6 +175,10 @@ public class CoordinatorServer {
 
   public ApplicationManager getApplicationManager() {
     return applicationManager;
+  }
+
+  public GRPCMetrics getGrpcMetrics() {
+    return grpcMetrics;
   }
 
   /**
