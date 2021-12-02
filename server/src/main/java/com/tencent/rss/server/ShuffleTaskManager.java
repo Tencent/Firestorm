@@ -215,7 +215,7 @@ public class ShuffleTaskManager {
     // 2. update the bitmap
     // 3. do 1 & 2 again for another bitmap
     // Todo: High latency with current implementation for the lock competition
-    List<List<Map.Entry<Integer, long[]>>> entryList = Lists.newArrayList();
+    List<List<long[]>> entryList = Lists.newArrayList();
     for (int i = 0; i < bitmapNum; i++) {
       entryList.add(i, Lists.newArrayList());
     }
@@ -223,15 +223,15 @@ public class ShuffleTaskManager {
     // prepare the data for each bitmap
     for (Map.Entry<Integer, long[]> entry : partitionToBlockIds.entrySet()) {
       Integer partitionId = entry.getKey();
-      entryList.get(partitionId % bitmapNum).add(entry);
+      entryList.get(partitionId % bitmapNum).add(entry.getValue());
     }
 
     for (int i = 0; i < bitmapNum; i++) {
       Roaring64NavigableMap bitmap = blockIds[i];
-      List<Map.Entry<Integer, long[]>> relatedEntryList = entryList.get(i);
+      List<long[]> blockIdList = entryList.get(i);
       synchronized (bitmap) {
-        for (Map.Entry<Integer, long[]> entry : relatedEntryList) {
-          for (long blockId : entry.getValue()) {
+        for (long[] blockIdArray : blockIdList) {
+          for (long blockId : blockIdArray) {
             bitmap.addLong(blockId);
           }
         }
