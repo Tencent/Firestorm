@@ -35,6 +35,11 @@ import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;
 import com.tencent.rss.storage.handler.api.ServerReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
+import org.roaringbitmap.longlong.LongIterator;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +50,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.roaringbitmap.longlong.LongIterator;
-import org.roaringbitmap.longlong.Roaring64NavigableMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ShuffleTaskManager {
 
@@ -207,12 +208,32 @@ public class ShuffleTaskManager {
       shuffleIdToPartitions.putIfAbsent(shuffleId, blockIds);
     }
     Roaring64NavigableMap[] blockIds = shuffleIdToPartitions.get(shuffleId);
+
+    // This method will be called from many threads, it's important to keep lock in a reasonable way
+    // Here is the strategy:
+    // 1. get lock of bitmap
+    // 2. update the bitmap
+    // 3. do 1 & 2 again for another bitmap
+    // Todo: High latency with current implementation for the lock competition
+    List<List<Map.Entry<Integer, long[]>>> entryList = Lists.newArrayList();
+    for (int i = 0; i < bitmapNum; i++) {
+      entryList.add(i, Lists.newArrayList());
+    }
+
+    // prepare the data for each bitmap
     for (Map.Entry<Integer, long[]> entry : partitionToBlockIds.entrySet()) {
       Integer partitionId = entry.getKey();
-      Roaring64NavigableMap bitmap = blockIds[partitionId % bitmapNum];
+      entryList.get(partitionId % bitmapNum).add(entry);
+    }
+
+    for (int i = 0; i < bitmapNum; i++) {
+      Roaring64NavigableMap bitmap = blockIds[i];
+      List<Map.Entry<Integer, long[]>> relatedEntryList = entryList.get(i);
       synchronized (bitmap) {
-        for (long blockId : entry.getValue()) {
-          bitmap.addLong(blockId);
+        for (Map.Entry<Integer, long[]> entry : relatedEntryList) {
+          for (long blockId : entry.getValue()) {
+            bitmap.addLong(blockId);
+          }
         }
       }
     }
