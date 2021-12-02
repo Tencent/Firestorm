@@ -123,7 +123,7 @@ public class ShuffleServerConf extends RssBaseConf {
   public static final ConfigOption<Long> SERVER_PRE_ALLOCATION_EXPIRED = ConfigOptions
       .key("rss.server.preAllocation.expired")
       .longType()
-      .defaultValue(120 * 1000L)
+      .defaultValue(20 * 1000L)
       .withDescription("Expired time (ms) for pre allocated buffer");
 
   public static final ConfigOption<Long> SERVER_COMMIT_CHECK_INTERVAL_MAX = ConfigOptions
