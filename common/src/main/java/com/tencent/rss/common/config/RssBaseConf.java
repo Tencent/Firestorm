@@ -45,7 +45,7 @@ public class RssBaseConf extends RssConf {
   public static final ConfigOption<Boolean> RPC_METRICS_ENABLED = ConfigOptions
       .key("rss.rpc.metrics.enabled")
       .booleanType()
-      .defaultValue(false)
+      .defaultValue(true)
       .withDescription("If enable metrics for rpc connection");
 
   public static final ConfigOption<Integer> JETTY_HTTP_PORT = ConfigOptions

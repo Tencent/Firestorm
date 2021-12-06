@@ -131,8 +131,7 @@ public class ShuffleServer {
     id = ip + "-" + port;
     LOG.info("Start to initialize server {}", id);
     jettyServer = new JettyServer(shuffleServerConf);
-    grpcMetrics = new ShuffleServerGrpcMetrics();
-    registerMetrics(grpcMetrics);
+    registerMetrics();
 
     boolean useMultiStorage = shuffleServerConf.getBoolean(ShuffleServerConf.USE_MULTI_STORAGE);
     String storageType = shuffleServerConf.getString(RssBaseConf.RSS_STORAGE_TYPE);
@@ -161,17 +160,18 @@ public class ShuffleServer {
     shuffleTaskManager = new ShuffleTaskManager(shuffleServerConf, shuffleFlushManager,
         shuffleBufferManager, multiStorageManager);
 
-    ShuffleServerFactory shuffleServerFactory = new ShuffleServerFactory(this, grpcMetrics);
+    ShuffleServerFactory shuffleServerFactory = new ShuffleServerFactory(this);
     server = shuffleServerFactory.getServer();
 
     // it's the system tag for server's version
     tags.add(Constants.SHUFFLE_SERVER_VERSION);
   }
 
-  private void registerMetrics(GRPCMetrics grpcMetrics) {
+  private void registerMetrics() {
     LOG.info("Register metrics");
     CollectorRegistry shuffleServerCollectorRegistry = new CollectorRegistry(true);
     ShuffleServerMetrics.register(shuffleServerCollectorRegistry);
+    grpcMetrics = new ShuffleServerGrpcMetrics();
     grpcMetrics.register(new CollectorRegistry(true));
     CollectorRegistry jvmCollectorRegistry = new CollectorRegistry(true);
     boolean verbose = shuffleServerConf.getBoolean(ShuffleServerConf.RSS_JVM_METRICS_VERBOSE_ENABLE);

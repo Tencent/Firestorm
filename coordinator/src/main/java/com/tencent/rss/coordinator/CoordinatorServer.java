@@ -108,17 +108,17 @@ public class CoordinatorServer {
     this.assignmentStrategy = assignmentStrategyFactory.getAssignmentStrategy();
 
     jettyServer = new JettyServer(coordinatorConf);
-    grpcMetrics = new CoordinatorGrpcMetrics();
-    registerMetrics(grpcMetrics);
+    registerMetrics();
     addServlet(jettyServer);
-    CoordinatorFactory coordinatorFactory = new CoordinatorFactory(this, grpcMetrics);
+    CoordinatorFactory coordinatorFactory = new CoordinatorFactory(this);
     server = coordinatorFactory.getServer();
   }
 
-  private void registerMetrics(GRPCMetrics grpcMetrics) {
+  private void registerMetrics() {
     LOG.info("Register metrics");
     CollectorRegistry coordinatorCollectorRegistry = new CollectorRegistry(true);
     CoordinatorMetrics.register(coordinatorCollectorRegistry);
+    grpcMetrics = new CoordinatorGrpcMetrics();
     grpcMetrics.register(new CollectorRegistry(true));
     boolean verbose = coordinatorConf.getBoolean(CoordinatorConf.RSS_JVM_METRICS_VERBOSE_ENABLE);
     CollectorRegistry jvmCollectorRegistry = new CollectorRegistry(true);
