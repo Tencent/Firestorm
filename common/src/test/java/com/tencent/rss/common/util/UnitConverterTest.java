@@ -24,12 +24,23 @@ import static org.junit.Assert.assertEquals;
 
 public class UnitConverterTest {
 
+  long PB = (long)ByteUnit.PiB.toBytes(1L);
+  long TB = (long)ByteUnit.TiB.toBytes(1L);
   long GB = (long)ByteUnit.GiB.toBytes(1L);
   long MB = (long)ByteUnit.MiB.toBytes(1L);
   long KB = (long)ByteUnit.KiB.toBytes(1L);
 
   @Test
   public void testByteString() {
+
+    assertEquals(10 * PB, UnitConverter.byteStringAs("10PB", ByteUnit.BYTE));
+    assertEquals(10 * PB, UnitConverter.byteStringAs("10pb", ByteUnit.BYTE));
+    assertEquals(10 * PB, UnitConverter.byteStringAs("10pB", ByteUnit.BYTE));
+
+    assertEquals(10 * TB, UnitConverter.byteStringAs("10TB", ByteUnit.BYTE));
+    assertEquals(10 * TB, UnitConverter.byteStringAs("10tb", ByteUnit.BYTE));
+    assertEquals(10 * TB, UnitConverter.byteStringAs("10tB", ByteUnit.BYTE));
+
     assertEquals(10 * GB, UnitConverter.byteStringAs("10GB", ByteUnit.BYTE));
     assertEquals(10 * GB, UnitConverter.byteStringAs("10gb", ByteUnit.BYTE));
     assertEquals(10 * GB, UnitConverter.byteStringAs("10gB", ByteUnit.BYTE));
