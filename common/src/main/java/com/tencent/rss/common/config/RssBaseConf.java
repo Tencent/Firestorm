@@ -117,6 +117,8 @@ public class RssBaseConf extends RssConf {
   public static final ConfigOption<Long> RPC_MESSAGE_MAX_SIZE = ConfigOptions
       .key("rss.rpc.message.max.size")
       .longType()
+      .checkValue((v) -> {return v > 0L && v < Integer.MAX_VALUE;},
+        "The value must be positive integer")
       .defaultValue(1024L * 1024L * 1024L)
       .withDescription("Max size of rpc message (byte)");
 
