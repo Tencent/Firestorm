@@ -52,6 +52,7 @@ public class ShuffleServerMetrics {
   private static final String TOTAL_UPLOAD_SIZE = "total_upload_size";
   private static final String TOTAL_UPLOAD_TIME_S = "total_upload_time_s";
   private static final String TOTAL_DROPPED_EVENT_NUM = "total_dropped_event_num";
+  private static final String TOTAL_LOCAL_DATA_SIZE = "total_local_data_size";
 
   static Counter counterTotalReceivedDataSize;
   static Counter counterTotalWriteDataSize;
@@ -80,6 +81,7 @@ public class ShuffleServerMetrics {
   static Gauge gaugeEventQueueSize;
   static Gauge gaugeAppNum;
   static Gauge gaugeTotalPartitionNum;
+  static Gauge gaugeTotalLocalDataSize;
 
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
@@ -128,6 +130,7 @@ public class ShuffleServerMetrics {
     gaugeEventQueueSize = metricsManager.addGauge(EVENT_QUEUE_SIZE);
     gaugeAppNum = metricsManager.addGauge(APP_NUM_WITH_NODE);
     gaugeTotalPartitionNum = metricsManager.addGauge(PARTITION_NUM_WITH_NODE);
+    gaugeTotalLocalDataSize = metricsManager.addGauge(TOTAL_LOCAL_DATA_SIZE);
   }
 
 }

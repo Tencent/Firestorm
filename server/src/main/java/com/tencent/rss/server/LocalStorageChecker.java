@@ -61,11 +61,14 @@ public class LocalStorageChecker extends Checker {
   @Override
   public boolean checkIsHealthy() {
     int num = 0;
+    long totalLocalDataSize = 0;
     for (StorageInfo storageInfo : storageInfos) {
       if (storageInfo.checkIsHealthy()) {
         num++;
       }
+      totalLocalDataSize += storageInfo.getUsedSize();
     }
+    ShuffleServerMetrics.gaugeTotalLocalDataSize.set(totalLocalDataSize);
 
     if (storageInfos.isEmpty()) {
       if (isHealthy) {
@@ -107,6 +110,7 @@ public class LocalStorageChecker extends Checker {
 
     private final File storageDir;
     private boolean isHealthy;
+    private long usedSize;
 
     StorageInfo(String path) {
       this.storageDir = new File(path);
@@ -118,7 +122,10 @@ public class LocalStorageChecker extends Checker {
         this.isHealthy = false;
         return false;
       }
-      double usagePercent = getUsedSpace(storageDir) * 100.0 / getTotalSpace(storageDir);
+      // We assume that this partition is only used by us so the used space is the local shuffle data size.
+      // If not we should walk through all the files and get sum of all file length.
+      usedSize = getUsedSpace(storageDir);
+      double usagePercent = usedSize * 100.0 / getTotalSpace(storageDir);
       if (isHealthy) {
         if (Double.compare(usagePercent, diskMaxUsagePercentage) >= 0) {
           isHealthy = false;
@@ -131,6 +138,10 @@ public class LocalStorageChecker extends Checker {
         }
       }
       return isHealthy;
+    }
+
+    public long getUsedSize() {
+      return usedSize;
     }
   }
 }

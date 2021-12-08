@@ -18,10 +18,12 @@
 package com.tencent.rss.server;
 
 import com.tencent.rss.storage.util.StorageType;
+import io.prometheus.client.CollectorRegistry;
 import org.junit.Test;
 
 import java.io.File;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -36,24 +38,31 @@ public class StorageCheckerTest {
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
     LocalStorageChecker checker = new MockStorageChecker(conf);
+    CollectorRegistry shuffleServerCollectorRegistry = new CollectorRegistry(true);
+    ShuffleServerMetrics.register(shuffleServerCollectorRegistry);
 
     assertTrue(checker.checkIsHealthy());
+    assertEquals(600L, (long) ShuffleServerMetrics.gaugeTotalLocalDataSize.get());
 
     callTimes++;
     assertTrue(checker.checkIsHealthy());
+    assertEquals(1400L, (long) ShuffleServerMetrics.gaugeTotalLocalDataSize.get());
 
     callTimes++;
     assertFalse(checker.checkIsHealthy());
+    assertEquals(2100L, (long) ShuffleServerMetrics.gaugeTotalLocalDataSize.get());
 
     callTimes++;
     assertTrue(checker.checkIsHealthy());
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 80.0);
     checker = new MockStorageChecker(conf);
     assertFalse(checker.checkIsHealthy());
+    assertEquals(1600L, (long) ShuffleServerMetrics.gaugeTotalLocalDataSize.get());
 
     callTimes++;
     checker.checkIsHealthy();
     assertTrue(checker.checkIsHealthy());
+    assertEquals(250L, (long) ShuffleServerMetrics.gaugeTotalLocalDataSize.get());
   }
 
   private class MockStorageChecker extends LocalStorageChecker {
