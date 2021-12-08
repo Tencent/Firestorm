@@ -92,6 +92,14 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
     String dataFileName = ShuffleStorageUtils.generateDataFileName(fileNamePrefix);
     String indexFileName = ShuffleStorageUtils.generateIndexFileName(fileNamePrefix);
 
+    // if shuffle has been uploaded totally, the directory of shuffle will be deleted
+    // the event should be dropped.
+    File baseFolder = new File(basePath);
+    if (!baseFolder.exists()) {
+      LOG.warn("{} don't exist, the app or shuffle may be deleted", baseFolder.getAbsolutePath());
+      return;
+    }
+
     try (LocalFileWriter dataWriter = createWriter(dataFileName);
         LocalFileWriter indexWriter = createWriter(indexFileName)) {
 
