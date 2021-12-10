@@ -64,7 +64,7 @@ public class MultiStorageHdfsShuffleFileReadHandler extends HdfsShuffleFileReadH
       return null;
     }
 
-    byte[] data = dataReader.readData(dataFileOffset + shuffleDataSegment.getOffset(), expectedLength);
+    byte[] data = dataReader.read(dataFileOffset + shuffleDataSegment.getOffset(), expectedLength);
     if (data.length != expectedLength) {
       LOG.warn("Fail to read expected[{}] data, actual[{}], offset[{}] and segment is {} from file {}.data",
           expectedLength, data.length, dataFileOffset, shuffleDataSegment, filePrefix);
@@ -84,7 +84,7 @@ public class MultiStorageHdfsShuffleFileReadHandler extends HdfsShuffleFileReadH
   protected ShuffleIndexResult readShuffleIndex() {
     long start = System.currentTimeMillis();
     try {
-      byte[] indexData = indexReader.readIndex();
+      byte[] indexData = indexReader.read();
 
       ByteBuffer byteBuffer = ByteBuffer.wrap(indexData);
       ShuffleIndexHeader shuffleIndexHeader = ShuffleIndexHeader.extractHeader(byteBuffer);

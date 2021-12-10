@@ -18,7 +18,7 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import com.tencent.rss.storage.api.ShuffleReader;
+import com.tencent.rss.storage.api.FileReader;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
 import java.io.Closeable;
 import java.io.DataInputStream;
@@ -30,7 +30,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalFileReader implements ShuffleReader, Closeable {
+public class LocalFileReader implements FileReader, Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsFileReader.class);
   private String path;
@@ -41,7 +41,7 @@ public class LocalFileReader implements ShuffleReader, Closeable {
     dataInputStream = new DataInputStream(new FileInputStream(path));
   }
 
-  public byte[] readData(long offset, int length) {
+  public byte[] read(long offset, int length) {
     try {
       dataInputStream.skip(offset);
       byte[] buf = new byte[length];
@@ -53,7 +53,7 @@ public class LocalFileReader implements ShuffleReader, Closeable {
     return new byte[0];
   }
 
-  public byte[] readIndex() {
+  public byte[] read() {
     try {
       return IOUtils.toByteArray(dataInputStream);
     } catch (IOException e) {

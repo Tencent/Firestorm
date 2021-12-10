@@ -74,7 +74,7 @@ public class HdfsShuffleFileReadHandler {
       return null;
     }
 
-    byte[] data = dataReader.readData(shuffleDataSegment.getOffset(), expectedLength);
+    byte[] data = dataReader.read(shuffleDataSegment.getOffset(), expectedLength);
     if (data.length != expectedLength) {
       LOG.warn("Fail to read expected[{}] data, actual[{}] and segment is {} from file {}.data",
           expectedLength, data.length, shuffleDataSegment, filePrefix);
@@ -94,7 +94,7 @@ public class HdfsShuffleFileReadHandler {
   protected ShuffleIndexResult readShuffleIndex() {
     long start = System.currentTimeMillis();
     try {
-      byte[] indexData = indexReader.readIndex();
+      byte[] indexData = indexReader.read();
       LOG.info("Read index files {}.index for {} ms", filePrefix, System.currentTimeMillis() - start);
       return new ShuffleIndexResult(indexData);
     } catch (Exception e) {
