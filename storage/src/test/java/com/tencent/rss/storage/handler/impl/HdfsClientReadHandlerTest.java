@@ -18,11 +18,10 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.fail;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -94,10 +93,15 @@ public class HdfsClientReadHandlerTest extends HdfsTestBase {
       }
 
       assertNull(handler.readShuffleData(total));
-      assertEquals(total, handler.getShuffleDataSegments().size());
+      assertEquals(
+          total,
+          handler.getHdfsShuffleFileReadHandlers()
+              .stream()
+              .mapToInt(i -> i.getShuffleDataSegments().size())
+              .sum());
       assertEquals(expectTotalBlockNum, totalBlockNum);
       assertEquals(expectedData.keySet(), actualBlockIds);
-      assertFalse(handler.getReaderIterator().hasNext());
+      assertEquals(5, handler.getReadHandlerIndex());
     } catch (Exception e) {
       e.printStackTrace();
       fail(e.getMessage());
