@@ -35,13 +35,13 @@ import org.slf4j.LoggerFactory;
 public class HdfsShuffleFileReadHandler {
   private static final Logger LOG = LoggerFactory.getLogger(HdfsShuffleFileReadHandler.class);
 
-  private final String filePrefix;
-  private final HdfsFileReader indexReader;
-  private final HdfsFileReader dataReader;
-  private final int readBufferSize;
+  protected final String filePrefix;
+  protected final HdfsFileReader indexReader;
+  protected final HdfsFileReader dataReader;
+  protected final int readBufferSize;
 
-  private final List<ShuffleDataSegment> shuffleDataSegments = Lists.newArrayList();
-  private int segmentIndex;
+  protected final List<ShuffleDataSegment> shuffleDataSegments = Lists.newArrayList();
+  protected int segmentIndex;
 
   public HdfsShuffleFileReadHandler(
       String filePrefix, HdfsFileReader indexReader, HdfsFileReader dataReader, int readBufferSize) {
@@ -91,7 +91,7 @@ public class HdfsShuffleFileReadHandler {
     return shuffleDataResult;
   }
 
-  private ShuffleIndexResult readShuffleIndex() {
+  protected ShuffleIndexResult readShuffleIndex() {
     long start = System.currentTimeMillis();
     try {
       byte[] indexData = indexReader.readIndex();
@@ -121,5 +121,9 @@ public class HdfsShuffleFileReadHandler {
 
   public List<ShuffleDataSegment> getShuffleDataSegments() {
     return shuffleDataSegments;
+  }
+
+  public String getFilePrefix() {
+    return filePrefix;
   }
 }

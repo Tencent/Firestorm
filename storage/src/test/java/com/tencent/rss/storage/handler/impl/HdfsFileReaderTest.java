@@ -178,9 +178,9 @@ public class HdfsFileReaderTest extends HdfsTestBase {
         assertEquals(partitionList.size(), header.getIndexes().size());
         for (int i = 0; i < header.getPartitionNum(); i++) {
           ShuffleIndexHeader.Entry entry = header.getIndexes().get(i);
-          assertEquals(partitionList.get(i), entry.getPartitionId());
-          assertEquals(sizeList.get(i), entry.getPartitionIndexLength());
-          assertEquals(fileSizeList.get(i), entry.getPartitionDataLength());
+          assertEquals(partitionList.get(i).intValue(), entry.getPartitionId());
+          assertEquals(sizeList.get(i).longValue(), entry.getPartitionIndexLength());
+          assertEquals(fileSizeList.get(i).longValue(), entry.getPartitionDataLength());
         }
       }
 
