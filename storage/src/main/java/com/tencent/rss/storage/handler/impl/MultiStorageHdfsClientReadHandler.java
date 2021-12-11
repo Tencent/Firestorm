@@ -37,7 +37,7 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiStorageHdfsClientReadHandler.class);
 
-  private final List<MultiStorageHdfsShuffleFileReadHandler> readHandlers = Lists.newArrayList();
+  private final List<MultiStorageHdfsShuffleReadHandler> readHandlers = Lists.newArrayList();
   private int readHandlerIndex;
 
   public MultiStorageHdfsClientReadHandler(
@@ -95,18 +95,14 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
             + partitionId + "] " + status.getPath());
         String fileNamePrefix = getFileNamePrefix(status.getPath().getName());
         try {
-          HdfsFileReader indexReader = createHdfsReader(
-              fullShufflePath, ShuffleStorageUtils.generateIndexFileName(fileNamePrefix), hadoopConf);
-          HdfsFileReader dataReader = createHdfsReader(
-              fullShufflePath, ShuffleStorageUtils.generateDataFileName(fileNamePrefix), hadoopConf);
-          MultiStorageHdfsShuffleFileReadHandler handler = new MultiStorageHdfsShuffleFileReadHandler(
-              partitionId, fileNamePrefix, indexReader, dataReader, readBufferSize);
+          MultiStorageHdfsShuffleReadHandler handler = new MultiStorageHdfsShuffleReadHandler(
+              partitionId, fullShufflePath, fileNamePrefix, readBufferSize, hadoopConf);
           readHandlers.add(handler);
         } catch (Exception e) {
           LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
         }
 
-        readHandlers.sort(Comparator.comparing(HdfsShuffleFileReadHandler::getFilePrefix));
+        readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
       }
     }
   }
@@ -118,7 +114,7 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
       return null;
     }
 
-    HdfsShuffleFileReadHandler hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
+    HdfsShuffleReadHandler hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
     ShuffleDataResult shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
 
     while (shuffleDataResult == null) {
@@ -135,7 +131,7 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
 
   @Override
   public synchronized void close() {
-    for (HdfsShuffleFileReadHandler handler : readHandlers) {
+    for (HdfsShuffleReadHandler handler : readHandlers) {
       handler.close();
     }
   }

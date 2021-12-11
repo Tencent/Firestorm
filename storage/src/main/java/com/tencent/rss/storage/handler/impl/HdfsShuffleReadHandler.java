@@ -18,27 +18,45 @@
 
 package com.tencent.rss.storage.handler.impl;
 
+import com.google.common.collect.Lists;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleDataSegment;
 import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.util.RssUtils;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
+import com.tencent.rss.storage.util.ShuffleStorageUtils;
+import java.io.IOException;
 import java.util.List;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MultiStorageHdfsShuffleFileReadHandler extends HdfsShuffleFileReadHandler {
+/**
+ * HdfsShuffleFileReadHandler is a shuffle-specific file read handler, it contains two HdfsFileReader
+ * created by using the index file and its indexed data file.
+ */
+public class HdfsShuffleReadHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(HdfsShuffleReadHandler.class);
 
-  private static final Logger LOG = LoggerFactory.getLogger(MultiStorageHdfsShuffleFileReadHandler.class);
+  protected final String filePrefix;
+  protected final HdfsFileReader indexReader;
+  protected final HdfsFileReader dataReader;
+  protected final int readBufferSize;
 
-  private final int partitionId;
-  private long dataFileOffset;
+  protected final List<ShuffleDataSegment> shuffleDataSegments = Lists.newArrayList();
+  protected int segmentIndex;
 
-  public MultiStorageHdfsShuffleFileReadHandler(
-      int partitionId, String filePrefix, HdfsFileReader indexReader, HdfsFileReader dataReader, int readBufferSize) {
-    super(filePrefix, indexReader, dataReader, readBufferSize);
-    this.partitionId = partitionId;
+  public HdfsShuffleReadHandler(
+      String fullShufflePath,
+      String filePrefix,
+      int readBufferSize,
+      Configuration conf) throws IOException {
+    this.filePrefix = filePrefix;
+    this.readBufferSize = readBufferSize;
+    this.indexReader = createHdfsReader(
+        fullShufflePath, ShuffleStorageUtils.generateIndexFileName(filePrefix), conf);
+    this.dataReader = createHdfsReader(
+        fullShufflePath, ShuffleStorageUtils.generateDataFileName(filePrefix), conf);
   }
 
   public ShuffleDataResult readShuffleData() {
@@ -64,10 +82,10 @@ public class MultiStorageHdfsShuffleFileReadHandler extends HdfsShuffleFileReadH
       return null;
     }
 
-    byte[] data = dataReader.read(dataFileOffset + shuffleDataSegment.getOffset(), expectedLength);
+    byte[] data = dataReader.read(shuffleDataSegment.getOffset(), expectedLength);
     if (data.length != expectedLength) {
-      LOG.warn("Fail to read expected[{}] data, actual[{}], offset[{}] and segment is {} from file {}.data",
-          expectedLength, data.length, dataFileOffset, shuffleDataSegment, filePrefix);
+      LOG.warn("Fail to read expected[{}] data, actual[{}] and segment is {} from file {}.data",
+          expectedLength, data.length, shuffleDataSegment, filePrefix);
       return null;
     }
 
@@ -85,41 +103,42 @@ public class MultiStorageHdfsShuffleFileReadHandler extends HdfsShuffleFileReadH
     long start = System.currentTimeMillis();
     try {
       byte[] indexData = indexReader.read();
-
-      ByteBuffer byteBuffer = ByteBuffer.wrap(indexData);
-      ShuffleIndexHeader shuffleIndexHeader = ShuffleIndexHeader.extractHeader(byteBuffer);
-      if (shuffleIndexHeader == null) {
-        LOG.error("Fail to read index from {}.index", filePrefix);
-        return new ShuffleIndexResult();
-      }
-
-      int indexFileOffset = shuffleIndexHeader.getHeaderLen();
-      int indexPartitionLen = 0;
-      long dataFileOffset = 0;
-      for (ShuffleIndexHeader.Entry entry : shuffleIndexHeader.getIndexes()) {
-        int partitionId = entry.getPartitionId();
-        indexPartitionLen = (int) entry.getPartitionIndexLength();
-        if (partitionId != this.partitionId) {
-          indexFileOffset += entry.getPartitionIndexLength();
-          dataFileOffset += entry.getPartitionDataLength();
-          continue;
-        }
-
-        if ((indexFileOffset + indexPartitionLen) >= indexData.length) {
-          LOG.error("Index of partition {} is invalid, offset = {}, length = {} in {}.index",
-              partitionId, indexFileOffset, indexPartitionLen, filePrefix);
-        }
-
-        LOG.info("Read index files {}.index for {} ms", filePrefix, System.currentTimeMillis() - start);
-        this.dataFileOffset = dataFileOffset;
-        return new ShuffleIndexResult(
-            Arrays.copyOfRange(indexData, indexFileOffset, indexFileOffset + indexPartitionLen));
-      }
+      LOG.info("Read index files {}.index for {} ms", filePrefix, System.currentTimeMillis() - start);
+      return new ShuffleIndexResult(indexData);
     } catch (Exception e) {
       LOG.info("Fail to read index files {}.index", filePrefix);
     }
     return new ShuffleIndexResult();
   }
 
+  public synchronized void close() {
+    try {
+      dataReader.close();
+    } catch (IOException ioe) {
+      String message = "Error happened when close index filer reader for " + filePrefix + ".data";
+      LOG.warn(message, ioe);
+    }
 
+    try {
+      indexReader.close();
+    } catch (IOException ioe) {
+      String message = "Error happened when close data file reader for " + filePrefix + ".index";
+      LOG.warn(message, ioe);
+    }
+  }
+
+  protected HdfsFileReader createHdfsReader(
+      String folder, String fileName, Configuration hadoopConf) throws IOException, IllegalStateException {
+    Path path = new Path(folder, fileName);
+    HdfsFileReader reader = new HdfsFileReader(path, hadoopConf);
+    return reader;
+  }
+
+  public List<ShuffleDataSegment> getShuffleDataSegments() {
+    return shuffleDataSegments;
+  }
+
+  public String getFilePrefix() {
+    return filePrefix;
+  }
 }

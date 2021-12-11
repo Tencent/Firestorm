@@ -35,10 +35,6 @@ public class ShuffleIndexHeader {
   private List<Entry> indexes = Lists.newArrayList();
   private long crc;
 
-  public ShuffleIndexHeader() {
-
-  }
-
   public ShuffleIndexHeader(int partitionNum, List<Entry> indexes, long crc) {
     this.partitionNum = partitionNum;
     this.indexes = indexes;
@@ -103,7 +99,7 @@ public class ShuffleIndexHeader {
       byteBuffer.clear();
       return new ShuffleIndexHeader(partitionNum, entries, crc);
     } catch (Exception e) {
-      LOG.error("Read header exception", e);
+      LOG.error("Fail to extract header from {}, with exception", byteBuffer.toString(), e);
       return null;
     }
   }

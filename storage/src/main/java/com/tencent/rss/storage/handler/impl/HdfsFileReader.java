@@ -88,4 +88,7 @@ public class HdfsFileReader implements FileReader, Closeable {
     }
   }
 
+  public Path getPath() {
+    return path;
+  }
 }

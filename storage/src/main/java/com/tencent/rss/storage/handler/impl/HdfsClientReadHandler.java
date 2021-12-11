@@ -36,7 +36,7 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsClientReadHandler.class);
 
-  private final List<HdfsShuffleFileReadHandler> hdfsShuffleFileReadHandlers = Lists.newArrayList();
+  private final List<HdfsShuffleReadHandler> hdfsShuffleFileReadHandlers = Lists.newArrayList();
   private int readHandlerIndex;
 
   public HdfsClientReadHandler(
@@ -92,13 +92,9 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
             + partitionId + "] " + status.getPath());
         String fileNamePrefix = getFileNamePrefix(status.getPath().getName());
         try {
-          HdfsFileReader indexReader = createHdfsReader(
-              fullShufflePath, ShuffleStorageUtils.generateIndexFileName(fileNamePrefix), hadoopConf);
-          HdfsFileReader dataReader = createHdfsReader(
-              fullShufflePath, ShuffleStorageUtils.generateDataFileName(fileNamePrefix), hadoopConf);
-          HdfsShuffleFileReadHandler hdfsShuffleFileReader =
-              new HdfsShuffleFileReadHandler(fileNamePrefix, indexReader, dataReader, readBufferSize);
-          hdfsShuffleFileReadHandlers.add(hdfsShuffleFileReader);
+          HdfsShuffleReadHandler handler = new HdfsShuffleReadHandler(
+              fullShufflePath, fileNamePrefix, readBufferSize, hadoopConf);
+          hdfsShuffleFileReadHandlers.add(handler);
         } catch (Exception e) {
           LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
         }
@@ -113,7 +109,7 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
       return null;
     }
 
-    HdfsShuffleFileReadHandler hdfsShuffleFileReader = hdfsShuffleFileReadHandlers.get(readHandlerIndex);
+    HdfsShuffleReadHandler hdfsShuffleFileReader = hdfsShuffleFileReadHandlers.get(readHandlerIndex);
     ShuffleDataResult shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
 
     while (shuffleDataResult == null) {
@@ -130,12 +126,12 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
 
   @Override
   public synchronized void close() {
-    for (HdfsShuffleFileReadHandler handler : hdfsShuffleFileReadHandlers) {
+    for (HdfsShuffleReadHandler handler : hdfsShuffleFileReadHandlers) {
       handler.close();
     }
   }
 
-  protected List<HdfsShuffleFileReadHandler> getHdfsShuffleFileReadHandlers() {
+  protected List<HdfsShuffleReadHandler> getHdfsShuffleFileReadHandlers() {
     return hdfsShuffleFileReadHandlers;
   }
 
