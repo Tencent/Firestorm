@@ -58,12 +58,11 @@ public class HdfsShuffleReadHandlerTest extends HdfsShuffleHandlerTestBase {
       writeTestData(writeHandler, expectTotalBlockNum, blockSize, 0, expectedData);
       int total = calcExpectedSegmentNum(expectTotalBlockNum, blockSize, readBufferSize);
 
-      String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(basePath,
+      String fileNamePrefix = ShuffleStorageUtils.getFullShuffleDataFolder(basePath,
           ShuffleStorageUtils.getShuffleDataPathWithRange("appId",
-              0, 1, 1, 10));
-      String fileNamePrefix = "test_0";
+              0, 1, 1, 10)) + "/test_0";
       HdfsShuffleReadHandler handler =
-          new HdfsShuffleReadHandler(fullShufflePath, fileNamePrefix, readBufferSize, conf);
+          new HdfsShuffleReadHandler(fileNamePrefix, readBufferSize, conf);
 
       Set<Long> actualBlockIds = Sets.newHashSet();
       for (int i = 0; i < total; ++i) {

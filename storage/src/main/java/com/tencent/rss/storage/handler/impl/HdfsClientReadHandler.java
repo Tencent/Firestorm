@@ -24,6 +24,7 @@ import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -36,7 +37,7 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsClientReadHandler.class);
 
-  private final List<HdfsShuffleReadHandler> hdfsShuffleFileReadHandlers = Lists.newArrayList();
+  private final List<HdfsShuffleReadHandler> readHandlers = Lists.newArrayList();
   private int readHandlerIndex;
 
   public HdfsClientReadHandler(
@@ -90,34 +91,34 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
       for (FileStatus status : indexFiles) {
         LOG.info("Find index file for shuffleId[" + shuffleId + "], partitionId["
             + partitionId + "] " + status.getPath());
-        String fileNamePrefix = getFileNamePrefix(status.getPath().getName());
+        String filePrefix = getFileNamePrefix(status.getPath().toUri().toString());
         try {
-          HdfsShuffleReadHandler handler = new HdfsShuffleReadHandler(
-              fullShufflePath, fileNamePrefix, readBufferSize, hadoopConf);
-          hdfsShuffleFileReadHandlers.add(handler);
+          HdfsShuffleReadHandler handler = new HdfsShuffleReadHandler(filePrefix, readBufferSize, hadoopConf);
+          readHandlers.add(handler);
         } catch (Exception e) {
-          LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
+          LOG.warn("Can't create ShuffleReaderHandler for " + filePrefix, e);
         }
       }
     }
+    readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
   }
 
   // TODO: remove the useless segmentIndex
   @Override
   public ShuffleDataResult readShuffleData(int segmentIndex) {
-    if (readHandlerIndex >= hdfsShuffleFileReadHandlers.size()) {
+    if (readHandlerIndex >= readHandlers.size()) {
       return null;
     }
 
-    HdfsShuffleReadHandler hdfsShuffleFileReader = hdfsShuffleFileReadHandlers.get(readHandlerIndex);
+    HdfsShuffleReadHandler hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
     ShuffleDataResult shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
 
     while (shuffleDataResult == null) {
       ++readHandlerIndex;
-      if (readHandlerIndex >= hdfsShuffleFileReadHandlers.size()) {
+      if (readHandlerIndex >= readHandlers.size()) {
         return null;
       }
-      hdfsShuffleFileReader = hdfsShuffleFileReadHandlers.get(readHandlerIndex);
+      hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
       shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
     }
 
@@ -126,13 +127,13 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
 
   @Override
   public synchronized void close() {
-    for (HdfsShuffleReadHandler handler : hdfsShuffleFileReadHandlers) {
+    for (HdfsShuffleReadHandler handler : readHandlers) {
       handler.close();
     }
   }
 
   protected List<HdfsShuffleReadHandler> getHdfsShuffleFileReadHandlers() {
-    return hdfsShuffleFileReadHandlers;
+    return readHandlers;
   }
 
   protected int getReadHandlerIndex() {

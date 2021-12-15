@@ -93,15 +93,14 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
       for (FileStatus status : indexFiles) {
         LOG.info("Find index file for shuffleId[" + shuffleId + "], partitionId["
             + partitionId + "] " + status.getPath());
-        String fileNamePrefix = getFileNamePrefix(status.getPath().getName());
+        String fileNamePrefix = getFileNamePrefix(status.getPath().toUri().toString());
         try {
           MultiStorageHdfsShuffleReadHandler handler = new MultiStorageHdfsShuffleReadHandler(
-              partitionId, fullShufflePath, fileNamePrefix, readBufferSize, hadoopConf);
+              partitionId, fileNamePrefix, readBufferSize, hadoopConf);
           readHandlers.add(handler);
         } catch (Exception e) {
           LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
         }
-
         readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
       }
     }

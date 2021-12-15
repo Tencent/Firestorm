@@ -39,11 +39,10 @@ public class MultiStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandler {
 
   public MultiStorageHdfsShuffleReadHandler(
       int partitionId,
-      String fullShufflePath,
       String filePrefix,
       int readBufferSize,
       Configuration conf)  throws IOException {
-    super(fullShufflePath, filePrefix, readBufferSize, conf);
+    super(filePrefix, readBufferSize, conf);
     this.partitionId = partitionId;
   }
 

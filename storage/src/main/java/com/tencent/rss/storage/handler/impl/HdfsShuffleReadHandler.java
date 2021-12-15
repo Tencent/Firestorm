@@ -47,16 +47,13 @@ public class HdfsShuffleReadHandler {
   protected int segmentIndex;
 
   public HdfsShuffleReadHandler(
-      String fullShufflePath,
       String filePrefix,
       int readBufferSize,
       Configuration conf) throws IOException {
     this.filePrefix = filePrefix;
     this.readBufferSize = readBufferSize;
-    this.indexReader = createHdfsReader(
-        fullShufflePath, ShuffleStorageUtils.generateIndexFileName(filePrefix), conf);
-    this.dataReader = createHdfsReader(
-        fullShufflePath, ShuffleStorageUtils.generateDataFileName(filePrefix), conf);
+    this.indexReader = createHdfsReader(ShuffleStorageUtils.generateIndexFileName(filePrefix), conf);
+    this.dataReader = createHdfsReader(ShuffleStorageUtils.generateDataFileName(filePrefix), conf);
   }
 
   public ShuffleDataResult readShuffleData() {
@@ -128,10 +125,9 @@ public class HdfsShuffleReadHandler {
   }
 
   protected HdfsFileReader createHdfsReader(
-      String folder, String fileName, Configuration hadoopConf) throws IOException, IllegalStateException {
-    Path path = new Path(folder, fileName);
-    HdfsFileReader reader = new HdfsFileReader(path, hadoopConf);
-    return reader;
+      String fileName, Configuration hadoopConf) throws IOException, IllegalStateException {
+    Path path = new Path(fileName);
+    return new HdfsFileReader(path, hadoopConf);
   }
 
   public List<ShuffleDataSegment> getShuffleDataSegments() {

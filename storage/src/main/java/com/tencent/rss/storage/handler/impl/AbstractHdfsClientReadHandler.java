@@ -18,9 +18,7 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 
 public abstract class AbstractHdfsClientReadHandler extends AbstractFileClientReadHandler {
 
@@ -37,12 +35,5 @@ public abstract class AbstractHdfsClientReadHandler extends AbstractFileClientRe
   protected String getFileNamePrefix(String fileName) {
     int point = fileName.lastIndexOf(".");
     return fileName.substring(0, point);
-  }
-
-  protected HdfsFileReader createHdfsReader(
-      String folder, String fileName, Configuration hadoopConf) throws IOException, IllegalStateException {
-    Path path = new Path(folder, fileName);
-    HdfsFileReader reader = new HdfsFileReader(path, hadoopConf);
-    return reader;
   }
 }
