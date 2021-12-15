@@ -18,14 +18,10 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import com.tencent.rss.common.ShuffleDataResult;
-import com.tencent.rss.common.ShuffleDataSegment;
 import com.tencent.rss.common.ShuffleIndexResult;
-import com.tencent.rss.common.util.RssUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,44 +42,14 @@ public class MultiStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandler {
     this.partitionId = partitionId;
   }
 
-  public ShuffleDataResult readShuffleData() {
-    if (shuffleDataSegments.isEmpty()) {
-      ShuffleIndexResult shuffleIndexResult = readShuffleIndex();
-      if (shuffleIndexResult == null || shuffleIndexResult.isEmpty()) {
-        return null;
-      }
-
-      List<ShuffleDataSegment> cur = RssUtils.transIndexDataToSegments(shuffleIndexResult, readBufferSize);
-      shuffleDataSegments.addAll(cur);
-    }
-
-    if (segmentIndex >= shuffleDataSegments.size()) {
-      return null;
-    }
-    ShuffleDataSegment shuffleDataSegment = shuffleDataSegments.get(segmentIndex++);
-
-    // Here we make an assumption that the rest of the file is corrupted, if an unexpected data is read.
-    int expectedLength = shuffleDataSegment.getLength();
-    if (expectedLength <= 0) {
-      LOG.warn("Invalid data segment is {} from file {}.data", shuffleDataSegment, filePrefix);
-      return null;
-    }
-
-    byte[] data = dataReader.read(dataFileOffset + shuffleDataSegment.getOffset(), expectedLength);
+  protected byte[] readShuffleData(long offset, int expectedLength) {
+    byte[] data = dataReader.read(dataFileOffset + offset, expectedLength);
     if (data.length != expectedLength) {
-      LOG.warn("Fail to read expected[{}] data, actual[{}], offset[{}] and segment is {} from file {}.data",
-          expectedLength, data.length, dataFileOffset, shuffleDataSegment, filePrefix);
-      return null;
+      LOG.warn("Fail to read expected[{}] data, actual[{}] from file {}.data",
+          expectedLength, data.length, filePrefix);
+      return new byte[0];
     }
-
-    ShuffleDataResult shuffleDataResult = new ShuffleDataResult(data, shuffleDataSegment.getBufferSegments());
-    if (shuffleDataResult.isEmpty()) {
-      LOG.warn("Shuffle data is empty, expected length {}, data length {}, segment {} in file {}.data",
-          expectedLength, data.length, shuffleDataSegment, filePrefix);
-      return null;
-    }
-
-    return shuffleDataResult;
+    return data;
   }
 
   protected ShuffleIndexResult readShuffleIndex() {
@@ -125,6 +91,4 @@ public class MultiStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandler {
     }
     return new ShuffleIndexResult();
   }
-
-
 }

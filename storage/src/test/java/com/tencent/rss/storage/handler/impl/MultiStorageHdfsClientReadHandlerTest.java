@@ -325,7 +325,7 @@ public class MultiStorageHdfsClientReadHandlerTest extends HdfsTestBase {
     int index = 0;
     do {
       sdr = handler.readShuffleData(index);
-      if (sdr == null || sdr.getData() == null) {
+      if (sdr == null || sdr.isEmpty()) {
         break;
       }
       List<BufferSegment> bufferSegments = sdr.getBufferSegments();

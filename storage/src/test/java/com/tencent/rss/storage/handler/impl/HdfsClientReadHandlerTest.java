@@ -19,7 +19,7 @@
 package com.tencent.rss.storage.handler.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.Maps;
@@ -83,7 +83,7 @@ public class HdfsClientReadHandlerTest extends HdfsShuffleHandlerTestBase {
         }
       }
 
-      assertNull(handler.readShuffleData(total));
+      assertTrue(handler.readShuffleData(total).isEmpty());
       assertEquals(
           total,
           handler.getHdfsShuffleFileReadHandlers()

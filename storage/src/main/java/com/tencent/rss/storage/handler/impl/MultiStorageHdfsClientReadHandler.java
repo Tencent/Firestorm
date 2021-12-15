@@ -18,8 +18,6 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import com.google.common.collect.Lists;
-import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 import java.io.IOException;
@@ -31,14 +29,9 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHandler {
+public class MultiStorageHdfsClientReadHandler extends HdfsClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiStorageHdfsClientReadHandler.class);
-
-  private final List<MultiStorageHdfsShuffleReadHandler> readHandlers = Lists.newArrayList();
-  private int readHandlerIndex;
 
   public MultiStorageHdfsClientReadHandler(
       String appId,
@@ -50,16 +43,15 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
       int readBufferSize,
       String storageBasePath,
       Configuration hadoopConf) {
-    this.appId = appId;
-    this.shuffleId = shuffleId;
-    this.partitionId = partitionId;
-    this.indexReadLimit = indexReadLimit;
-    this.partitionNumPerRange = partitionNumPerRange;
-    this.partitionNum = partitionNum;
-    this.readBufferSize = readBufferSize;
-    this.storageBasePath = storageBasePath;
-    this.hadoopConf = hadoopConf;
-
+    super(appId,
+        shuffleId,
+        partitionId,
+        indexReadLimit,
+        partitionNumPerRange,
+        partitionNum,
+        readBufferSize,
+        storageBasePath,
+        hadoopConf);
     String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
         ShuffleStorageUtils.getUploadShuffleDataPath(appId, shuffleId, partitionId));
     init(fullShufflePath);
@@ -95,43 +87,14 @@ public class MultiStorageHdfsClientReadHandler extends AbstractHdfsClientReadHan
             + partitionId + "] " + status.getPath());
         String fileNamePrefix = getFileNamePrefix(status.getPath().toUri().toString());
         try {
-          MultiStorageHdfsShuffleReadHandler handler = new MultiStorageHdfsShuffleReadHandler(
+          HdfsShuffleReadHandler handler = new MultiStorageHdfsShuffleReadHandler(
               partitionId, fileNamePrefix, readBufferSize, hadoopConf);
           readHandlers.add(handler);
         } catch (Exception e) {
           LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
         }
-        readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
       }
-    }
-  }
-
-  // TODO: remove the useless segmentIndex
-  @Override
-  public ShuffleDataResult readShuffleData(int segmentIndex) {
-    if (readHandlerIndex >= readHandlers.size()) {
-      return null;
-    }
-
-    HdfsShuffleReadHandler hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
-    ShuffleDataResult shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
-
-    while (shuffleDataResult == null) {
-      ++readHandlerIndex;
-      if (readHandlerIndex >= readHandlers.size()) {
-        return null;
-      }
-      hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
-      shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
-    }
-
-    return shuffleDataResult;
-  }
-
-  @Override
-  public synchronized void close() {
-    for (HdfsShuffleReadHandler handler : readHandlers) {
-      handler.close();
+      readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
     }
   }
 }

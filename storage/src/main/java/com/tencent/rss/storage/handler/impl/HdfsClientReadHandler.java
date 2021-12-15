@@ -33,11 +33,16 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
+public class HdfsClientReadHandler extends AbstractFileClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsClientReadHandler.class);
 
-  private final List<HdfsShuffleReadHandler> readHandlers = Lists.newArrayList();
+  protected final int partitionNumPerRange;
+  protected final int partitionNum;
+  protected final int readBufferSize;
+  protected final String storageBasePath;
+  protected final Configuration hadoopConf;
+  protected final List<HdfsShuffleReadHandler> readHandlers = Lists.newArrayList();
   private int readHandlerIndex;
 
   public HdfsClientReadHandler(
@@ -87,7 +92,7 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
       return;
     }
 
-    if (indexFiles != null) {
+    if (indexFiles != null && indexFiles.length != 0) {
       for (FileStatus status : indexFiles) {
         LOG.info("Find index file for shuffleId[" + shuffleId + "], partitionId["
             + partitionId + "] " + status.getPath());
@@ -99,15 +104,15 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
           LOG.warn("Can't create ShuffleReaderHandler for " + filePrefix, e);
         }
       }
+      readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
     }
-    readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
   }
 
   // TODO: remove the useless segmentIndex
   @Override
   public ShuffleDataResult readShuffleData(int segmentIndex) {
     if (readHandlerIndex >= readHandlers.size()) {
-      return null;
+      return new ShuffleDataResult();
     }
 
     HdfsShuffleReadHandler hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
@@ -116,13 +121,18 @@ public class HdfsClientReadHandler extends AbstractHdfsClientReadHandler {
     while (shuffleDataResult == null) {
       ++readHandlerIndex;
       if (readHandlerIndex >= readHandlers.size()) {
-        return null;
+        return new ShuffleDataResult();
       }
       hdfsShuffleFileReader = readHandlers.get(readHandlerIndex);
       shuffleDataResult = hdfsShuffleFileReader.readShuffleData();
     }
 
     return shuffleDataResult;
+  }
+
+  protected String getFileNamePrefix(String fileName) {
+    int point = fileName.lastIndexOf(".");
+    return fileName.substring(0, point);
   }
 
   @Override

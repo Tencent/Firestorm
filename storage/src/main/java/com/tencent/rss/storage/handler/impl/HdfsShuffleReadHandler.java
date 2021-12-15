@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * HdfsShuffleFileReadHandler is a shuffle-specific file read handler, it contains two HdfsFileReader
- * created by using the index file and its indexed data file.
+ * instances created by using the index file and its indexed data file.
  */
 public class HdfsShuffleReadHandler {
   private static final Logger LOG = LoggerFactory.getLogger(HdfsShuffleReadHandler.class);
@@ -79,8 +79,8 @@ public class HdfsShuffleReadHandler {
       return null;
     }
 
-    byte[] data = dataReader.read(shuffleDataSegment.getOffset(), expectedLength);
-    if (data.length != expectedLength) {
+    byte[] data = readShuffleData(shuffleDataSegment.getOffset(), expectedLength);
+    if (data.length == 0) {
       LOG.warn("Fail to read expected[{}] data, actual[{}] and segment is {} from file {}.data",
           expectedLength, data.length, shuffleDataSegment, filePrefix);
       return null;
@@ -94,6 +94,16 @@ public class HdfsShuffleReadHandler {
     }
 
     return shuffleDataResult;
+  }
+
+  protected byte[] readShuffleData(long offset, int expectedLength) {
+    byte[] data = dataReader.read(offset, expectedLength);
+    if (data.length != expectedLength) {
+      LOG.warn("Fail to read expected[{}] data, actual[{}] from file {}.data",
+          expectedLength, data.length, filePrefix);
+      return new byte[0];
+    }
+    return data;
   }
 
   protected ShuffleIndexResult readShuffleIndex() {

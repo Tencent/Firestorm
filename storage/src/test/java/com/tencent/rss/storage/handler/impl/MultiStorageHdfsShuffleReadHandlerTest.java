@@ -62,7 +62,7 @@ public class MultiStorageHdfsShuffleReadHandlerTest extends HdfsShuffleHandlerTe
           (int)ShuffleStorageUtils.getIndexFileHeaderLen(partitionNum) - ShuffleStorageUtils.getHeaderCrcLen());
       headerContentBuf.putInt(partitionNum);
       for (int partitionId = 1; partitionId <= 9; partitionId += 2) {
-        int expectTotalBlockNum = new Random().nextInt(37);
+        int expectTotalBlockNum = new Random().nextInt(37) + 1;
         int blockSize = new Random().nextInt(7) + 1;
         writeTestData(writer, partitionId, expectTotalBlockNum, blockSize, 0,
             expectedBlockIdData, expectedBlocks, expectedIndexSegments, partitionId <= 5);
@@ -125,6 +125,107 @@ public class MultiStorageHdfsShuffleReadHandlerTest extends HdfsShuffleHandlerTe
         }
 
         if (partitionId <= 5) {
+          byte[] actualDataBuf = new byte[0];
+          for (int i = 0; i < sliceNum; ++i) {
+            ShuffleDataResult shuffleDataResult = handler.readShuffleData();
+            checkData(shuffleDataResult, expectedBlockIdData);
+            Bytes.concat(actualDataBuf, shuffleDataResult.getData());
+          }
+          assertNull(handler.readShuffleData());
+          assertArrayEquals(expectedDataBuf, actualDataBuf);
+        } else {
+          assertNull(handler.readShuffleData());
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public void testHugeData() {
+    try {
+      String basePath = HDFS_URI + "testHugeData";
+      int readBufferSize = 7;
+      Path testPath = new Path(basePath + "/app1/0/test");
+      fs.mkdirs(testPath);
+      Path dataPath = new Path(basePath + "/app1/0/test/1-3.data");
+      HdfsFileWriter writer = new HdfsFileWriter(dataPath, conf);
+      // write data and record meta data
+      Map<Integer, Integer> partitionSliceNum = Maps.newHashMap();
+      Map<Long, byte[]> expectedBlockIdData = Maps.newHashMap();
+      Map<Integer, List<ShufflePartitionedBlock>> expectedBlocks = Maps.newHashMap();
+      Map<Integer, List<FileBasedShuffleSegment>> expectedIndexSegments = Maps.newHashMap();
+      int partitionNum = 3;
+      int dataFileLen = 0;
+      int totalIndexSegmentNum = 0;
+      List<ShuffleIndexHeader.Entry> indexHeaderEntries = Lists.newArrayList();
+      ByteBuffer headerContentBuf = ByteBuffer.allocate(
+          (int)ShuffleStorageUtils.getIndexFileHeaderLen(partitionNum) - ShuffleStorageUtils.getHeaderCrcLen());
+      headerContentBuf.putInt(partitionNum);
+      for (int partitionId = 1; partitionId <= 3; partitionId++) {
+        int expectTotalBlockNum = 1024 * (new Random().nextInt(3) + 1);
+        int blockSize = 1024 * (new Random().nextInt(7) + 11);
+        writeTestData(writer, partitionId, expectTotalBlockNum, blockSize, 0,
+            expectedBlockIdData, expectedBlocks, expectedIndexSegments, true);
+        int sliceNum = calcExpectedSegmentNum(expectTotalBlockNum, blockSize, readBufferSize);
+        partitionSliceNum.put(partitionId, sliceNum);
+        List<FileBasedShuffleSegment> segments = expectedIndexSegments.get(partitionId);
+        totalIndexSegmentNum += segments.size();
+        long indexLen = segments.size() * FileBasedShuffleSegment.SEGMENT_SIZE;
+        long dataLen = expectTotalBlockNum * blockSize;
+        headerContentBuf.putInt(partitionId);
+        headerContentBuf.putLong(indexLen);
+        headerContentBuf.putLong(dataLen);
+        dataFileLen += dataLen;
+        indexHeaderEntries.add(new ShuffleIndexHeader.Entry(partitionId, indexLen, dataLen));
+      }
+      headerContentBuf.flip();
+      long crc =  ChecksumUtils.getCrc32(headerContentBuf);
+      ShuffleIndexHeader shuffleIndexHeader = new ShuffleIndexHeader(partitionNum, indexHeaderEntries, crc);
+      writer.close();
+
+      //  write index
+      Path indexPath = new Path(basePath + "/app1/0/test/1-3.index");
+      writer = new HdfsFileWriter(indexPath, conf);
+      int indexFileLen =
+          shuffleIndexHeader.getHeaderLen() + totalIndexSegmentNum * FileBasedShuffleSegment.SEGMENT_SIZE;
+      ByteBuffer byteBuffer =  ByteBuffer.allocate(indexFileLen);
+      byteBuffer.putInt(shuffleIndexHeader.getPartitionNum());
+      for (ShuffleIndexHeader.Entry entry : shuffleIndexHeader.getIndexes()) {
+        byteBuffer.putInt(entry.getPartitionId());
+        byteBuffer.putLong(entry.getPartitionIndexLength());
+        byteBuffer.putLong(entry.getPartitionDataLength());
+      }
+      byteBuffer.putLong(crc);
+      for (int partitionId = 1; partitionId <= 3; partitionId++) {
+        List<FileBasedShuffleSegment> fileBasedShuffleSegments = expectedIndexSegments.get(partitionId);
+        for (FileBasedShuffleSegment segment : fileBasedShuffleSegments) {
+          byteBuffer.putLong(segment.getOffset());
+          byteBuffer.putInt(segment.getLength());
+          byteBuffer.putInt(segment.getUncompressLength());
+          byteBuffer.putLong(segment.getCrc());
+          byteBuffer.putLong(segment.getBlockId());
+          byteBuffer.putLong(segment.getTaskAttemptId());
+        }
+      }
+      byteBuffer.flip();
+      writer.writeData(byteBuffer);
+      writer.close();
+
+      for (int partitionId = 1; partitionId <= 3; partitionId++) {
+        String fileNamePrefix = basePath + "/app1/0/test/1-3";
+        HdfsShuffleReadHandler handler = new MultiStorageHdfsShuffleReadHandler(
+            partitionId, fileNamePrefix, readBufferSize, conf);
+
+        int sliceNum = partitionSliceNum.get(partitionId);
+        byte[] expectedDataBuf = new byte[0];
+        for (ShufflePartitionedBlock spb : expectedBlocks.get(partitionId)) {
+          Bytes.concat(expectedDataBuf, spb.getData());
+        }
+
+        if (partitionId <= 3) {
           byte[] actualDataBuf = new byte[0];
           for (int i = 0; i < sliceNum; ++i) {
             ShuffleDataResult shuffleDataResult = handler.readShuffleData();
