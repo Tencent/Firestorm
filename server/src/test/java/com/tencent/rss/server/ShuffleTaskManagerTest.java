@@ -18,11 +18,6 @@
 
 package com.tencent.rss.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -33,18 +28,25 @@ import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.common.ShufflePartitionedData;
 import com.tencent.rss.common.util.ChecksumUtils;
 import com.tencent.rss.common.util.Constants;
+import com.tencent.rss.server.buffer.PreAllocatedBufferInfo;
+import com.tencent.rss.server.buffer.ShuffleBuffer;
+import com.tencent.rss.server.buffer.ShuffleBufferManager;
 import com.tencent.rss.storage.HdfsTestBase;
 import com.tencent.rss.storage.handler.impl.HdfsClientReadHandler;
+import org.apache.hadoop.conf.Configuration;
+import org.junit.Test;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-import org.apache.hadoop.conf.Configuration;
-import org.junit.Test;
-import org.roaringbitmap.longlong.Roaring64NavigableMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ShuffleTaskManagerTest extends HdfsTestBase {
 
@@ -346,7 +348,7 @@ public class ShuffleTaskManagerTest extends HdfsTestBase {
     HdfsClientReadHandler handler = new HdfsClientReadHandler(appId, shuffleId, partitionId,
         100, 1, 10, 1000, basePath, new Configuration());
 
-    ShuffleDataResult sdr = handler.readShuffleData(0);
+    ShuffleDataResult sdr = handler.readShuffleData();
     List<BufferSegment> bufferSegments = sdr.getBufferSegments();
     int matchNum = 0;
     for (ShufflePartitionedBlock block : blocks) {

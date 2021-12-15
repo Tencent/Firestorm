@@ -29,6 +29,7 @@ service ShuffleServer {
   rpc sendShuffleData (SendShuffleDataRequest) returns (SendShuffleDataResponse);
   rpc getShuffleIndex (GetShuffleIndexRequest) returns (GetShuffleIndexResponse);
   rpc getShuffleData (GetShuffleDataRequest) returns (GetShuffleDataResponse);
+  rpc getInMemoryShuffleData (GetInMemoryShuffleDataRequest) returns (GetInMemoryShuffleDataResponse);
   rpc commitShuffleTask (ShuffleCommitRequest) returns (ShuffleCommitResponse);
   rpc reportShuffleResult (ReportShuffleResultRequest) returns (ReportShuffleResultResponse);
   rpc getShuffleResult (GetShuffleResultRequest) returns (GetShuffleResultResponse);
@@ -80,6 +81,21 @@ message GetShuffleDataResponse {
   bytes data = 1;
   StatusCode status = 2;
   string retMsg = 3;
+}
+
+message GetInMemoryShuffleDataRequest {
+  string appId = 1;
+  int32 shuffleId = 2;
+  int32 partitionId = 3;
+  int64 lastBlockId = 4;
+  int32 readBufferSize = 5;
+}
+
+message GetInMemoryShuffleDataResponse {
+  repeated ShuffleDataBlockSegment shuffleDataBlockSegments = 1;
+  bytes data = 2;
+  StatusCode status = 3;
+  string retMsg = 4;
 }
 
 message GetShuffleIndexRequest {

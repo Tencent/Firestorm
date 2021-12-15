@@ -16,7 +16,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.server;
+package com.tencent.rss.server.buffer;
+
+import com.google.common.collect.RangeMap;
+import com.google.common.io.Files;
+import com.tencent.rss.server.ShuffleFlushManager;
+import com.tencent.rss.server.ShuffleServer;
+import com.tencent.rss.server.ShuffleServerConf;
+import com.tencent.rss.server.ShuffleServerMetrics;
+import com.tencent.rss.server.StatusCode;
+import com.tencent.rss.storage.util.StorageType;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.File;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -27,27 +41,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.RangeMap;
-import com.google.common.io.Files;
-import com.tencent.rss.common.ShufflePartitionedBlock;
-import com.tencent.rss.common.ShufflePartitionedData;
-import com.tencent.rss.storage.util.StorageType;
-import java.io.File;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Before;
-import org.junit.Test;
-
-public class ShuffleBufferManagerTest {
-
-  static {
-    ShuffleServerMetrics.register();
-  }
-
+public class ShuffleBufferManagerTest extends BufferTestBase {
   private ShuffleBufferManager shuffleBufferManager;
   private ShuffleFlushManager mockShuffleFlushManager;
-  private AtomicInteger atomicInt = new AtomicInteger(0);
 
   @Before
   public void setUp() {
@@ -56,7 +52,7 @@ public class ShuffleBufferManagerTest {
     conf.setString("rss.server.buffer.spill.threshold", "256");
     conf.setString("rss.server.partition.buffer.size", "96");
     mockShuffleFlushManager = mock(ShuffleFlushManager.class);
-    shuffleBufferManager = new ShuffleBufferManager(conf, mockShuffleFlushManager);
+    shuffleBufferManager = new FSShuffleBufferManager(conf, mockShuffleFlushManager);
   }
 
   @Test
@@ -231,7 +227,7 @@ public class ShuffleBufferManagerTest {
 
     ShuffleServer mockShuffleServer = mock(ShuffleServer.class);
     ShuffleFlushManager shuffleFlushManager = new ShuffleFlushManager(conf, "serverId", mockShuffleServer, null);
-    shuffleBufferManager = new ShuffleBufferManager(conf, shuffleFlushManager);
+    shuffleBufferManager = new FSShuffleBufferManager(conf, shuffleFlushManager);
 
     when(mockShuffleServer
         .getShuffleFlushManager())
@@ -300,14 +296,5 @@ public class ShuffleBufferManagerTest {
         fail("Flush data time out");
       }
     } while (committedCount < expectedBlockNum);
-  }
-
-  private ShufflePartitionedData createData(int partitionId, int len) {
-    byte[] buf = new byte[len];
-    new Random().nextBytes(buf);
-    ShufflePartitionedBlock block = new ShufflePartitionedBlock(
-        len, len, 1, atomicInt.incrementAndGet(), 0, buf);
-    ShufflePartitionedData data = new ShufflePartitionedData(partitionId, new ShufflePartitionedBlock[]{block});
-    return data;
   }
 }

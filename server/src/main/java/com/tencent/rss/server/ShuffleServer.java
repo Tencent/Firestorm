@@ -28,6 +28,9 @@ import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.common.web.CommonMetricsServlet;
 import com.tencent.rss.common.web.JettyServer;
+import com.tencent.rss.server.buffer.FSShuffleBufferManager;
+import com.tencent.rss.server.buffer.MemoryFSShuffleBufferManager;
+import com.tencent.rss.server.buffer.ShuffleBufferManager;
 import com.tencent.rss.storage.util.StorageType;
 import io.prometheus.client.CollectorRegistry;
 import org.slf4j.Logger;
@@ -58,6 +61,7 @@ public class ShuffleServer {
   private Set<String> tags = Sets.newHashSet();
   private AtomicBoolean isHealthy = new AtomicBoolean(true);
   private GRPCMetrics grpcMetrics;
+  private boolean memoryShuffleEnabled = false;
 
   public ShuffleServer(ShuffleServerConf shuffleServerConf) throws Exception {
     this.shuffleServerConf = shuffleServerConf;
@@ -156,7 +160,14 @@ public class ShuffleServer {
 
     registerHeartBeat = new RegisterHeartBeat(this);
     shuffleFlushManager = new ShuffleFlushManager(shuffleServerConf, id, this, multiStorageManager);
-    shuffleBufferManager = new ShuffleBufferManager(shuffleServerConf, shuffleFlushManager);
+    memoryShuffleEnabled = shuffleServerConf.getBoolean(
+        ShuffleServerConf.SERVER_MEMORY_SHUFFLE_ENABLED);
+    if (memoryShuffleEnabled) {
+      shuffleBufferManager = new MemoryFSShuffleBufferManager(
+          shuffleServerConf, shuffleFlushManager);
+    } else {
+      shuffleBufferManager = new FSShuffleBufferManager(shuffleServerConf, shuffleFlushManager);
+    }
     shuffleTaskManager = new ShuffleTaskManager(shuffleServerConf, shuffleFlushManager,
         shuffleBufferManager, multiStorageManager);
 
@@ -275,5 +286,9 @@ public class ShuffleServer {
 
   public GRPCMetrics getGrpcMetrics() {
     return grpcMetrics;
+  }
+
+  public boolean isMemoryShuffleEnabled() {
+    return memoryShuffleEnabled;
   }
 }

@@ -18,10 +18,6 @@
 
 package com.tencent.rss.test;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
@@ -39,9 +35,6 @@ import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.storage.util.StorageType;
-import java.io.File;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -49,6 +42,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.roaringbitmap.longlong.LongIterator;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SparkClientWithLocalTest extends ShuffleReadWriteBase {
 
@@ -153,12 +154,7 @@ public class SparkClientWithLocalTest extends ShuffleReadWriteBase {
     // sleep to wait delete operation
     Thread.sleep(2000);
 
-    try {
-      readClient.readShuffleBlockData();
-      fail(EXPECTED_EXCEPTION_MESSAGE);
-    } catch (Exception e) {
-      assertTrue(e.getMessage().contains("Failed to read shuffle index"));
-    }
+    assertNull(readClient.readShuffleBlockData());
     readClient.close();
   }
 

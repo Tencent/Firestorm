@@ -1,8 +1,8 @@
 /*
  * Tencent is pleased to support the open source community by making
- * Firestorm-Spark remote shuffle server available. 
+ * Firestorm-Spark remote shuffle server available.
  *
- * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved. 
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.storage.util;
+package com.tencent.rss.common.exception;
 
-public enum StorageType {
-  HDFS,
-  LOCALFILE,
-  FILE,
-  LOCALFILE_AND_HDFS,
-  MEMORY
+public class IndexFileLostException extends RuntimeException {
+
+  public IndexFileLostException(String message) {
+    super(message);
+  }
+
 }

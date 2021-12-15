@@ -86,7 +86,7 @@ public class ShuffleServerMetricsTest {
     ObjectMapper mapper = new ObjectMapper();
     JsonNode actualObj = mapper.readTree(content);
     assertEquals(2, actualObj.size());
-    assertEquals(22, actualObj.get("metrics").size());
+    assertEquals(24, actualObj.get("metrics").size());
   }
 
   @Test

@@ -19,6 +19,7 @@
 package com.tencent.rss.storage.handler.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -75,7 +76,7 @@ public class HdfsClientReadHandlerTest extends HdfsShuffleHandlerTestBase {
       Set<Long> actualBlockIds = Sets.newHashSet();
 
       for (int i = 0; i < total; ++i) {
-        ShuffleDataResult shuffleDataResult = handler.readShuffleData(i);
+        ShuffleDataResult shuffleDataResult = handler.readShuffleData();
         totalBlockNum += shuffleDataResult.getBufferSegments().size();
         checkData(shuffleDataResult, expectedData);
         for (BufferSegment bufferSegment : shuffleDataResult.getBufferSegments()) {
@@ -83,7 +84,7 @@ public class HdfsClientReadHandlerTest extends HdfsShuffleHandlerTestBase {
         }
       }
 
-      assertTrue(handler.readShuffleData(total).isEmpty());
+      assertNull(handler.readShuffleData());
       assertEquals(
           total,
           handler.getHdfsShuffleFileReadHandlers()

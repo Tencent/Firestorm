@@ -23,6 +23,7 @@ import com.google.protobuf.ByteString;
 import com.tencent.rss.client.api.ShuffleServerClient;
 import com.tencent.rss.client.request.RssAppHeartBeatRequest;
 import com.tencent.rss.client.request.RssFinishShuffleRequest;
+import com.tencent.rss.client.request.RssGetInMemoryShuffleDataRequest;
 import com.tencent.rss.client.request.RssGetShuffleDataRequest;
 import com.tencent.rss.client.request.RssGetShuffleIndexRequest;
 import com.tencent.rss.client.request.RssGetShuffleResultRequest;
@@ -33,6 +34,7 @@ import com.tencent.rss.client.request.RssSendShuffleDataRequest;
 import com.tencent.rss.client.response.ResponseStatusCode;
 import com.tencent.rss.client.response.RssAppHeartBeatResponse;
 import com.tencent.rss.client.response.RssFinishShuffleResponse;
+import com.tencent.rss.client.response.RssGetInMemoryShuffleDataResponse;
 import com.tencent.rss.client.response.RssGetShuffleDataResponse;
 import com.tencent.rss.client.response.RssGetShuffleIndexResponse;
 import com.tencent.rss.client.response.RssGetShuffleResultResponse;
@@ -40,6 +42,7 @@ import com.tencent.rss.client.response.RssRegisterShuffleResponse;
 import com.tencent.rss.client.response.RssReportShuffleResultResponse;
 import com.tencent.rss.client.response.RssSendCommitResponse;
 import com.tencent.rss.client.response.RssSendShuffleDataResponse;
+import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.exception.RssException;
@@ -47,6 +50,8 @@ import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
 import com.tencent.rss.proto.RssProtos.FinishShuffleResponse;
+import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataRequest;
+import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
@@ -64,18 +69,20 @@ import com.tencent.rss.proto.RssProtos.ShuffleBlock;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitResponse;
 import com.tencent.rss.proto.RssProtos.ShuffleData;
+import com.tencent.rss.proto.RssProtos.ShuffleDataBlockSegment;
 import com.tencent.rss.proto.RssProtos.ShufflePartitionRange;
 import com.tencent.rss.proto.RssProtos.ShuffleRegisterRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleRegisterResponse;
 import com.tencent.rss.proto.RssProtos.StatusCode;
 import com.tencent.rss.proto.ShuffleServerGrpc;
 import com.tencent.rss.proto.ShuffleServerGrpc.ShuffleServerBlockingStub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServerClient {
 
@@ -479,6 +486,43 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
   }
 
   @Override
+  public RssGetInMemoryShuffleDataResponse getInMemoryShuffleData(
+      RssGetInMemoryShuffleDataRequest request) {
+    GetInMemoryShuffleDataRequest rpcRequest = GetInMemoryShuffleDataRequest
+        .newBuilder()
+        .setAppId(request.getAppId())
+        .setShuffleId(request.getShuffleId())
+        .setPartitionId(request.getPartitionId())
+        .setLastBlockId(request.getLastBlockId())
+        .setReadBufferSize(request.getReadBufferSize())
+        .build();
+
+    long start = System.currentTimeMillis();
+    GetInMemoryShuffleDataResponse rpcResponse = blockingStub.getInMemoryShuffleData(rpcRequest);
+    String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
+        + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
+    LOG.info("GetInMemoryShuffleData for " + requestInfo + " cost "
+        + (System.currentTimeMillis() - start) + " ms");
+
+    StatusCode statusCode = rpcResponse.getStatus();
+
+    RssGetInMemoryShuffleDataResponse response;
+    switch (statusCode) {
+      case SUCCESS:
+        response = new RssGetInMemoryShuffleDataResponse(
+            ResponseStatusCode.SUCCESS, rpcResponse.getData().toByteArray(),
+            toBufferSegments(rpcResponse.getShuffleDataBlockSegmentsList()));
+        break;
+      default:
+        String msg = "Can't get shuffle in memory data from " + host + ":" + port
+            + " for " + requestInfo + ", errorMsg:" + rpcResponse.getRetMsg();
+        LOG.error(msg);
+        throw new RssException(msg);
+    }
+    return response;
+  }
+
+  @Override
   public String getClientInfo() {
     return "ShuffleServerGrpcClient for host[" + host + "], port[" + port + "]";
   }
@@ -490,6 +534,15 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
           .newBuilder()
           .setStart(partitionRange.getStart())
           .setEnd(partitionRange.getEnd()).build());
+    }
+    return ret;
+  }
+
+  private List<BufferSegment> toBufferSegments(List<ShuffleDataBlockSegment> blockSegments) {
+    List<BufferSegment> ret = Lists.newArrayList();
+    for (ShuffleDataBlockSegment sdbs : blockSegments) {
+      ret.add(new BufferSegment(sdbs.getBlockId(), sdbs.getOffset(), sdbs.getLength(),
+          sdbs.getUncompressLength(), sdbs.getCrc(), sdbs.getTaskAttemptId()));
     }
     return ret;
   }

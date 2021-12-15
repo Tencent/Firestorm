@@ -22,17 +22,21 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.UnsafeByteOperations;
+import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.common.ShufflePartitionedData;
 import com.tencent.rss.common.config.RssBaseConf;
+import com.tencent.rss.common.exception.IndexFileLostException;
 import com.tencent.rss.proto.RssProtos;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
 import com.tencent.rss.proto.RssProtos.FinishShuffleResponse;
+import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataRequest;
+import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
@@ -47,6 +51,7 @@ import com.tencent.rss.proto.RssProtos.RequireBufferResponse;
 import com.tencent.rss.proto.RssProtos.SendShuffleDataRequest;
 import com.tencent.rss.proto.RssProtos.SendShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.ShuffleBlock;
+import com.tencent.rss.proto.RssProtos.ShuffleDataBlockSegment;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleCommitResponse;
 import com.tencent.rss.proto.RssProtos.ShuffleData;
@@ -162,6 +167,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
           String errorMsg = "Error happened when shuffleEngine.write for "
               + shuffleDataInfo + ": " + e.getMessage();
           ret = StatusCode.INTERNAL_ERROR;
+          e.printStackTrace();
           responseMessage = errorMsg;
           LOG.error(errorMsg);
           break;
@@ -225,19 +231,23 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
     int shuffleId = req.getShuffleId();
     StatusCode status;
     String msg = "OK";
-    String errorMsg = "Fail to finish shuffle for appId["
-        + appId + "], shuffleId[" + shuffleId + "], data may be lost";
-    try {
-      LOG.info("Get finishShuffle request for appId[" + appId + "], shuffleId[" + shuffleId + "]");
-      status = shuffleServer.getShuffleTaskManager().commitShuffle(appId, shuffleId);
-      if (status != StatusCode.SUCCESS) {
+    if (shuffleServer.isMemoryShuffleEnabled()) {
+      status = StatusCode.SUCCESS;
+    } else {
+      String errorMsg = "Fail to finish shuffle for appId["
+          + appId + "], shuffleId[" + shuffleId + "], data may be lost";
+      try {
+        LOG.info("Get finishShuffle request for appId[" + appId + "], shuffleId[" + shuffleId + "]");
+        status = shuffleServer.getShuffleTaskManager().commitShuffle(appId, shuffleId);
+        if (status != StatusCode.SUCCESS) {
+          status = StatusCode.INTERNAL_ERROR;
+          msg = errorMsg;
+        }
+      } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
         msg = errorMsg;
+        LOG.error(errorMsg, e);
       }
-    } catch (Exception e) {
-      status = StatusCode.INTERNAL_ERROR;
-      msg = errorMsg;
-      LOG.error(errorMsg, e);
     }
 
     FinishShuffleResponse response =
@@ -384,8 +394,8 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         long readTime = System.currentTimeMillis() - start;
         ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
         ShuffleServerMetrics.counterTotalReadDataSize.inc(sdr.getData().length);
-        LOG.info("Successfully getShuffleData cost {} ms for shuffle data offset={}, length={}, {} bytes.",
-            readTime, offset, length, sdr.getData().length);
+        LOG.info("Successfully getShuffleData cost {} ms for shuffle"
+            + " data with {}", readTime, requestInfo);
         reply = GetShuffleDataResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg)
@@ -448,9 +458,21 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         GetShuffleIndexResponse.Builder builder = GetShuffleIndexResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg);
+        LOG.info("Successfully getShuffleIndex cost {} ms for {}"
+            + " bytes with {}", readTime, shuffleIndexResult.getIndexData().length, requestInfo);
 
         builder.setIndexData(UnsafeByteOperations.unsafeWrap(shuffleIndexResult.getIndexData()));
         reply = builder.build();
+      } catch (IndexFileLostException ifle) {
+        // the exception is always happened in memory-local model
+        // return empty data when lack of index file is also acceptable
+        LOG.info("Can't find index file and return empty data for {}", requestInfo);
+        status = StatusCode.SUCCESS;
+        reply = GetShuffleIndexResponse.newBuilder()
+            .setStatus(valueOf(status))
+            .setIndexData(UnsafeByteOperations.unsafeWrap(new byte[]{}))
+            .setRetMsg(msg)
+            .build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
         msg = "Error happened when get shuffle index for " + requestInfo + ", " + e.getMessage();
@@ -471,6 +493,71 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
           .setRetMsg(msg)
           .build();
     }
+    responseObserver.onNext(reply);
+    responseObserver.onCompleted();
+  }
+
+  @Override
+  public void getInMemoryShuffleData(GetInMemoryShuffleDataRequest request,
+      StreamObserver<GetInMemoryShuffleDataResponse> responseObserver) {
+    String appId = request.getAppId();
+    int shuffleId = request.getShuffleId();
+    int partitionId = request.getPartitionId();
+    long blockId = request.getLastBlockId();
+    int readBufferSize = request.getReadBufferSize();
+    long start = System.currentTimeMillis();
+    StatusCode status = StatusCode.SUCCESS;
+    String msg = "OK";
+    GetInMemoryShuffleDataResponse reply;
+    String requestInfo = "appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId["
+        + partitionId + "]";
+
+    // todo: if can get the exact memory size?
+    if (shuffleServer.getShuffleBufferManager().requireReadMemoryWithRetry(readBufferSize)) {
+      try {
+        ShuffleDataResult shuffleDataResult = shuffleServer.getShuffleTaskManager()
+            .getInMemoryShuffleData(appId, shuffleId, partitionId, blockId, readBufferSize);
+        byte[] data = new byte[]{};
+        List<BufferSegment> bufferSegments = Lists.newArrayList();
+        if (shuffleDataResult != null) {
+          data = shuffleDataResult.getData();
+          bufferSegments = shuffleDataResult.getBufferSegments();
+        }
+        LOG.info("Successfully getInMemoryShuffleData cost {} ms for shuffle"
+            + " data with {}", (System.currentTimeMillis() - start), requestInfo);
+
+        reply = GetInMemoryShuffleDataResponse.newBuilder()
+            .setStatus(valueOf(status))
+            .setRetMsg(msg)
+            .setData(UnsafeByteOperations.unsafeWrap(data))
+            .addAllShuffleDataBlockSegments(toShuffleDataBlockSegments(bufferSegments))
+            .build();
+      } catch (Exception e) {
+        status = StatusCode.INTERNAL_ERROR;
+        msg = "Error happened when get in memory shuffle data for "
+            + requestInfo + ", " + e.getMessage();
+        LOG.error(msg, e);
+        reply = GetInMemoryShuffleDataResponse.newBuilder()
+            .setData(UnsafeByteOperations.unsafeWrap(new byte[]{}))
+            .addAllShuffleDataBlockSegments(Lists.newArrayList())
+            .setStatus(valueOf(status))
+            .setRetMsg(msg)
+            .build();
+      } finally {
+        shuffleServer.getShuffleBufferManager().releaseReadMemory(readBufferSize);
+      }
+    } else {
+      status = StatusCode.INTERNAL_ERROR;
+      msg = "Can't require memory to get in memory shuffle data";
+      LOG.error(msg + " for " + requestInfo);
+      reply = GetInMemoryShuffleDataResponse.newBuilder()
+          .setData(UnsafeByteOperations.unsafeWrap(new byte[]{}))
+          .addAllShuffleDataBlockSegments(Lists.newArrayList())
+          .setStatus(valueOf(status))
+          .setRetMsg(msg)
+          .build();
+    }
+
     responseObserver.onNext(reply);
     responseObserver.onCompleted();
   }
@@ -527,5 +614,25 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
       partitionRanges.add(new PartitionRange(spr.getStart(), spr.getEnd()));
     }
     return partitionRanges;
+  }
+
+  private List<ShuffleDataBlockSegment> toShuffleDataBlockSegments(
+      List<BufferSegment> bufferSegments) {
+    List<ShuffleDataBlockSegment> shuffleDataBlockSegments = Lists.newArrayList();
+    if (bufferSegments != null) {
+      for (BufferSegment bs : bufferSegments) {
+        shuffleDataBlockSegments.add(
+            ShuffleDataBlockSegment
+                .newBuilder()
+                .setBlockId(bs.getBlockId())
+                .setCrc(bs.getCrc())
+                .setOffset(bs.getOffset())
+                .setLength(bs.getLength())
+                .setTaskAttemptId(bs.getTaskAttemptId())
+                .setUncompressLength(bs.getUncompressLength())
+                .build());
+      }
+    }
+    return shuffleDataBlockSegments;
   }
 }

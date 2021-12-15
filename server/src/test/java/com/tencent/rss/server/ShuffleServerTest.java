@@ -18,15 +18,19 @@
 
 package com.tencent.rss.server;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import com.tencent.rss.common.util.ExitUtils;
 import com.tencent.rss.common.util.ExitUtils.ExitException;
 import com.tencent.rss.storage.util.StorageType;
 import org.junit.Test;
 
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 public class ShuffleServerTest {
+
+  private static AtomicLong ATOMIC_LONG = new AtomicLong(0);
 
   @Test
   public void startTest() {

@@ -31,6 +31,7 @@ public class ShuffleServerGrpcMetrics extends GRPCMetrics {
   public static final String REPORT_SHUFFLE_RESULT_METHOD = "reportShuffleResult";
   public static final String GET_SHUFFLE_RESULT_METHOD = "getShuffleResult";
   public static final String GET_SHUFFLE_DATA_METHOD = "getShuffleData";
+  public static final String GET_IN_MEMORY_SHUFFLE_DATA_METHOD = "getInMemoryShuffleData";
   public static final String GET_SHUFFLE_INDEX_METHOD = "getShuffleIndex";
 
   private static final String GRPC_REGISTERED_SHUFFLE = "grpc_registered_shuffle";
@@ -42,6 +43,7 @@ public class ShuffleServerGrpcMetrics extends GRPCMetrics {
   private static final String GRPC_REPORT_SHUFFLE_RESULT = "grpc_report_shuffle_result";
   private static final String GRPC_GET_SHUFFLE_RESULT = "grpc_get_shuffle_result";
   private static final String GRPC_GET_SHUFFLE_DATA = "grpc_get_shuffle_data";
+  private static final String GRPC_GET_IN_MEMORY_SHUFFLE_DATA = "grpc_get_in_memory_shuffle_data";
   private static final String GRPC_GET_SHUFFLE_INDEX = "grpc_get_shuffle_index";
 
   private static final String GRPC_OPEN = "grpc_open";
@@ -55,6 +57,8 @@ public class ShuffleServerGrpcMetrics extends GRPCMetrics {
   private static final String GRPC_REPORT_SHUFFLE_RESULT_TOTAL = "grpc_report_shuffle_result_total";
   private static final String GRPC_GET_SHUFFLE_RESULT_TOTAL = "grpc_get_shuffle_result_total";
   private static final String GRPC_GET_SHUFFLE_DATA_TOTAL = "grpc_get_shuffle_data_total";
+  private static final String GRPC_GET_IN_MEMORY_SHUFFLE_DATA_TOTAL =
+      "grpc_get_in_memory_shuffle_data_total";
   private static final String GRPC_GET_SHUFFLE_INDEX_TOTAL = "grpc_get_shuffle_index_total";
 
   @Override
@@ -80,6 +84,8 @@ public class ShuffleServerGrpcMetrics extends GRPCMetrics {
         metricsManager.addGauge(GRPC_GET_SHUFFLE_RESULT));
     gaugeMap.putIfAbsent(GET_SHUFFLE_DATA_METHOD,
         metricsManager.addGauge(GRPC_GET_SHUFFLE_DATA));
+    gaugeMap.putIfAbsent(GET_IN_MEMORY_SHUFFLE_DATA_METHOD,
+        metricsManager.addGauge(GRPC_GET_IN_MEMORY_SHUFFLE_DATA));
     gaugeMap.putIfAbsent(GET_SHUFFLE_INDEX_METHOD,
         metricsManager.addGauge(GRPC_GET_SHUFFLE_INDEX));
 
@@ -101,6 +107,8 @@ public class ShuffleServerGrpcMetrics extends GRPCMetrics {
         metricsManager.addCounter(GRPC_GET_SHUFFLE_RESULT_TOTAL));
     counterMap.putIfAbsent(GET_SHUFFLE_DATA_METHOD,
         metricsManager.addCounter(GRPC_GET_SHUFFLE_DATA_TOTAL));
+    counterMap.putIfAbsent(GET_IN_MEMORY_SHUFFLE_DATA_METHOD,
+        metricsManager.addCounter(GRPC_GET_IN_MEMORY_SHUFFLE_DATA_TOTAL));
     counterMap.putIfAbsent(GET_SHUFFLE_INDEX_METHOD,
         metricsManager.addCounter(GRPC_GET_SHUFFLE_INDEX_TOTAL));
   }
