@@ -50,12 +50,12 @@ import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
 import com.tencent.rss.proto.RssProtos.FinishShuffleResponse;
-import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataRequest;
-import com.tencent.rss.proto.RssProtos.GetInMemoryShuffleDataResponse;
-import com.tencent.rss.proto.RssProtos.GetShuffleDataRequest;
-import com.tencent.rss.proto.RssProtos.GetShuffleDataResponse;
-import com.tencent.rss.proto.RssProtos.GetShuffleIndexRequest;
-import com.tencent.rss.proto.RssProtos.GetShuffleIndexResponse;
+import com.tencent.rss.proto.RssProtos.GetMemoryShuffleDataRequest;
+import com.tencent.rss.proto.RssProtos.GetMemoryShuffleDataResponse;
+import com.tencent.rss.proto.RssProtos.GetLocalShuffleDataRequest;
+import com.tencent.rss.proto.RssProtos.GetLocalShuffleDataResponse;
+import com.tencent.rss.proto.RssProtos.GetLocalShuffleIndexRequest;
+import com.tencent.rss.proto.RssProtos.GetLocalShuffleIndexResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultResponse;
 import com.tencent.rss.proto.RssProtos.PartitionToBlockIds;
@@ -417,7 +417,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
 
   @Override
   public RssGetShuffleDataResponse getShuffleData(RssGetShuffleDataRequest request) {
-    GetShuffleDataRequest rpcRequest = GetShuffleDataRequest
+    GetLocalShuffleDataRequest rpcRequest = GetLocalShuffleDataRequest
         .newBuilder()
         .setAppId(request.getAppId())
         .setShuffleId(request.getShuffleId())
@@ -428,7 +428,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setLength(request.getLength())
         .build();
     long start = System.currentTimeMillis();
-    GetShuffleDataResponse rpcResponse = blockingStub.getShuffleData(rpcRequest);
+    GetLocalShuffleDataResponse rpcResponse = blockingStub.getLocalShuffleData(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetShuffleData for " + requestInfo + " cost " + (System.currentTimeMillis() - start) + " ms");
@@ -453,7 +453,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
 
   @Override
   public RssGetShuffleIndexResponse getShuffleIndex(RssGetShuffleIndexRequest request) {
-    GetShuffleIndexRequest rpcRequest = GetShuffleIndexRequest
+    GetLocalShuffleIndexRequest rpcRequest = GetLocalShuffleIndexRequest
         .newBuilder()
         .setAppId(request.getAppId())
         .setShuffleId(request.getShuffleId())
@@ -462,7 +462,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setPartitionNum(request.getPartitionNum())
         .build();
     long start = System.currentTimeMillis();
-    GetShuffleIndexResponse rpcResponse = blockingStub.getShuffleIndex(rpcRequest);
+    GetLocalShuffleIndexResponse rpcResponse = blockingStub.getLocalShuffleIndex(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetShuffleIndex for " + requestInfo + " cost " + (System.currentTimeMillis() - start) + " ms");
@@ -488,7 +488,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
   @Override
   public RssGetInMemoryShuffleDataResponse getInMemoryShuffleData(
       RssGetInMemoryShuffleDataRequest request) {
-    GetInMemoryShuffleDataRequest rpcRequest = GetInMemoryShuffleDataRequest
+    GetMemoryShuffleDataRequest rpcRequest = GetMemoryShuffleDataRequest
         .newBuilder()
         .setAppId(request.getAppId())
         .setShuffleId(request.getShuffleId())
@@ -498,7 +498,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .build();
 
     long start = System.currentTimeMillis();
-    GetInMemoryShuffleDataResponse rpcResponse = blockingStub.getInMemoryShuffleData(rpcRequest);
+    GetMemoryShuffleDataResponse rpcResponse = blockingStub.getMemoryShuffleData(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetInMemoryShuffleData for " + requestInfo + " cost "

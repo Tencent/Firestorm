@@ -154,7 +154,12 @@ public class SparkClientWithLocalTest extends ShuffleReadWriteBase {
     // sleep to wait delete operation
     Thread.sleep(2000);
 
-    assertNull(readClient.readShuffleBlockData());
+    try {
+      readClient.readShuffleBlockData();
+      fail(EXPECTED_EXCEPTION_MESSAGE);
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Failed to read shuffle index"));
+    }
     readClient.close();
   }
 

@@ -127,8 +127,8 @@ public class MultiStorageManager {
 
     StorageType remoteStorageType = StorageType.valueOf(conf.getString(ShuffleServerConf.UPLOAD_STORAGE_TYPE));
 
-    if (StorageType.LOCALFILE.equals(remoteStorageType) || StorageType.FILE.equals(remoteStorageType)) {
-      throw new IllegalArgumentException("uploadRemoteStorageType couldn't be LOCALFILE or FILE");
+    if (StorageType.LOCALFILE.equals(remoteStorageType)) {
+      throw new IllegalArgumentException("uploadRemoteStorageType couldn't be LOCALFILE");
     }
 
     long shuffleExpiredTimeoutMs = conf.get(ShuffleServerConf.SHUFFLE_EXPIRED_TIMEOUT_MS);

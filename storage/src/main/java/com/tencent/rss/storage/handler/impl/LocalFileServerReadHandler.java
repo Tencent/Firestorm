@@ -21,7 +21,6 @@ package com.tencent.rss.storage.handler.impl;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.config.RssBaseConf;
-import com.tencent.rss.common.exception.IndexFileLostException;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
 import com.tencent.rss.storage.handler.api.ServerReadHandler;
@@ -90,7 +89,7 @@ public class LocalFileServerReadHandler implements ServerReadHandler {
     File baseFolder = new File(fullShufflePath);
     if (!baseFolder.exists()) {
       // the partition doesn't exist in this base folder, skip
-      throw new IndexFileLostException("Can't find folder " + fullShufflePath);
+      throw new RuntimeException("Can't find folder " + fullShufflePath);
     }
     File[] indexFiles;
     String failedGetIndexFileMsg = "No index file found in  " + storageBasePath;

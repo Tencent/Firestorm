@@ -45,7 +45,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -225,7 +224,12 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
         10, 1000, "", blockIdBitmap, taskIdBitmap,
         Lists.newArrayList(shuffleServerInfo1, shuffleServerInfo2), null);
 
-    assertNull(readClient.readShuffleBlockData());
+    try {
+      readClient.readShuffleBlockData();
+      fail(EXPECTED_EXCEPTION_MESSAGE);
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains("Failed to read shuffle index for"));
+    }
     readClient.close();
 
     // send 2nd commit, data will be persisted to disk

@@ -27,55 +27,55 @@ public class ComposedClientReadHandler implements ClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(ComposedClientReadHandler.class);
 
-  private ClientReadHandler level1ReadHandler;
-  private ClientReadHandler level2ReadHandler;
-  private ClientReadHandler level3ReadHandler;
-  private static final int LEVEL1 = 1;
-  private static final int LEVEL2 = 2;
-  private static final int LEVEL3 = 3;
-  private int currentLevel = LEVEL1;
+  private ClientReadHandler hotDataReadHandler;
+  private ClientReadHandler warmDataReadHandler;
+  private ClientReadHandler coldDataReadHandler;
+  private static final int HOT = 1;
+  private static final int WARM = 2;
+  private static final int COLD = 3;
+  private int currentHandler = HOT;
 
-  public ComposedClientReadHandler(ClientReadHandler[] handlers) {
+  public ComposedClientReadHandler(ClientReadHandler... handlers) {
     int size = handlers.length;
     if (size > 0) {
-      this.level1ReadHandler = handlers[0];
+      this.hotDataReadHandler = handlers[0];
     }
     if (size > 1) {
-      this.level2ReadHandler = handlers[1];
+      this.warmDataReadHandler = handlers[1];
     }
     if (size > 2) {
-      this.level3ReadHandler = handlers[2];
+      this.coldDataReadHandler = handlers[2];
     }
   }
 
   @Override
   public ShuffleDataResult readShuffleData() {
     ShuffleDataResult shuffleDataResult = null;
-    switch (currentLevel) {
-      case LEVEL1:
+    switch (currentHandler) {
+      case HOT:
         try {
-          shuffleDataResult = level1ReadHandler.readShuffleData();
+          shuffleDataResult = hotDataReadHandler.readShuffleData();
         } catch (Exception e) {
-          LOG.error("Failed to read shuffle data from level1 handler", e);
+          LOG.error("Failed to read shuffle data from hot handler", e);
         }
         break;
-      case LEVEL2:
-        if (level2ReadHandler != null) {
+      case WARM:
+        if (warmDataReadHandler != null) {
           try {
-            shuffleDataResult = level2ReadHandler.readShuffleData();
+            shuffleDataResult = warmDataReadHandler.readShuffleData();
           } catch (Exception e) {
-            LOG.error("Failed to read shuffle data from leve2 handler", e);
+            LOG.error("Failed to read shuffle data from warm handler", e);
           }
         } else {
           return null;
         }
         break;
-      case LEVEL3:
-        if (level3ReadHandler != null) {
+      case COLD:
+        if (coldDataReadHandler != null) {
           try {
-            shuffleDataResult = level3ReadHandler.readShuffleData();
+            shuffleDataResult = coldDataReadHandler.readShuffleData();
           } catch (Exception e) {
-            LOG.error("Failed to read shuffle data from leve3 handler", e);
+            LOG.error("Failed to read shuffle data from cold handler", e);
           }
         } else {
           return null;
@@ -86,7 +86,7 @@ public class ComposedClientReadHandler implements ClientReadHandler {
     }
     // there is no data for current handler, try next one if there has
     if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
-      currentLevel++;
+      currentHandler++;
       return readShuffleData();
     }
     return shuffleDataResult;
@@ -94,16 +94,16 @@ public class ComposedClientReadHandler implements ClientReadHandler {
 
   @Override
   public void close() {
-    if (level1ReadHandler != null) {
-      level1ReadHandler.close();
+    if (hotDataReadHandler != null) {
+      hotDataReadHandler.close();
     }
 
-    if (level2ReadHandler != null) {
-      level2ReadHandler.close();
+    if (warmDataReadHandler != null) {
+      warmDataReadHandler.close();
     }
 
-    if (level3ReadHandler != null) {
-      level3ReadHandler.close();
+    if (coldDataReadHandler != null) {
+      coldDataReadHandler.close();
     }
   }
 }

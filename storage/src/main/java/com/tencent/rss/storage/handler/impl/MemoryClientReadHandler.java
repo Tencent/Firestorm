@@ -18,7 +18,6 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import com.google.common.collect.Lists;
 import com.tencent.rss.client.api.ShuffleServerClient;
 import com.tencent.rss.client.request.RssGetInMemoryShuffleDataRequest;
 import com.tencent.rss.client.response.RssGetInMemoryShuffleDataResponse;
@@ -36,7 +35,6 @@ public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
   private static final Logger LOG = LoggerFactory.getLogger(MemoryClientReadHandler.class);
   private long lastBlockId = Constants.INVALID_BLOCK_ID;
   private List<ShuffleServerClient> shuffleServerClients;
-  private List<ShuffleServerClient> excludeServerClients;
 
   public MemoryClientReadHandler(
       String appId,
@@ -49,7 +47,6 @@ public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
     this.partitionId = partitionId;
     this.readBufferSize = readBufferSize;
     this.shuffleServerClients = shuffleServerClients;
-    this.excludeServerClients = Lists.newArrayList();
   }
 
   @Override
@@ -61,9 +58,6 @@ public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
         appId,shuffleId, partitionId, lastBlockId, readBufferSize);
 
     for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
-      if (excludeServerClients.contains(shuffleServerClient)) {
-        continue;
-      }
       try {
         RssGetInMemoryShuffleDataResponse response =
             shuffleServerClient.getInMemoryShuffleData(request);
@@ -72,10 +66,7 @@ public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
         readSuccessful = true;
         break;
       } catch (Exception e) {
-        // remove unhealthy client, reset lastBlockId
-        // todo: there should be better solution for fault tolerance
-        excludeServerClients.add(shuffleServerClient);
-        lastBlockId = Constants.INVALID_BLOCK_ID;
+        // todo: fault tolerance solution should be added
         LOG.warn("Failed to read in memory shuffle data with "
             + shuffleServerClient.getClientInfo(), e);
       }

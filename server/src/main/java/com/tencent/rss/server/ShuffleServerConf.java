@@ -36,18 +36,6 @@ public class ShuffleServerConf extends RssBaseConf {
       .noDefaultValue()
       .withDescription("Max memory of buffer manager for shuffle server");
 
-  public static final ConfigOption<Long> SERVER_BUFFER_SPILL_THRESHOLD = ConfigOptions
-      .key("rss.server.buffer.spill.threshold")
-      .longType()
-      .noDefaultValue()
-      .withDescription("Spill threshold for buffer manager, it must be less than rss.server.buffer.capacity");
-
-  public static final ConfigOption<Long> SERVER_PARTITION_BUFFER_SIZE = ConfigOptions
-      .key("rss.server.partition.buffer.size")
-      .longType()
-      .noDefaultValue()
-      .withDescription("Max size of each buffer in buffer manager");
-
   public static final ConfigOption<Long> SERVER_READ_BUFFER_CAPACITY = ConfigOptions
       .key("rss.server.read.buffer.capacity")
       .longType()
@@ -314,17 +302,21 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(false)
       .withDescription("If enable memory as storage for shuffle data");
 
-  public static final ConfigOption<Long> SERVER_MEMORY_SHUFFLE_LOWWATERMARK = ConfigOptions
-      .key("rss.server.memory.shuffle.lowWaterMark")
-      .longType()
-      .defaultValue(20L * 1024L * 1024L * 1024L)
-      .withDescription("LowWaterMark of memory with memory shuffle mode");
+  public static final ConfigOption<Double> SERVER_MEMORY_SHUFFLE_LOWWATERMARK_PERCENTAGE = ConfigOptions
+      .key("rss.server.memory.shuffle.lowWaterMark.percentage")
+      .doubleType()
+      .checkValue(ConfigUtils.percentageDoubleValidator,
+          "The lowWaterMark for memory percentage must be between 0.0 and 100.0")
+      .defaultValue(25.0)
+      .withDescription("LowWaterMark of memory in percentage style");
 
-  public static final ConfigOption<Long> SERVER_MEMORY_SHUFFLE_HIGHWATERMARK = ConfigOptions
-      .key("rss.server.memory.shuffle.highWaterMark")
-      .longType()
-      .defaultValue(60L * 1024L * 1024L * 1024L)
-      .withDescription("HighWaterMark of memory with memory shuffle mode");
+  public static final ConfigOption<Double> SERVER_MEMORY_SHUFFLE_HIGHWATERMARK_PERCENTAGE = ConfigOptions
+      .key("rss.server.memory.shuffle.highWaterMark.percentage")
+      .doubleType()
+      .checkValue(ConfigUtils.percentageDoubleValidator,
+          "The highWaterMark for memory percentage must be between 0.0 and 100.0")
+      .defaultValue(75.0)
+      .withDescription("HighWaterMark of memory in percentage style");
 
   public ShuffleServerConf() {
   }

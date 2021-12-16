@@ -68,7 +68,6 @@ public class RssShuffleManager implements ShuffleManager {
   private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
   private SparkConf sparkConf;
   private String appId = "";
-  private boolean isDriver;
   private String clientType;
   private ShuffleWriteClient shuffleWriteClient;
   private Map<String, Set<Long>> taskToSuccessBlockIds = Maps.newConcurrentMap();
@@ -123,7 +122,6 @@ public class RssShuffleManager implements ShuffleManager {
 
   public RssShuffleManager(SparkConf sparkConf, boolean isDriver) {
     this.sparkConf = sparkConf;
-    this.isDriver = isDriver;
     this.clientType = sparkConf.get(RssClientConfig.RSS_CLIENT_TYPE,
         RssClientConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
     this.heartbeatInterval = sparkConf.getLong(RssClientConfig.RSS_HEARTBEAT_INTERVAL,
@@ -237,10 +235,6 @@ public class RssShuffleManager implements ShuffleManager {
     if (handle instanceof RssShuffleHandle) {
       RssShuffleHandle rssHandle = (RssShuffleHandle) handle;
       appId = rssHandle.getAppId();
-      int executorId = Integer.MAX_VALUE;
-      if (!isDriver) {
-        executorId = Integer.parseInt(SparkEnv.get().executorId());
-      }
 
       int shuffleId = rssHandle.getShuffleId();
       String taskId = "" + context.taskAttemptId() + "_" + context.attemptNumber();

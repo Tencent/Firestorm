@@ -47,14 +47,12 @@ public class RepartitionWithMemoryRssTest extends RepartitionTest {
     shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, basePath);
     shuffleServerConf.set(ShuffleServerConf.SERVER_MEMORY_SHUFFLE_ENABLED, true);
     shuffleServerConf.setString(ShuffleServerConf.SERVER_BUFFER_CAPACITY.key(), "512mb");
-    shuffleServerConf.setString(ShuffleServerConf.SERVER_MEMORY_SHUFFLE_LOWWATERMARK.key(), "100mb");
-    shuffleServerConf.setString(ShuffleServerConf.SERVER_MEMORY_SHUFFLE_HIGHWATERMARK.key(), "400mb");
     createShuffleServer(shuffleServerConf);
     startServers();
   }
 
   @Override
   public void updateRssStorage(SparkConf sparkConf) {
-    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, "MEMORY,LOCALFILE");
+    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
   }
 }
