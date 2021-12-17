@@ -340,8 +340,8 @@ public class RssShuffleManager implements ShuffleManager {
   private Roaring64NavigableMap getExpectedTasks(int shuffleId, int startPartition, int endPartition) {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     Iterator<Tuple2<BlockManagerId, Seq<Tuple2<BlockId, Object>>>> mapStatusIter =
-        SparkEnv.get().mapOutputTracker().getMapSizesByExecutorId(shuffleId, startPartition, endPartition);
-
+      SparkEnv.get().mapOutputTracker().getMapSizesByExecutorId(shuffleId, startPartition, endPartition)
+      .toIterator();
     while (mapStatusIter.hasNext()) {
       Tuple2<BlockManagerId, Seq<Tuple2<BlockId, Object>>> tuple2 = mapStatusIter.next();
       Option<String> topologyInfo = tuple2._1().topologyInfo();
