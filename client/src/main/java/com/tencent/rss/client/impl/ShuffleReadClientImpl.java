@@ -125,16 +125,16 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
       return null;
     }
 
+    // All blocks are processed, so just return
+    if (pendingBlockIds.isEmpty()) {
+      return null;
+    }
+
     // if need request new data from shuffle server
     if (bufferSegmentQueue.isEmpty()) {
       if (read() <= 0) {
         return null;
       }
-    }
-
-    // All blocks are processed, so just return
-    if (pendingBlockIds.isEmpty()) {
-      return null;
     }
 
     // get next buffer segment

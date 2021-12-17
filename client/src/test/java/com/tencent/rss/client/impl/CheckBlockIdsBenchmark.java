@@ -30,20 +30,16 @@ import org.junit.rules.ExpectedException;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import com.tencent.rss.client.util.ClientUtils;
 
-public class CheckBlockIdsBenchmark extends HdfsTestBase {
-  private static final String EXPECTED_EXCEPTION_MESSAGE = "Exception should be thrown";
+public class CheckBlockIdsBenchmark {
   private static AtomicLong ATOMIC_LONG = new AtomicLong(0);
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
-  @Test
-  public void performanceTest() throws Exception {
+  public static void main(String[] args) {
     checkBlockIds(1000L);
     checkBlockIds(10000L);
     checkBlockIds(100000L);
   }
 
-  void checkBlockIds(long num) {
+  static void checkBlockIds(long num) {
     Roaring64NavigableMap blockIds = Roaring64NavigableMap.bitmapOf();
     for (long i = 0; i < num; i++) {
       blockIds.addLong(ClientUtils.getBlockId(i, 0, ATOMIC_LONG.getAndIncrement()));
@@ -75,6 +71,6 @@ public class CheckBlockIdsBenchmark extends HdfsTestBase {
     }
     cost = System.currentTimeMillis() - start;
     System.out.println("W/  checkBlockIds (" + num + " partitions): " + cost + " ms");
-    System.out.println("----------------------------------------------------------");
+    System.out.println("===========================================================");
   }
 }
