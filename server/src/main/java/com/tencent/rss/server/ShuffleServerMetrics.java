@@ -41,6 +41,9 @@ public class ShuffleServerMetrics {
   private static final String EVENT_SIZE_THRESHOLD_LEVEL4 = "event_size_threshold_level4";
   private static final String EVENT_QUEUE_SIZE = "event_queue_size";
   private static final String TOTAL_READ_DATA = "total_read_data";
+  private static final String TOTAL_READ_LOCAL_DATA_FILE = "total_read_local_data_file";
+  private static final String TOTAL_READ_LOCAL_INDEX_FILE = "total_read_local_index_file";
+  private static final String TOTAL_READ_MEMORY_DATA = "total_read_memory_data";
   private static final String TOTAL_READ_TIME = "total_read_time";
 
   private static final String REGISTERED_SHUFFLE = "registered_shuffle";
@@ -65,6 +68,9 @@ public class ShuffleServerMetrics {
   public static Counter counterEventSizeThresholdLevel3;
   public static Counter counterEventSizeThresholdLevel4;
   public static Counter counterTotalReadDataSize;
+  public static Counter counterTotalReadLocalDataFileSize;
+  public static Counter counterTotalReadLocalIndexFileSize;
+  public static Counter counterTotalReadMemoryDataSize;
   public static Counter counterTotalReadTime;
   public static Counter counterTotalUploadSize;
   public static Counter counterTotalUploadTimeS;
@@ -113,6 +119,9 @@ public class ShuffleServerMetrics {
     counterEventSizeThresholdLevel3 = metricsManager.addCounter(EVENT_SIZE_THRESHOLD_LEVEL3);
     counterEventSizeThresholdLevel4 = metricsManager.addCounter(EVENT_SIZE_THRESHOLD_LEVEL4);
     counterTotalReadDataSize = metricsManager.addCounter(TOTAL_READ_DATA);
+    counterTotalReadLocalDataFileSize = metricsManager.addCounter(TOTAL_READ_LOCAL_DATA_FILE);
+    counterTotalReadLocalIndexFileSize = metricsManager.addCounter(TOTAL_READ_LOCAL_INDEX_FILE);
+    counterTotalReadMemoryDataSize = metricsManager.addCounter(TOTAL_READ_MEMORY_DATA);
     counterTotalReadTime = metricsManager.addCounter(TOTAL_READ_TIME);
     counterTotalUploadSize = metricsManager.addCounter(TOTAL_UPLOAD_SIZE);
     counterTotalUploadTimeS = metricsManager.addCounter(TOTAL_UPLOAD_TIME_S);

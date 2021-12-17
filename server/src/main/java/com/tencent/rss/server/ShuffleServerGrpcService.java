@@ -389,6 +389,7 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         long readTime = System.currentTimeMillis() - start;
         ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
         ShuffleServerMetrics.counterTotalReadDataSize.inc(sdr.getData().length);
+        ShuffleServerMetrics.counterTotalReadLocalDataFileSize.inc(sdr.getData().length);
         LOG.info("Successfully getShuffleData cost {} ms for shuffle"
             + " data with {}", readTime, requestInfo);
         reply = GetLocalShuffleDataResponse.newBuilder()
@@ -449,14 +450,16 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
             appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
         long readTime = System.currentTimeMillis() - start;
 
-        ShuffleServerMetrics.counterTotalReadTime.inc(readTime);
+        byte[] data = shuffleIndexResult.getIndexData();
+        ShuffleServerMetrics.counterTotalReadDataSize.inc(data.length);
+        ShuffleServerMetrics.counterTotalReadLocalIndexFileSize.inc(data.length);
         GetLocalShuffleIndexResponse.Builder builder = GetLocalShuffleIndexResponse.newBuilder()
             .setStatus(valueOf(status))
             .setRetMsg(msg);
         LOG.info("Successfully getShuffleIndex cost {} ms for {}"
-            + " bytes with {}", readTime, shuffleIndexResult.getIndexData().length, requestInfo);
+            + " bytes with {}", readTime, data.length, requestInfo);
 
-        builder.setIndexData(UnsafeByteOperations.unsafeWrap(shuffleIndexResult.getIndexData()));
+        builder.setIndexData(UnsafeByteOperations.unsafeWrap(data));
         reply = builder.build();
       } catch (Exception e) {
         status = StatusCode.INTERNAL_ERROR;
@@ -507,6 +510,8 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
         if (shuffleDataResult != null) {
           data = shuffleDataResult.getData();
           bufferSegments = shuffleDataResult.getBufferSegments();
+          ShuffleServerMetrics.counterTotalReadDataSize.inc(data.length);
+          ShuffleServerMetrics.counterTotalReadMemoryDataSize.inc(data.length);
         }
         LOG.info("Successfully getInMemoryShuffleData cost {} ms for shuffle"
             + " data with {}", (System.currentTimeMillis() - start), requestInfo);

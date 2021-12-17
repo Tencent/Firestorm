@@ -18,20 +18,20 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.storage.HdfsShuffleHandlerTestBase;
+import org.junit.Test;
+
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class HdfsClientReadHandlerTest extends HdfsShuffleHandlerTestBase {
 
@@ -84,7 +84,7 @@ public class HdfsClientReadHandlerTest extends HdfsShuffleHandlerTestBase {
         }
       }
 
-      assertNull(handler.readShuffleData());
+      assertTrue(handler.readShuffleData().isEmpty());
       assertEquals(
           total,
           handler.getHdfsShuffleFileReadHandlers()

@@ -374,18 +374,9 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     }
     assertTrue(blockIdBitmap1.equals(matched));
 
-    boolean isException = false;
-    try {
-      readShuffleData(shuffleServerClient, appId, 0, 0,
-          1, 10, 1000, 0);
-    } catch (RuntimeException re) {
-      isException = true;
-      assertTrue(re.getMessage().contains("Can't get shuffle index"));
-    }
-    assertTrue(isException);
-//    ShuffleDataResult sdr = readShuffleData(shuffleServerClient, appId, 0, 0,
-//        1, 10, 1000, 0);
-//    assertEquals(0, sdr.getData().length);
+    ShuffleDataResult sdr = readShuffleData(shuffleServerClient, appId, 0, 0,
+        1, 10, 1000, 0);
+    assertEquals(0, sdr.getData().length);
 
     List<ShuffleBlockInfo> blocks5 = createShuffleBlockList(
         0, 0, 1,15, 1024 * 1024, blockIdBitmap1, expectedData);

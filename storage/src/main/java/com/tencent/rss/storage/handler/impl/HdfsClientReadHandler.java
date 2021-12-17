@@ -23,20 +23,15 @@ import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 public class HdfsClientReadHandler extends AbstractFileClientReadHandler {
 
@@ -112,7 +107,6 @@ public class HdfsClientReadHandler extends AbstractFileClientReadHandler {
     }
   }
 
-  // TODO: remove the useless segmentIndex
   @Override
   public ShuffleDataResult readShuffleData() {
     if (readHandlerIndex >= readHandlers.size()) {
