@@ -368,8 +368,9 @@ public class ShuffleReadClientImplTest extends HdfsTestBase {
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0, 1);
     writeTestData(writeHandler, 5, 30, 0, expectedData, blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 1, expectedData, blockIdBitmap);
     writeTestData(writeHandler, 5, 30, 2, Maps.newHashMap(), blockIdBitmap);
+    writeTestData(writeHandler, 5, 30, 1, expectedData, blockIdBitmap);
+
 
     // unexpected taskAttemptId should be filtered
     ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.HDFS.name(), "appId", 0, 1, 100, 1,
