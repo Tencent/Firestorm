@@ -270,7 +270,7 @@ public class RssShuffleManager implements ShuffleManager {
     return getReader(handle, 0, Integer.MAX_VALUE, startPartition, endPartition, context, metrics);
   }
 
-  @Override
+  // remove @Override, because Spark 2.3 does not have this interface
   public <K, C> ShuffleReader<K, C> getReader(
       ShuffleHandle handle,
       int startMapIndex,
@@ -342,6 +342,18 @@ public class RssShuffleManager implements ShuffleManager {
         readMetrics);
   }
 
+  // Do not use @Override, because getReaderForRange is removed in Spark 3.1's ShuffleManager
+  public <K, C> ShuffleReader<K, C> getReaderForRange(
+      ShuffleHandle handle,
+      int startMapIndex,
+      int endMapIndex,
+      int startPartition,
+      int endPartition,
+      TaskContext context,
+      ShuffleReadMetricsReporter metrics) {
+    return getReader(handle, 0, Integer.MAX_VALUE, startPartition, endPartition, context, metrics);
+  }
+
   private Roaring64NavigableMap getExpectedTasks(
       int shuffleId,
       int startPartition,
@@ -349,13 +361,40 @@ public class RssShuffleManager implements ShuffleManager {
       int startMapIndex,
       int endMapIndex) {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
-    Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>> mapStatusIter =
-        SparkEnv.get().mapOutputTracker().getMapSizesByExecutorId(
-            shuffleId,
-            startMapIndex,
-            endMapIndex,
-            startPartition,
-            endPartition);
+
+    Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>> mapStatusIter = null;
+    try {
+      // try to call getMapSizesByExecutorId with Spark 3.1
+      mapStatusIter = (Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>>)
+      SparkEnv.get().mapOutputTracker().getClass()
+        .getDeclaredMethod("getMapSizesByExecutorId", int.class, int.class, int.class, int.class, int.class)
+        .invoke(
+          SparkEnv.get().mapOutputTracker(),
+          shuffleId,
+          startMapIndex,
+          endMapIndex,
+          startPartition,
+          endPartition);
+    } catch (Exception e31) {
+      // if it fails, then try Spark 3.0
+      try {
+        mapStatusIter = (Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>>)
+          SparkEnv.get().mapOutputTracker().getClass()
+            .getDeclaredMethod("getMapSizesByExecutorId", int.class, int.class, int.class)
+            .invoke(
+              SparkEnv.get().mapOutputTracker(),
+              shuffleId,
+              startPartition,
+              endPartition);
+      } catch (Exception e30) {
+        throw new RuntimeException(e30);
+      }
+    } finally {
+      if (mapStatusIter == null) {
+        throw new RuntimeException("Cannot get mapStatusIter from Spark with the unknown version");
+      }
+    }
+
     while (mapStatusIter.hasNext()) {
       Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>> tuple2 = mapStatusIter.next();
       if (!tuple2._1().topologyInfo().isDefined()) {
