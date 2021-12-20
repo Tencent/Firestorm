@@ -351,7 +351,7 @@ public class RssShuffleManager implements ShuffleManager {
       int endPartition,
       TaskContext context,
       ShuffleReadMetricsReporter metrics) {
-    return getReader(handle, 0, Integer.MAX_VALUE, startPartition, endPartition, context, metrics);
+    return getReader(handle, startMapIndex, endMapIndex, startPartition, endPartition, context, metrics);
   }
 
   private Roaring64NavigableMap getExpectedTasks(
