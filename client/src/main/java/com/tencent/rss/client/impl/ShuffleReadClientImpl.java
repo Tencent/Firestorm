@@ -110,7 +110,6 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
     // copy blockIdBitmap to track all pending blocks
     try {
       pendingBlockIds = RssUtils.deserializeBitMap(RssUtils.serializeBitMap(blockIdBitmap));
-      pendingBlockIds.and(blockIdBitmap);
     } catch (IOException ioe) {
       throw new RuntimeException("Can't create pending blockIds.", ioe);
     }

@@ -438,20 +438,19 @@ public class ShuffleReadClientImplTest extends HdfsTestBase {
 
     Map<Long, byte[]> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
-    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0, 1, 2, 3);
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
     writeTestData(writeHandler, 5, 30, 0, expectedData, blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 1, expectedData, blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 2, expectedData, blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 3, expectedData, blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 4, Maps.newHashMap(), blockIdBitmap);
-    writeTestData(writeHandler, 5, 30, 5, Maps.newHashMap(), blockIdBitmap);
-
+    writeTestData(writeHandler, 5, 30, 0, expectedData, blockIdBitmap);
+    writeTestData(writeHandler, 5, 30, 0, Maps.newHashMap(), Roaring64NavigableMap.bitmapOf());
+    writeTestData(writeHandler, 5, 30, 0, Maps.newHashMap(), Roaring64NavigableMap.bitmapOf());
+    writeTestData(writeHandler, 5, 30, 0, expectedData, blockIdBitmap);
+    writeTestData(writeHandler, 5, 30, 0, Maps.newHashMap(), Roaring64NavigableMap.bitmapOf());
     // unexpected taskAttemptId should be filtered
     ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.HDFS.name(), "appId", 0, 1, 100, 1,
       10, 1000, basePath, blockIdBitmap, taskIdBitmap, Lists.newArrayList(), new Configuration());
 
     TestUtils.validateResult(readClient, expectedData);
-    assertEquals(20, readClient.getProcessedBlockIds().getLongCardinality());
+    assertEquals(25, readClient.getProcessedBlockIds().getLongCardinality());
     readClient.checkProcessedBlockIds();
     readClient.close();
   }
