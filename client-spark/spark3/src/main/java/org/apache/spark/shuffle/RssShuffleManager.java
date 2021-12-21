@@ -415,12 +415,6 @@ public class RssShuffleManager implements ShuffleManager {
         throw new RuntimeException(ee);
       }
     }
-
-    if (mapStatusIter == null) {
-      String sparkVersion = RssShuffleUtils.getSparkVersion();
-      throw new RuntimeException("Cannot get mapStatusIter from Spark " + sparkVersion);
-    }
-
     while (mapStatusIter.hasNext()) {
       Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>> tuple2 = mapStatusIter.next();
       if (!tuple2._1().topologyInfo().isDefined()) {
@@ -428,7 +422,6 @@ public class RssShuffleManager implements ShuffleManager {
       }
       taskIdBitmap.add(Long.parseLong(tuple2._1().topologyInfo().get()));
     }
-
     return taskIdBitmap;
   }
 
@@ -454,11 +447,6 @@ public class RssShuffleManager implements ShuffleManager {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    if (mapStatusIter == null) {
-      String sparkVersion = RssShuffleUtils.getSparkVersion();
-      throw new RuntimeException("Cannot get mapStatusIter from Spark " + sparkVersion);
-    }
-
     while (mapStatusIter.hasNext()) {
       Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>> tuple2 = mapStatusIter.next();
       if (!tuple2._1().topologyInfo().isDefined()) {
@@ -466,7 +454,6 @@ public class RssShuffleManager implements ShuffleManager {
       }
       taskIdBitmap.add(Long.parseLong(tuple2._1().topologyInfo().get()));
     }
-
     return taskIdBitmap;
   }
 
