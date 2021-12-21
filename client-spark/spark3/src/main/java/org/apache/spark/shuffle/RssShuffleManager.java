@@ -387,6 +387,8 @@ public class RssShuffleManager implements ShuffleManager {
       int endMapIndex) {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>> mapStatusIter = null;
+    // Since Spark 3.1 refactors the interface of getMapSizesByExecutorId,
+    // we use reflection and catch for the compatibility with 3.0 & 3.1
     try {
       // attempt to use Spark 3.1's API
       mapStatusIter = (Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>>)
