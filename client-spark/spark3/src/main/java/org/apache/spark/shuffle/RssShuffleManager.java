@@ -374,7 +374,6 @@ public class RssShuffleManager implements ShuffleManager {
         readMetrics);
   }
 
-  // byRange is reserved to support Spark 3.0
   private Roaring64NavigableMap getExpectedTasks(
       int shuffleId,
       int startPartition,
