@@ -425,6 +425,8 @@ public class RssShuffleManager implements ShuffleManager {
     return taskIdBitmap;
   }
 
+  // This API is only used by Spark3.0 and removed since 3.1,
+  // so we extract it from getExpectedTasksByExecutorId.
   private Roaring64NavigableMap getExpectedTasksByRange(
     int shuffleId,
     int startPartition,
