@@ -340,6 +340,7 @@ public class RssShuffleManager implements ShuffleManager {
   private Roaring64NavigableMap getExpectedTasks(int shuffleId, int startPartition, int endPartition) {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     // use toIterator() to supoort Spark 2.3 & 2.4
+    // Seq.toIterator = > iterator, Iterator.toIterator => iterator
     Iterator<Tuple2<BlockManagerId, Seq<Tuple2<BlockId, Object>>>> mapStatusIter =
         SparkEnv.get().mapOutputTracker().getMapSizesByExecutorId(shuffleId, startPartition, endPartition)
             .toIterator();
