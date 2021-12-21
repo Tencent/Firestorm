@@ -280,6 +280,7 @@ public class RssShuffleManager implements ShuffleManager {
       int endPartition,
       TaskContext context,
       ShuffleReadMetricsReporter metrics) {
+    long start = System.currentTimeMillis();
     Roaring64NavigableMap taskIdBitmap = getExpectedTasks(
       handle.shuffleId(),
       startPartition,
@@ -287,6 +288,9 @@ public class RssShuffleManager implements ShuffleManager {
       startMapIndex,
       endMapIndex,
       false);
+    LOG.info("Get taskId cost " + (System.currentTimeMillis() - start) + " ms, and request expected blockIds from "
+      + taskIdBitmap.getLongCardinality() + " tasks for shuffleId[" + handle.shuffleId() + "], partitionId["
+      + startPartition + "]");
     return getReaderImpl(handle, startMapIndex, endMapIndex, startPartition, endPartition,
         context, metrics, taskIdBitmap);
   }
@@ -382,7 +386,6 @@ public class RssShuffleManager implements ShuffleManager {
       int endMapIndex,
       boolean byRange) {
 
-    long start = System.currentTimeMillis();
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     Iterator<Tuple2<BlockManagerId, Seq<Tuple3<BlockId, Object, Object>>>> mapStatusIter = null;
     String sparkVersion = RssShuffleUtils.getSparkVersion();
@@ -443,10 +446,6 @@ public class RssShuffleManager implements ShuffleManager {
       }
       taskIdBitmap.add(Long.parseLong(tuple2._1().topologyInfo().get()));
     }
-
-    LOG.info("Get taskId cost " + (System.currentTimeMillis() - start) + " ms, and request expected blockIds from "
-      + taskIdBitmap.getLongCardinality() + " tasks for shuffleId[" + shuffleId + "], partitionId["
-      + startPartition + "]");
 
     return taskIdBitmap;
   }
