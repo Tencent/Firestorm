@@ -339,8 +339,8 @@ public class RssShuffleManager implements ShuffleManager {
   // get the actual tasks and filter the duplicate data caused by speculation task
   private Roaring64NavigableMap getExpectedTasks(int shuffleId, int startPartition, int endPartition) {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
-    // use toIterator() to supoort Spark 2.3 & 2.4
-    // Seq.toIterator (in 2.3) = > iterator, Iterator.toIterator (in 2.4) => iterator
+    // In 2.3, getMapSizesByExecutorId returns Seq, while it returns Iterator in 2.4,
+    // so we use toIterator() to supoort Spark 2.3 & 2.4
     Iterator<Tuple2<BlockManagerId, Seq<Tuple2<BlockId, Object>>>> mapStatusIter =
         SparkEnv.get().mapOutputTracker().getMapSizesByExecutorId(shuffleId, startPartition, endPartition)
             .toIterator();
