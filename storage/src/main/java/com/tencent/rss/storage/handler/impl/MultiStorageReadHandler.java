@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class MultiStorageReadHandler extends AbstractFileClientReadHandler {
+public class MultiStorageReadHandler extends AbstractClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(MultiStorageReadHandler.class);
 

@@ -156,15 +156,17 @@ public class ShuffleBuffer {
     boolean hasLastBlockId = false;
     // read from inFlushBlockMap first to make sure the order of
     // data read is according to the order of data received
+    // The number of events means how many batches are in flushing status,
+    // it should be less than 5, or there has some problem with storage
     if (!inFlushBlockMap.isEmpty()) {
       for (Long eventId : sortedEventId) {
         // update bufferSegments with current blocks in flush map
-        CachedBlocksReadInfo cachedBlocksReadInfo = updateBufferSegmentsWithCachedBlocks(
+        CachedBlocksReadInfo cachedBlocksReadInfo = readCachedBlocksAndUpdateSegments(
             offset, inFlushBlockMap.get(eventId), nextBlockId, readBufferSize,
             bufferSegments, resultBlocks);
         offset = cachedBlocksReadInfo.getOffsetInResultData();
-        // if has data or find last blockId, read from begin with next cached blocks
-        if (offset > 0 || cachedBlocksReadInfo.isHasLastBlockId()) {
+        // if last blockId is found, read from begin with next cached blocks
+        if (cachedBlocksReadInfo.hasLastBlockId()) {
           // read from begin in next cached blocks
           nextBlockId = Constants.INVALID_BLOCK_ID;
           hasLastBlockId = true;
@@ -176,13 +178,14 @@ public class ShuffleBuffer {
     }
     // try to read from cached blocks which is not in flush queue
     if (blocks.size() > 0 && offset < readBufferSize) {
-      CachedBlocksReadInfo cachedBlocksReadInfo = updateBufferSegmentsWithCachedBlocks(
+      CachedBlocksReadInfo cachedBlocksReadInfo = readCachedBlocksAndUpdateSegments(
           offset, blocks, nextBlockId, readBufferSize, bufferSegments, resultBlocks);
       offset = cachedBlocksReadInfo.getOffsetInResultData();
-      hasLastBlockId = cachedBlocksReadInfo.isHasLastBlockId();
+      hasLastBlockId = cachedBlocksReadInfo.hasLastBlockId();
     }
-    if (lastBlockId != Constants.INVALID_BLOCK_ID && offset == 0 && !hasLastBlockId) {
+    if ((!inFlushBlockMap.isEmpty() || blocks.size() > 0) && offset == 0 && !hasLastBlockId) {
       // can't find lastBlockId, it should be flushed
+      // but there still has data in memory
       // try read again with blockId = Constants.INVALID_BLOCK_ID
       updateBufferSegmentsAndResultBlocks(
           Constants.INVALID_BLOCK_ID, readBufferSize, bufferSegments, resultBlocks);
@@ -216,7 +219,7 @@ public class ShuffleBuffer {
     return eventIdList;
   }
 
-  private CachedBlocksReadInfo updateBufferSegmentsWithCachedBlocks(
+  private CachedBlocksReadInfo readCachedBlocksAndUpdateSegments(
       int offset,
       List<ShufflePartitionedBlock> cachedBlocks,
       long lastBlockId,
@@ -232,13 +235,13 @@ public class ShuffleBuffer {
             block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
         readBlocks.add(block);
         // update offset
-        currentOffset = currentOffset + block.getLength();
+        currentOffset += block.getLength();
         // check if length >= request buffer size
         if (currentOffset >= readBufferSize) {
           break;
         }
       }
-      return new CachedBlocksReadInfo(currentOffset, false);
+      return new CachedBlocksReadInfo(currentOffset, true);
     } else {
       // find lastBlockId, then read from next block
       boolean foundBlockId = false;
@@ -251,11 +254,11 @@ public class ShuffleBuffer {
           continue;
         }
         // add bufferSegment with block
-        bufferSegments.add(new BufferSegment(block.getBlockId(), offset, block.getLength(),
+        bufferSegments.add(new BufferSegment(block.getBlockId(), currentOffset, block.getLength(),
             block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
         readBlocks.add(block);
         // update offset
-        currentOffset = currentOffset + block.getLength();
+        currentOffset += block.getLength();
         if (currentOffset >= readBufferSize) {
           break;
         }
@@ -277,7 +280,7 @@ public class ShuffleBuffer {
       return offsetInResultData;
     }
 
-    boolean isHasLastBlockId() {
+    boolean hasLastBlockId() {
       return hasLastBlockId;
     }
   }

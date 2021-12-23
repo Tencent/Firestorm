@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 
-public class HdfsClientReadHandler extends AbstractFileClientReadHandler {
+public class HdfsClientReadHandler extends AbstractClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsClientReadHandler.class);
 

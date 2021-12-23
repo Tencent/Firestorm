@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
+public class MemoryClientReadHandler extends AbstractClientReadHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryClientReadHandler.class);
   private long lastBlockId = Constants.INVALID_BLOCK_ID;

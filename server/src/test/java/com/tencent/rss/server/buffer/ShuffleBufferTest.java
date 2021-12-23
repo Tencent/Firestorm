@@ -152,37 +152,47 @@ public class ShuffleBufferTest extends BufferTestBase {
     shuffleBuffer = new ShuffleBuffer(200);
     spd1 = createData(15);
     spd2 = createData(15);
+    spd3 = createData(15);
     shuffleBuffer.append(spd1);
     shuffleBuffer.append(spd2);
-    event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
-    spd3 = createData(15);
-    ShufflePartitionedData spd4 = createData(15);
     shuffleBuffer.append(spd3);
-    shuffleBuffer.append(spd4);
-    ShuffleDataFlushEvent event2 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
+    event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
+    ShufflePartitionedData spd4 = createData(15);
     ShufflePartitionedData spd5 = createData(15);
     ShufflePartitionedData spd6 = createData(15);
+    shuffleBuffer.append(spd4);
     shuffleBuffer.append(spd5);
     shuffleBuffer.append(spd6);
-    ShuffleDataFlushEvent event3 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
+    ShuffleDataFlushEvent event2 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     ShufflePartitionedData spd7 = createData(15);
     ShufflePartitionedData spd8 = createData(15);
+    ShufflePartitionedData spd9 = createData(15);
     shuffleBuffer.append(spd7);
     shuffleBuffer.append(spd8);
-    ShuffleDataFlushEvent event4 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
-    ShufflePartitionedData spd9 = createData(15);
-    ShufflePartitionedData spd10 = createData(15);
     shuffleBuffer.append(spd9);
+    ShuffleDataFlushEvent event3 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
+    ShufflePartitionedData spd10 = createData(15);
+    ShufflePartitionedData spd11 = createData(15);
+    ShufflePartitionedData spd12 = createData(15);
     shuffleBuffer.append(spd10);
-    assertEquals(2, shuffleBuffer.getBlocks().size());
+    shuffleBuffer.append(spd11);
+    shuffleBuffer.append(spd12);
+    ShuffleDataFlushEvent event4 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
+    ShufflePartitionedData spd13 = createData(15);
+    ShufflePartitionedData spd14 = createData(15);
+    ShufflePartitionedData spd15 = createData(15);
+    shuffleBuffer.append(spd13);
+    shuffleBuffer.append(spd14);
+    shuffleBuffer.append(spd15);
+    assertEquals(3, shuffleBuffer.getBlocks().size());
     assertEquals(4, shuffleBuffer.getInFlushBlockMap().size());
 
     // all data in shuffle buffer as following:
-    // flush event1 -> spd1, spd2
-    // flush event2 -> spd3, spd4
-    // flush event3 -> spd5, spd6
-    // flush event4 -> spd7, spd8
-    // cached buffer -> spd9, spd10
+    // flush event1 -> spd1, spd2, spd3
+    // flush event2 -> spd4, spd5, spd6
+    // flush event3 -> spd7, spd8, spd9
+    // flush event3 -> spd10, spd11, spd12
+    // cached buffer -> spd13, spd14, spd15
     // case7 to get spd1
     List<ShufflePartitionedBlock> expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
@@ -210,14 +220,23 @@ public class ShuffleBufferTest extends BufferTestBase {
         sdr.getBufferSegments(), 0, 2);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd1, spd2, spd3
+    // case7 to get spd2, spd3
+    expectedBlocks = Lists.newArrayList(
+        shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
+    expectedData = getExpectedData(spd2, spd3);
+    sdr = shuffleBuffer.getShuffleData(spd1.getBlockList()[0].getBlockId(), 20);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 1, 2);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd1, spd2, spd3, spd4
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedData = getExpectedData(spd1, spd2, spd3);
-    sdr = shuffleBuffer.getShuffleData(Constants.INVALID_BLOCK_ID, 40);
+    expectedData = getExpectedData(spd1, spd2, spd3, spd4);
+    sdr = shuffleBuffer.getShuffleData(Constants.INVALID_BLOCK_ID, 50);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 0, 3);
+        sdr.getBufferSegments(), 0, 4);
     assertArrayEquals(expectedData, sdr.getData());
 
     // case7 to get spd2, spd3
@@ -230,145 +249,164 @@ public class ShuffleBufferTest extends BufferTestBase {
         sdr.getBufferSegments(), 1, 2);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd3
-    expectedBlocks = Lists.newArrayList(
-        shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedData = getExpectedData(spd3);
-    sdr = shuffleBuffer.getShuffleData(spd2.getBlockList()[0].getBlockId(), 10);
-    compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 0, 1);
-    assertArrayEquals(expectedData, sdr.getData());
-
     // case7 to get spd4
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
     expectedData = getExpectedData(spd4);
     sdr = shuffleBuffer.getShuffleData(spd3.getBlockList()[0].getBlockId(), 10);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 1);
+        sdr.getBufferSegments(), 0, 1);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd3, spd4
+    // case7 to get spd6
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedData = getExpectedData(spd3, spd4);
-    sdr = shuffleBuffer.getShuffleData(spd2.getBlockList()[0].getBlockId(), 20);
+    expectedData = getExpectedData(spd6);
+    sdr = shuffleBuffer.getShuffleData(spd5.getBlockList()[0].getBlockId(), 10);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 0, 2);
-    assertArrayEquals(expectedData, sdr.getData());
-
-    // case7 to get spd2, spd3, spd4, spd5
-    expectedBlocks = Lists.newArrayList(
-        shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
-    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
-    expectedData = getExpectedData(spd2, spd3, spd4, spd5);
-    sdr = shuffleBuffer.getShuffleData(spd1.getBlockList()[0].getBlockId(), 60);
-    compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 4);
-    assertArrayEquals(expectedData, sdr.getData());
-
-    // case7 to get spd4, spd5
-    expectedBlocks = Lists.newArrayList(
-        shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
-    expectedData = getExpectedData(spd4, spd5);
-    sdr = shuffleBuffer.getShuffleData(spd3.getBlockList()[0].getBlockId(), 20);
-    compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 2);
+        sdr.getBufferSegments(), 2, 1);
     assertArrayEquals(expectedData, sdr.getData());
 
     // case7 to get spd4, spd5, spd6
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
-    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
     expectedData = getExpectedData(spd4, spd5, spd6);
     sdr = shuffleBuffer.getShuffleData(spd3.getBlockList()[0].getBlockId(), 40);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 3);
+        sdr.getBufferSegments(), 0, 3);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd3, spd4, spd5, spd6, spd7
+    expectedBlocks = Lists.newArrayList(
+        shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
+    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
+    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
+    expectedData = getExpectedData(spd3, spd4, spd5, spd6, spd7);
+    sdr = shuffleBuffer.getShuffleData(spd2.getBlockList()[0].getBlockId(), 70);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 2, 5);
     assertArrayEquals(expectedData, sdr.getData());
 
     // case7 to get spd6, spd7
     expectedBlocks = Lists.newArrayList(
-        shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
-    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
+        shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
+    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
     expectedData = getExpectedData(spd6, spd7);
     sdr = shuffleBuffer.getShuffleData(spd5.getBlockList()[0].getBlockId(), 20);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 2);
+        sdr.getBufferSegments(), 2, 2);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd7
+    // case7 to get spd6, spd7, spd8, spd9
+    expectedBlocks = Lists.newArrayList(
+        shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
+    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
+    expectedData = getExpectedData(spd6, spd7, spd8, spd9);
+    sdr = shuffleBuffer.getShuffleData(spd5.getBlockList()[0].getBlockId(), 50);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 2, 4);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd9, spd10
+    expectedBlocks = Lists.newArrayList(
+        shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
+    expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
+    expectedData = getExpectedData(spd9, spd10);
+    sdr = shuffleBuffer.getShuffleData(spd8.getBlockList()[0].getBlockId(), 20);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 2, 2);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd10
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
-    expectedData = getExpectedData(spd7);
-    sdr = shuffleBuffer.getShuffleData(spd6.getBlockList()[0].getBlockId(), 10);
+    expectedData = getExpectedData(spd10);
+    sdr = shuffleBuffer.getShuffleData(spd9.getBlockList()[0].getBlockId(), 10);
     compareBufferSegment(expectedBlocks,
         sdr.getBufferSegments(), 0, 1);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd8
+    // case7 to get spd12
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
-    expectedData = getExpectedData(spd8);
-    sdr = shuffleBuffer.getShuffleData(spd7.getBlockList()[0].getBlockId(), 10);
+    expectedData = getExpectedData(spd12);
+    sdr = shuffleBuffer.getShuffleData(spd11.getBlockList()[0].getBlockId(), 10);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 1);
+        sdr.getBufferSegments(), 2, 1);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd7, spd8
+    // case7 to get spd10, spd11, spd12
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
-    expectedData = getExpectedData(spd7, spd8);
-    sdr = shuffleBuffer.getShuffleData(spd6.getBlockList()[0].getBlockId(), 20);
+    expectedData = getExpectedData(spd10, spd11, spd12);
+    sdr = shuffleBuffer.getShuffleData(spd9.getBlockList()[0].getBlockId(), 40);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 0, 2);
+        sdr.getBufferSegments(), 0, 3);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd8, spd9
+    // case7 to get spd12, spd13
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getBlocks());
-    expectedData = getExpectedData(spd8, spd9);
-    sdr = shuffleBuffer.getShuffleData(spd7.getBlockList()[0].getBlockId(), 20);
+    expectedData = getExpectedData(spd12, spd13);
+    sdr = shuffleBuffer.getShuffleData(spd11.getBlockList()[0].getBlockId(), 20);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 2);
+        sdr.getBufferSegments(), 2, 2);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd9
+    // case7 to get spd13
     expectedBlocks = Lists.newArrayList(shuffleBuffer.getBlocks());
     expectedBlocks.addAll(shuffleBuffer.getBlocks());
-    expectedData = getExpectedData(spd9);
-    sdr = shuffleBuffer.getShuffleData(spd8.getBlockList()[0].getBlockId(), 10);
+    expectedData = getExpectedData(spd13);
+    sdr = shuffleBuffer.getShuffleData(spd12.getBlockList()[0].getBlockId(), 10);
     compareBufferSegment(expectedBlocks,
         sdr.getBufferSegments(), 0, 1);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd8, spd9, spd10
+    // case7 to get spd14, spd15
+    expectedBlocks = Lists.newArrayList(shuffleBuffer.getBlocks());
+    expectedBlocks.addAll(shuffleBuffer.getBlocks());
+    expectedData = getExpectedData(spd14, spd15);
+    sdr = shuffleBuffer.getShuffleData(spd13.getBlockList()[0].getBlockId(), 20);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 1, 2);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd15
+    expectedBlocks = Lists.newArrayList(shuffleBuffer.getBlocks());
+    expectedBlocks.addAll(shuffleBuffer.getBlocks());
+    expectedData = getExpectedData(spd15);
+    sdr = shuffleBuffer.getShuffleData(spd14.getBlockList()[0].getBlockId(), 10);
+    compareBufferSegment(expectedBlocks,
+        sdr.getBufferSegments(), 2, 1);
+    assertArrayEquals(expectedData, sdr.getData());
+
+    // case7 to get spd12, spd13, spd14, spd15
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getBlocks());
-    expectedData = getExpectedData(spd8, spd9, spd10);
-    sdr = shuffleBuffer.getShuffleData(spd7.getBlockList()[0].getBlockId(), 40);
+    expectedData = getExpectedData(spd12, spd13, spd14, spd15);
+    sdr = shuffleBuffer.getShuffleData(spd11.getBlockList()[0].getBlockId(), 50);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 1, 3);
+        sdr.getBufferSegments(), 2, 4);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 to get spd1 - spd10
+    // case7 to get spd1 - spd15
     expectedBlocks = Lists.newArrayList(
         shuffleBuffer.getInFlushBlockMap().get(event1.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event2.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event3.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getInFlushBlockMap().get(event4.getEventId()));
     expectedBlocks.addAll(shuffleBuffer.getBlocks());
-    expectedData = getExpectedData(spd1, spd2, spd3, spd4, spd5, spd6, spd7, spd8, spd9, spd10);
-    sdr = shuffleBuffer.getShuffleData(Constants.INVALID_BLOCK_ID, 150);
+    expectedData = getExpectedData(spd1, spd2, spd3, spd4, spd5, spd6, spd7, spd8, spd9,
+        spd10, spd11, spd12, spd13, spd14, spd15);
+    sdr = shuffleBuffer.getShuffleData(Constants.INVALID_BLOCK_ID, 220);
     compareBufferSegment(expectedBlocks,
-        sdr.getBufferSegments(), 0, 10);
+        sdr.getBufferSegments(), 0, 15);
     assertArrayEquals(expectedData, sdr.getData());
 
-    // case7 after get spd10
-    sdr = shuffleBuffer.getShuffleData(spd10.getBlockList()[0].getBlockId(), 20);
+    // case7 after get spd15
+    sdr = shuffleBuffer.getShuffleData(spd15.getBlockList()[0].getBlockId(), 20);
     assertEquals(0, sdr.getBufferSegments().size());
 
     // case7 can't find blockId, read from start
