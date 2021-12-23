@@ -268,16 +268,16 @@ public class ShuffleBuffer {
     int offsetInResultData;
     boolean hasLastBlockId;
 
-    public CachedBlocksReadInfo(int offsetInResultData, boolean hasLastBlockId) {
+    CachedBlocksReadInfo(int offsetInResultData, boolean hasLastBlockId) {
       this.offsetInResultData = offsetInResultData;
       this.hasLastBlockId = hasLastBlockId;
     }
 
-    public int getOffsetInResultData() {
+    int getOffsetInResultData() {
       return offsetInResultData;
     }
 
-    public boolean isHasLastBlockId() {
+    boolean isHasLastBlockId() {
       return hasLastBlockId;
     }
   }
