@@ -67,8 +67,8 @@ public class MemoryClientReadHandler extends AbstractFileClientReadHandler {
         break;
       } catch (Exception e) {
         // todo: fault tolerance solution should be added
-        LOG.warn("Failed to read in memory shuffle data with "
-            + shuffleServerClient.getClientInfo(), e);
+        LOG.warn("Failed to read in memory shuffle data with {}",
+            shuffleServerClient.getClientInfo(), e);
       }
     }
 

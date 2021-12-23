@@ -27,6 +27,8 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeMap;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShufflePartitionedData;
+import com.tencent.rss.common.util.Constants;
+import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleFlushManager;
 import com.tencent.rss.server.ShuffleServerConf;
@@ -48,7 +50,6 @@ public class ShuffleBufferManager {
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleBufferManager.class);
 
   private final ShuffleFlushManager shuffleFlushManager;
-  private static final String KEY_SPLIT_CHAR = "~";
   private long capacity;
   private long readCapacity;
   private int retryNum;
@@ -107,7 +108,6 @@ public class ShuffleBufferManager {
     }
 
     ShuffleBuffer buffer = entry.getValue();
-    Range<Integer> range = entry.getKey();
     int size = buffer.append(spd);
     updateSize(size, isPreAllocated);
     updateShuffleSize(appId, shuffleId, size);
@@ -180,8 +180,9 @@ public class ShuffleBufferManager {
       int shuffleId, int startPartition, int endPartition) {
     ShuffleDataFlushEvent event =
         buffer.toFlushEvent(appId, shuffleId, startPartition, endPartition,
-            shuffleSizeMap, () -> bufferPool.containsKey(appId));
+            () -> bufferPool.containsKey(appId));
     if (event != null) {
+      updateShuffleSize(appId, shuffleId, -event.getSize());
       inFlushSize.addAndGet(event.getSize());
       ShuffleServerMetrics.gaugeInFlushBufferSize.set(inFlushSize.get());
       shuffleFlushManager.addToFlushQueue(event);
@@ -377,22 +378,41 @@ public class ShuffleBufferManager {
     // create list for sort
     List<Entry<String, AtomicLong>> sizeList = generateSizeList();
     sizeList.sort((entry1, entry2) -> {
+      if (entry1 == null && entry2 == null) {
+        return 0;
+      }
+      if (entry1 == null) {
+        return 1;
+      }
+      if (entry2 == null) {
+        return -1;
+      }
       if (entry1.getValue().get() > entry2.getValue().get()) {
         return -1;
+      } else if (entry1.getValue().get() == entry2.getValue().get()) {
+        return 0;
       }
       return 1;
     });
+
     Map<String, Set<Integer>> pickedShuffle = Maps.newHashMap();
     // The algorithm here is to flush data size > highWaterMark - lowWaterMark
     // the remain data in buffer maybe more than lowWaterMark
     // because shuffle server is still receiving data, but it should be ok
     long expectedFlushSize = highWaterMark - lowWaterMark;
     long pickedFlushSize = 0L;
+    int printIndex = 0;
+    int printMax = 10;
     for (Map.Entry<String, AtomicLong> entry : sizeList) {
       long size = entry.getValue().get();
       pickedFlushSize += size;
       String appIdShuffleIdKey = entry.getKey();
       addPickedShuffle(appIdShuffleIdKey, pickedShuffle);
+      // print detail picked info
+      if (printIndex < printMax) {
+        LOG.info("Pick application_shuffleId[{}] with {} bytes", appIdShuffleIdKey, size);
+        printIndex++;
+      }
       if (pickedFlushSize > expectedFlushSize) {
         LOG.info("Finish flush pick with {} bytes", pickedFlushSize);
         break;
@@ -407,14 +427,14 @@ public class ShuffleBufferManager {
       String appId = appEntry.getKey();
       for (Map.Entry<Integer, AtomicLong> shuffleEntry : appEntry.getValue().entrySet()) {
         Integer shuffleId = shuffleEntry.getKey();
-        sizeMap.put(appId + KEY_SPLIT_CHAR + shuffleId, shuffleEntry.getValue());
+        sizeMap.put(RssUtils.generateShuffleKey(appId, shuffleId), shuffleEntry.getValue());
       }
     }
     return Lists.newArrayList(sizeMap.entrySet());
   }
 
   private void addPickedShuffle(String key, Map<String, Set<Integer>> pickedShuffle) {
-    String[] splits = key.split(KEY_SPLIT_CHAR);
+    String[] splits = key.split(Constants.KEY_SPLIT_CHAR);
     String appId = splits[0];
     Integer shuffleId = Integer.parseInt(splits[1]);
     pickedShuffle.putIfAbsent(appId, Sets.newHashSet());

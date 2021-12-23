@@ -20,6 +20,7 @@ package com.tencent.rss.server;
 
 import com.google.common.collect.Lists;
 import com.tencent.rss.common.ShufflePartitionedBlock;
+import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.storage.common.DiskItem;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;
 import com.tencent.rss.storage.handler.api.ShuffleDeleteHandler;
@@ -251,7 +252,7 @@ public class MultiStorageManager {
     DiskItem diskItem = getDiskItem(event);
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
-    String key = generateKey(appId, shuffleId);
+    String key = RssUtils.generateShuffleKey(appId, shuffleId);
     List partitionList = Lists.newArrayList();
     for (int i = event.getStartPartition(); i <= event.getEndPartition(); i++) {
       partitionList.add(i);
@@ -265,13 +266,13 @@ public class MultiStorageManager {
 
   public void prepareStartRead(String appId, int shuffleId, int partitionId) {
     DiskItem diskItem = getDiskItem(appId, shuffleId, partitionId);
-    String key = generateKey(appId, shuffleId);
+    String key = RssUtils.generateShuffleKey(appId, shuffleId);
     diskItem.prepareStartRead(key);
   }
 
   public void updateLastReadTs(String appId, int shuffleId, int partitionId) {
     DiskItem diskItem = getDiskItem(appId, shuffleId, partitionId);
-    String key = generateKey(appId, shuffleId);
+    String key = RssUtils.generateShuffleKey(appId, shuffleId);
     diskItem.updateShuffleLastReadTs(key);
   }
 
@@ -284,10 +285,6 @@ public class MultiStorageManager {
     return diskItems.get(dirId);
   }
 
-  public String generateKey(String appId, int shuffleId) {
-    return String.join("/", appId, String.valueOf(shuffleId));
-  }
-
   public int getDiskItemId(String appId, int shuffleId, int partitionId) {
     return ShuffleStorageUtils.getStorageIndex(diskItems.size(), appId, shuffleId, partitionId);
   }
@@ -298,7 +295,8 @@ public class MultiStorageManager {
         .createShuffleDeleteHandler(new CreateShuffleDeleteHandlerRequest("HDFS", hadoopConf));
     deleteHandler.delete(new String[] {hdfsBathPath}, appId);
     for (Integer shuffleId : shuffleSet) {
-      diskItems.forEach(item -> item.addExpiredShuffleKey(generateKey(appId, shuffleId)));
+      diskItems.forEach(item -> item.addExpiredShuffleKey(
+          RssUtils.generateShuffleKey(appId, shuffleId)));
     }
   }
 
@@ -306,7 +304,7 @@ public class MultiStorageManager {
     DiskItem diskItem = getDiskItem(event);
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
-    String key = generateKey(appId, shuffleId);
+    String key = RssUtils.generateShuffleKey(appId, shuffleId);
     diskItem.createMetadataIfNotExist(key);
   }
 
@@ -314,7 +312,7 @@ public class MultiStorageManager {
     DiskItem diskItem = getDiskItem(event);
     String appId = event.getAppId();
     int shuffleId = event.getShuffleId();
-    String key = generateKey(appId, shuffleId);
+    String key = RssUtils.generateShuffleKey(appId, shuffleId);
     return diskItem.getLock(key);
   }
 }

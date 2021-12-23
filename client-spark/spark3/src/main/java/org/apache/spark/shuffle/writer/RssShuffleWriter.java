@@ -126,17 +126,14 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     this.partitionLengths = new long[partitioner.numPartitions()];
     Arrays.fill(partitionLengths, 0);
     partitionToServers = rssHandle.getPartitionToServers();
-    setMemoryShuffleEnabled(sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE));
+    this.isMemoryShuffleEnabled = isMemoryShuffleEnabled(
+        sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE));
   }
 
-  private void setMemoryShuffleEnabled(String storageType) {
-    if (StorageType.MEMORY_LOCALFILE.name().equals(storageType)
+  private boolean isMemoryShuffleEnabled(String storageType) {
+    return StorageType.MEMORY_LOCALFILE.name().equals(storageType)
         || StorageType.MEMORY_HDFS.name().equals(storageType)
-        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType)) {
-      isMemoryShuffleEnabled = true;
-    } else {
-      isMemoryShuffleEnabled = false;
-    }
+        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType);
   }
 
   @Override

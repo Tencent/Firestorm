@@ -166,7 +166,6 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
           String errorMsg = "Error happened when shuffleEngine.write for "
               + shuffleDataInfo + ": " + e.getMessage();
           ret = StatusCode.INTERNAL_ERROR;
-          e.printStackTrace();
           responseMessage = errorMsg;
           LOG.error(errorMsg);
           break;
@@ -513,8 +512,8 @@ public class ShuffleServerGrpcService extends ShuffleServerImplBase {
           ShuffleServerMetrics.counterTotalReadDataSize.inc(data.length);
           ShuffleServerMetrics.counterTotalReadMemoryDataSize.inc(data.length);
         }
-        LOG.info("Successfully getInMemoryShuffleData cost {} ms for shuffle"
-            + " data with {}", (System.currentTimeMillis() - start), requestInfo);
+        LOG.info("Successfully getInMemoryShuffleData cost {} ms with {} bytes shuffle"
+            + " data for {}", (System.currentTimeMillis() - start), data.length, requestInfo);
 
         reply = GetMemoryShuffleDataResponse.newBuilder()
             .setStatus(valueOf(status))

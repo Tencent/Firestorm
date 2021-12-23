@@ -19,7 +19,6 @@
 package com.tencent.rss.server.buffer;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShufflePartitionedBlock;
@@ -60,11 +59,11 @@ public class ShuffleBufferTest extends BufferTestBase {
   @Test
   public void toFlushEventTest() {
     ShuffleBuffer shuffleBuffer = new ShuffleBuffer(100);
-    ShuffleDataFlushEvent event = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(), null);
+    ShuffleDataFlushEvent event = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     assertNull(event);
     shuffleBuffer.append(createData(10));
     assertEquals(42, shuffleBuffer.getSize());
-    event = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(), null);
+    event = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     assertEquals(42, event.getSize());
     assertEquals(0, shuffleBuffer.getSize());
     assertEquals(0, shuffleBuffer.getBlocks().size());
@@ -131,7 +130,7 @@ public class ShuffleBufferTest extends BufferTestBase {
     spd2 = createData(15);
     shuffleBuffer.append(spd1);
     shuffleBuffer.append(spd2);
-    ShuffleDataFlushEvent event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(),null);
+    ShuffleDataFlushEvent event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     assertEquals(0, shuffleBuffer.getBlocks().size());
     sdr = shuffleBuffer.getShuffleData(Constants.INVALID_BLOCK_ID, 20);
     expectedData = getExpectedData(spd1, spd2);
@@ -155,22 +154,22 @@ public class ShuffleBufferTest extends BufferTestBase {
     spd2 = createData(15);
     shuffleBuffer.append(spd1);
     shuffleBuffer.append(spd2);
-    event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(), null);
+    event1 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     spd3 = createData(15);
     ShufflePartitionedData spd4 = createData(15);
     shuffleBuffer.append(spd3);
     shuffleBuffer.append(spd4);
-    ShuffleDataFlushEvent event2 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(),null);
+    ShuffleDataFlushEvent event2 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     ShufflePartitionedData spd5 = createData(15);
     ShufflePartitionedData spd6 = createData(15);
     shuffleBuffer.append(spd5);
     shuffleBuffer.append(spd6);
-    ShuffleDataFlushEvent event3 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(),null);
+    ShuffleDataFlushEvent event3 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     ShufflePartitionedData spd7 = createData(15);
     ShufflePartitionedData spd8 = createData(15);
     shuffleBuffer.append(spd7);
     shuffleBuffer.append(spd8);
-    ShuffleDataFlushEvent event4 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, Maps.newConcurrentMap(),null);
+    ShuffleDataFlushEvent event4 = shuffleBuffer.toFlushEvent("appId", 0, 0, 1, null);
     ShufflePartitionedData spd9 = createData(15);
     ShufflePartitionedData spd10 = createData(15);
     shuffleBuffer.append(spd9);
