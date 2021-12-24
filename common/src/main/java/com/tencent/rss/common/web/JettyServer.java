@@ -26,9 +26,9 @@ import java.nio.file.Paths;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import javax.servlet.Servlet;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import javax.servlet.Servlet;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
