@@ -50,6 +50,9 @@ import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.server.buffer.PreAllocatedBufferInfo;
 import com.tencent.rss.server.buffer.ShuffleBufferManager;
+import com.tencent.rss.server.storage.StorageManager;
+import com.tencent.rss.storage.common.Storage;
+import com.tencent.rss.storage.common.StorageReadMetrics;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;
 import com.tencent.rss.storage.handler.api.ServerReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
@@ -60,7 +63,7 @@ public class ShuffleTaskManager {
   private final ShuffleFlushManager shuffleFlushManager;
   private final ScheduledExecutorService scheduledExecutorService;
   private final ScheduledExecutorService expiredAppCleanupExecutorService;
-  private final MultiStorageManager multiStorageManager;
+  private final StorageManager storageManager;
   private final boolean useMultiStorage;
   private AtomicLong requireBufferId = new AtomicLong(0);
   private ShuffleServerConf conf;
@@ -90,12 +93,12 @@ public class ShuffleTaskManager {
       ShuffleServerConf conf,
       ShuffleFlushManager shuffleFlushManager,
       ShuffleBufferManager shuffleBufferManager,
-      MultiStorageManager multiStorageManager) {
+      StorageManager storageManager) {
     this.conf = conf;
     this.shuffleFlushManager = shuffleFlushManager;
     this.partitionsToBlockIds = Maps.newConcurrentMap();
     this.shuffleBufferManager = shuffleBufferManager;
-    this.multiStorageManager = multiStorageManager;
+    this.storageManager = storageManager;
     this.appExpiredWithoutHB = conf.getLong(ShuffleServerConf.SERVER_APP_EXPIRED_WITHOUT_HEARTBEAT);
     this.commitCheckIntervalMax = conf.getLong(ShuffleServerConf.SERVER_COMMIT_CHECK_INTERVAL_MAX);
     this.preAllocationExpired = conf.getLong(ShuffleServerConf.SERVER_PRE_ALLOCATION_EXPIRED);
@@ -273,9 +276,9 @@ public class ShuffleTaskManager {
   public byte[] getFinishedBlockIds(
       String appId, Integer shuffleId, Integer partitionId) throws IOException {
     refreshAppId(appId);
-    if (useMultiStorage) {
-      multiStorageManager.prepareStartRead(appId, shuffleId, partitionId);
-    }
+    Storage storage = storageManager.selectStorage(new ShuffleDataReadEvent(appId, shuffleId, partitionId));
+    storage.updateReadMetrics(new StorageReadMetrics(appId, shuffleId));
+
     Map<Integer, Roaring64NavigableMap[]> shuffleIdToPartitions = partitionsToBlockIds.get(appId);
     if (shuffleIdToPartitions == null) {
       return null;
@@ -404,8 +407,8 @@ public class ShuffleTaskManager {
     commitLocks.remove(appId);
     shuffleBufferManager.removeBuffer(appId);
     shuffleFlushManager.removeResources(appId);
-    if (useMultiStorage && shuffleToCachedBlockIds != null) {
-      multiStorageManager.removeResources(appId, shuffleToCachedBlockIds.keySet());
+    if (shuffleToCachedBlockIds != null) {
+      storageManager.removeResources(appId, shuffleToCachedBlockIds.keySet());
     }
     LOG.info("Finish remove resource for appId[" + appId + "] cost " + (System.currentTimeMillis() - start) + " ms");
   }
