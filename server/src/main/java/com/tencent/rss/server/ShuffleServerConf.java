@@ -296,12 +296,6 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue("com.tencent.rss.server.LocalStorageChecker")
       .withDescription("The list of the Checker's name");
 
-  public static final ConfigOption<Boolean> SERVER_MEMORY_SHUFFLE_ENABLED = ConfigOptions
-      .key("rss.server.memory.shuffle.enabled")
-      .booleanType()
-      .defaultValue(false)
-      .withDescription("If enable memory as storage for shuffle data");
-
   public static final ConfigOption<Double> SERVER_MEMORY_SHUFFLE_LOWWATERMARK_PERCENTAGE = ConfigOptions
       .key("rss.server.memory.shuffle.lowWaterMark.percentage")
       .doubleType()

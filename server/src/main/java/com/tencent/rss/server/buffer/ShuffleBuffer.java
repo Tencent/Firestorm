@@ -129,8 +129,7 @@ public class ShuffleBuffer {
       updateBufferSegmentsAndResultBlocks(
           lastBlockId, readBufferSize, bufferSegments, readBlocks);
       if (!bufferSegments.isEmpty()) {
-        BufferSegment bufferSegment = bufferSegments.get(bufferSegments.size() - 1);
-        int length = bufferSegment.getOffset() + bufferSegment.getLength();
+        int length = calculateDataLength(bufferSegments);
         byte[] data = new byte[length];
         // copy result data
         updateShuffleData(readBlocks, data);
@@ -160,16 +159,22 @@ public class ShuffleBuffer {
     // it should be less than 5, or there has some problem with storage
     if (!inFlushBlockMap.isEmpty()) {
       for (Long eventId : sortedEventId) {
-        // update bufferSegments with current blocks in flush map
-        CachedBlocksReadInfo cachedBlocksReadInfo = readCachedBlocksAndUpdateSegments(
-            offset, inFlushBlockMap.get(eventId), nextBlockId, readBufferSize,
-            bufferSegments, resultBlocks);
-        offset = cachedBlocksReadInfo.getOffsetInResultData();
-        // if last blockId is found, read from begin with next cached blocks
-        if (cachedBlocksReadInfo.hasLastBlockId()) {
-          // read from begin in next cached blocks
-          nextBlockId = Constants.INVALID_BLOCK_ID;
+        // update bufferSegments with different strategy according to lastBlockId
+        if (nextBlockId == Constants.INVALID_BLOCK_ID) {
+          updateSegmentsWithoutBlockId(offset, inFlushBlockMap.get(eventId), readBufferSize,
+              bufferSegments, resultBlocks);
           hasLastBlockId = true;
+        } else {
+          hasLastBlockId = updateSegmentsWithBlockId(offset, inFlushBlockMap.get(eventId),
+              readBufferSize, nextBlockId, bufferSegments, resultBlocks);
+          // if last blockId is found, read from begin with next cached blocks
+          if (hasLastBlockId) {
+            // reset blockId to read from begin in next cached blocks
+            nextBlockId = Constants.INVALID_BLOCK_ID;
+          }
+        }
+        if (!bufferSegments.isEmpty()) {
+          offset = calculateDataLength(bufferSegments);
         }
         if (offset >= readBufferSize) {
           break;
@@ -178,10 +183,13 @@ public class ShuffleBuffer {
     }
     // try to read from cached blocks which is not in flush queue
     if (blocks.size() > 0 && offset < readBufferSize) {
-      CachedBlocksReadInfo cachedBlocksReadInfo = readCachedBlocksAndUpdateSegments(
-          offset, blocks, nextBlockId, readBufferSize, bufferSegments, resultBlocks);
-      offset = cachedBlocksReadInfo.getOffsetInResultData();
-      hasLastBlockId = cachedBlocksReadInfo.hasLastBlockId();
+      if (nextBlockId == Constants.INVALID_BLOCK_ID) {
+        updateSegmentsWithoutBlockId(offset, blocks, readBufferSize, bufferSegments, resultBlocks);
+        hasLastBlockId = true;
+      } else {
+        hasLastBlockId = updateSegmentsWithBlockId(offset, blocks,
+            readBufferSize, nextBlockId, bufferSegments, resultBlocks);
+      }
     }
     if ((!inFlushBlockMap.isEmpty() || blocks.size() > 0) && offset == 0 && !hasLastBlockId) {
       // can't find lastBlockId, it should be flushed
@@ -190,6 +198,11 @@ public class ShuffleBuffer {
       updateBufferSegmentsAndResultBlocks(
           Constants.INVALID_BLOCK_ID, readBufferSize, bufferSegments, resultBlocks);
     }
+  }
+
+  private int calculateDataLength(List<BufferSegment> bufferSegments) {
+    BufferSegment bufferSegment = bufferSegments.get(bufferSegments.size() - 1);
+    return bufferSegment.getOffset() + bufferSegment.getLength();
   }
 
   private void updateShuffleData(List<ShufflePartitionedBlock> readBlocks, byte[] data) {
@@ -219,70 +232,56 @@ public class ShuffleBuffer {
     return eventIdList;
   }
 
-  private CachedBlocksReadInfo readCachedBlocksAndUpdateSegments(
+  private void updateSegmentsWithoutBlockId(
       int offset,
       List<ShufflePartitionedBlock> cachedBlocks,
-      long lastBlockId,
       long readBufferSize,
       List<BufferSegment> bufferSegments,
       List<ShufflePartitionedBlock> readBlocks) {
     int currentOffset = offset;
-    if (lastBlockId == Constants.INVALID_BLOCK_ID) {
-      // read from first block
-      for (ShufflePartitionedBlock block : cachedBlocks) {
-        // add bufferSegment with block
-        bufferSegments.add(new BufferSegment(block.getBlockId(), currentOffset, block.getLength(),
-            block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
-        readBlocks.add(block);
-        // update offset
-        currentOffset += block.getLength();
-        // check if length >= request buffer size
-        if (currentOffset >= readBufferSize) {
-          break;
-        }
+    // read from first block
+    for (ShufflePartitionedBlock block : cachedBlocks) {
+      // add bufferSegment with block
+      bufferSegments.add(new BufferSegment(block.getBlockId(), currentOffset, block.getLength(),
+          block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
+      readBlocks.add(block);
+      // update offset
+      currentOffset += block.getLength();
+      // check if length >= request buffer size
+      if (currentOffset >= readBufferSize) {
+        break;
       }
-      return new CachedBlocksReadInfo(currentOffset, true);
-    } else {
-      // find lastBlockId, then read from next block
-      boolean foundBlockId = false;
-      for (ShufflePartitionedBlock block : cachedBlocks) {
-        if (!foundBlockId) {
-          // find lastBlockId
-          if (block.getBlockId() == lastBlockId) {
-            foundBlockId = true;
-          }
-          continue;
-        }
-        // add bufferSegment with block
-        bufferSegments.add(new BufferSegment(block.getBlockId(), currentOffset, block.getLength(),
-            block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
-        readBlocks.add(block);
-        // update offset
-        currentOffset += block.getLength();
-        if (currentOffset >= readBufferSize) {
-          break;
-        }
-      }
-      return new CachedBlocksReadInfo(currentOffset, foundBlockId);
     }
   }
 
-  class CachedBlocksReadInfo {
-    int offsetInResultData;
-    boolean hasLastBlockId;
-
-    CachedBlocksReadInfo(int offsetInResultData, boolean hasLastBlockId) {
-      this.offsetInResultData = offsetInResultData;
-      this.hasLastBlockId = hasLastBlockId;
+  private boolean updateSegmentsWithBlockId(
+      int offset,
+      List<ShufflePartitionedBlock> cachedBlocks,
+      long readBufferSize,
+      long lastBlockId,
+      List<BufferSegment> bufferSegments,
+      List<ShufflePartitionedBlock> readBlocks) {
+    int currentOffset = offset;
+    // find lastBlockId, then read from next block
+    boolean foundBlockId = false;
+    for (ShufflePartitionedBlock block : cachedBlocks) {
+      if (!foundBlockId) {
+        // find lastBlockId
+        if (block.getBlockId() == lastBlockId) {
+          foundBlockId = true;
+        }
+        continue;
+      }
+      // add bufferSegment with block
+      bufferSegments.add(new BufferSegment(block.getBlockId(), currentOffset, block.getLength(),
+          block.getUncompressLength(), block.getCrc(), block.getTaskAttemptId()));
+      readBlocks.add(block);
+      // update offset
+      currentOffset += block.getLength();
+      if (currentOffset >= readBufferSize) {
+        break;
+      }
     }
-
-    int getOffsetInResultData() {
-      return offsetInResultData;
-    }
-
-    boolean hasLastBlockId() {
-      return hasLastBlockId;
-    }
+    return foundBlockId;
   }
-
 }

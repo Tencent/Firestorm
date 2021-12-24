@@ -78,8 +78,7 @@ public class MemoryClientReadHandler extends AbstractClientReadHandler {
     }
 
     // update lastBlockId for next rpc call
-    byte[] data = result.getData();
-    if (data != null && data.length > 0) {
+    if (!result.isEmpty()) {
       List<BufferSegment> bufferSegments = result.getBufferSegments();
       lastBlockId = bufferSegments.get(bufferSegments.size() - 1).getBlockId();
     }

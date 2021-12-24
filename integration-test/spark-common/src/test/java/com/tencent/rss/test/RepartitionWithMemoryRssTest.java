@@ -45,7 +45,6 @@ public class RepartitionWithMemoryRssTest extends RepartitionTest {
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
     shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, basePath);
-    shuffleServerConf.set(ShuffleServerConf.SERVER_MEMORY_SHUFFLE_ENABLED, true);
     shuffleServerConf.setString(ShuffleServerConf.SERVER_BUFFER_CAPACITY.key(), "512mb");
     createShuffleServer(shuffleServerConf);
     startServers();
