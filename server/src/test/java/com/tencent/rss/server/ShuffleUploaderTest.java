@@ -379,6 +379,7 @@ public class ShuffleUploaderTest  {
       builder
           .localStorage(localStorage)
           .configuration(conf)
+          .serverId("test")
           .maxForceUploadExpireTimeS(1);
       ShuffleUploadHandlerFactory mockFactory = mock(ShuffleUploadHandlerFactory.class);
       ShuffleUploadHandler mockHandler = mock(ShuffleUploadHandler.class);
@@ -512,7 +513,6 @@ public class ShuffleUploaderTest  {
       assertTrue(file3i.exists());
 
       localStorage.updateShuffleLastReadTs("key");
-      // localStorage.start();
       Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
       assertTrue(file1d.exists());
       assertTrue(file1i.exists());
@@ -547,22 +547,10 @@ public class ShuffleUploaderTest  {
       assertFalse(file2i.exists());
       assertFalse(file3d.exists());
       assertFalse(file3i.exists());
-      // localStorage.stop();
     } catch (Exception e) {
       e.printStackTrace();
       fail();
     }
-  }
-
-  private void assertException(Class<?> c, Consumer<Void> f) {
-    BiConsumer<Class<?>, Consumer<Void>> checker = (expectedExceptionClass, func) -> {
-      try {
-        func.accept(null);
-      } catch (Exception e) {
-        assertEquals(expectedExceptionClass, e.getClass());
-      }
-    };
-    checker.accept(c, f);
   }
 
   private void writeFile(File f, int size) {
