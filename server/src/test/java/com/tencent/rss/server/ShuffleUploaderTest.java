@@ -19,9 +19,11 @@
 package com.tencent.rss.server;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.common.ShuffleFileInfo;
+import com.tencent.rss.storage.common.StorageReadMetrics;
 import com.tencent.rss.storage.factory.ShuffleUploadHandlerFactory;
 import com.tencent.rss.storage.handler.api.ShuffleUploadHandler;
 import com.tencent.rss.storage.util.ShuffleUploadResult;
@@ -32,13 +34,13 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import com.tencent.rss.storage.util.StorageType;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.roaringbitmap.RoaringBitmap;
@@ -102,7 +104,7 @@ public class ShuffleUploaderTest  {
       conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 300);
       conf.setLong(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS, 1);
       conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
-      conf.setString(ShuffleServerConf.HDFS_BASE_PATH, "hdfs://base");
+      conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://base");
       LocalStorage mockLocalStorage = mock(LocalStorage.class);
       when(mockLocalStorage.getBasePath()).thenReturn(base.getAbsolutePath());
       ShuffleUploader shuffleUploader = new ShuffleUploader.Builder()
@@ -251,7 +253,7 @@ public class ShuffleUploaderTest  {
       conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 300);
       conf.setLong(ShuffleServerConf.SHUFFLE_MAX_UPLOAD_SIZE, 10L);
       conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
-      conf.setString(ShuffleServerConf.HDFS_BASE_PATH, "hdfs://base");
+      conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://base");
 
       ShuffleUploader shuffleUploader = new ShuffleUploader.Builder()
           .localStorage(mockLocalStorage)
@@ -315,7 +317,7 @@ public class ShuffleUploaderTest  {
     conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 300);
     conf.setLong(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS, 128);
     conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
-    conf.setString(ShuffleServerConf.HDFS_BASE_PATH, "hdfs://base");
+    conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://base");
     ShuffleUploader shuffleUploader = new ShuffleUploader.Builder()
         .localStorage(mockLocalStorage)
         .serverId("prefix")
@@ -368,7 +370,7 @@ public class ShuffleUploaderTest  {
       conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 1);
       conf.setLong(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS, 2);
       conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
-      conf.setString(ShuffleServerConf.HDFS_BASE_PATH, "hdfs://test");
+      conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://test");
       LocalStorage localStorage = LocalStorage.newBuilder()
           .capacity(100)
           .basePath(base.getAbsolutePath())
@@ -551,6 +553,140 @@ public class ShuffleUploaderTest  {
       e.printStackTrace();
       fail();
     }
+  }
+
+  @Test
+  public void cleanTest() {
+    TemporaryFolder testBaseDir = new TemporaryFolder();
+    try {
+      testBaseDir.create();
+
+      ShuffleServerConf conf = new ShuffleServerConf();
+      conf.setInteger(ShuffleServerConf.UPLOADER_THREAD_NUM, 1);
+      conf.setLong(ShuffleServerConf.UPLOADER_INTERVAL_MS, 1000);
+      conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 1);
+      conf.setLong(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS, 2);
+      conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
+      conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://test");
+
+      LocalStorage localStorage = LocalStorage.newBuilder().basePath(testBaseDir.getRoot().getAbsolutePath())
+          .cleanupThreshold(50)
+          .highWaterMarkOfWrite(100)
+          .lowWaterMarkOfWrite(100)
+          .capacity(100)
+          .cleanIntervalMs(5000)
+          .shuffleExpiredTimeoutMs(1)
+          .build();
+
+      File baseDir = testBaseDir.newFolder(testBaseDir.getRoot().getName(),"app-1");
+      assertTrue(baseDir.exists());
+      File dir1 = testBaseDir.newFolder("app-1", "1");
+      File dir2 = testBaseDir.newFolder("app-1", "2");
+      assertTrue(dir1.exists());
+      assertTrue(dir2.exists());
+      localStorage.createMetadataIfNotExist("app-1/1");
+      localStorage.createMetadataIfNotExist("app-1/2");
+      localStorage.updateWrite("app-1/1", 0, Lists.newArrayList());
+      localStorage.updateWrite("app-1/2", 0, Lists.newArrayList());
+
+      assertTrue(dir1.exists());
+      assertTrue(dir2.exists());
+      localStorage.updateWrite("app-1/1", 25, Lists.newArrayList(1));
+      localStorage.updateWrite("app-1/2", 35, Lists.newArrayList(2));
+      assertEquals(60, localStorage.getDiskSize());
+
+      assertTrue(dir1.exists());
+      assertTrue(dir2.exists());
+
+      ShuffleUploader uploader = new ShuffleUploader.Builder()
+          .localStorage(localStorage)
+          .configuration(conf)
+          .serverId("test")
+          .maxForceUploadExpireTimeS(1)
+          .build();
+      uploader.cleanUploadedShuffle(Sets.newHashSet("app-1/1"));
+
+      assertTrue(dir1.exists());
+      assertTrue(dir2.exists());
+      localStorage.updateReadMetrics(new StorageReadMetrics("app-1", 1));
+      uploader.cleanUploadedShuffle(Sets.newHashSet("app-1/1"));
+      assertTrue(dir1.exists());
+      Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+      uploader.cleanUploadedShuffle(Sets.newHashSet("app-1/1"));
+
+      assertFalse(dir1.exists());
+      assertTrue(dir2.exists());
+      localStorage.updateReadMetrics(new StorageReadMetrics("app-1/2", 2));
+      uploader.cleanUploadedShuffle(Sets.newHashSet("app-1/2"));
+      assertTrue(dir2.exists());
+      assertEquals(35, localStorage.getDiskSize());
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    } finally {
+      testBaseDir.delete();
+    }
+  }
+
+  @Test
+  public void delayCleanTest() throws IOException {
+    TemporaryFolder testBaseDir = new TemporaryFolder();
+    testBaseDir.create();
+    LocalStorage storage = LocalStorage.newBuilder().basePath(testBaseDir.getRoot().getAbsolutePath())
+        .cleanupThreshold(0)
+        .highWaterMarkOfWrite(100)
+        .lowWaterMarkOfWrite(100)
+        .capacity(100)
+        .cleanIntervalMs(1000)
+        .shuffleExpiredTimeoutMs(1)
+        .build();
+
+    ShuffleServerConf conf = new ShuffleServerConf();
+    conf.setInteger(ShuffleServerConf.UPLOADER_THREAD_NUM, 1);
+    conf.setLong(ShuffleServerConf.UPLOADER_INTERVAL_MS, 1000);
+    conf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 1);
+    conf.setLong(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS, 2);
+    conf.setString(ShuffleServerConf.UPLOAD_STORAGE_TYPE, StorageType.HDFS.name());
+    conf.setString(ShuffleServerConf.UPLOADER_BASE_PATH, "hdfs://test");
+
+    storage.createMetadataIfNotExist("key1");
+    storage.createMetadataIfNotExist("key2");
+    storage.createMetadataIfNotExist("key3");
+    storage.updateWrite("key1", 100, Lists.newArrayList());
+    storage.updateWrite("key2", 50, Lists.newArrayList());
+    storage.updateWrite("key3", 95, Lists.newArrayList());
+    assertEquals(3, storage.getShuffleMetaSet().size());
+    assertTrue(storage.getShuffleMetaSet().contains("key1"));
+    assertTrue(storage.getShuffleMetaSet().contains("key2"));
+    assertTrue(storage.getShuffleMetaSet().contains("key3"));
+    assertEquals(245, storage.getDiskSize());
+
+    ShuffleUploader uploader = new ShuffleUploader.Builder()
+        .localStorage(storage)
+        .configuration(conf)
+        .serverId("test")
+        .maxForceUploadExpireTimeS(1)
+        .build();
+
+    storage.updateShuffleLastReadTs("key1");
+    storage.updateShuffleLastReadTs("key2");
+    storage.updateShuffleLastReadTs("key3");
+    Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+    storage.getExpiredShuffleKeys().offer("key1");
+    storage.getExpiredShuffleKeys().offer("key2");
+    assertEquals(2, storage.getExpiredShuffleKeys().size());
+    uploader.cleanUploadedShuffle(Sets.newHashSet());
+    assertEquals(1, storage.getShuffleMetaSet().size());
+    assertEquals(95, storage.getDiskSize());
+    assertTrue(storage.getShuffleMetaSet().contains("key3"));
+    assertEquals(0, storage.getExpiredShuffleKeys().size());
+
+    storage.getExpiredShuffleKeys().offer("key3");
+    assertEquals(1, storage.getExpiredShuffleKeys().size());
+    uploader.cleanUploadedShuffle(Sets.newHashSet());
+    assertEquals(0, storage.getShuffleMetaSet().size());
+    assertEquals(0, storage.getDiskSize());
+    assertEquals(0, storage.getExpiredShuffleKeys().size());
   }
 
   private void writeFile(File f, int size) {

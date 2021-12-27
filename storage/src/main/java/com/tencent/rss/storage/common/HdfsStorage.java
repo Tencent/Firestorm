@@ -27,9 +27,11 @@ import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 public class HdfsStorage extends AbstractStorage {
 
   private final String storagePath;
+  private final Configuration conf;
 
   public HdfsStorage(String path, Configuration conf) {
-    storagePath = path;
+    this.storagePath = path;
+    this.conf = conf;
   }
 
   @Override

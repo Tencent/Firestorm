@@ -67,7 +67,6 @@ public class ShuffleFlushManager {
   private final StorageManager storageManager;
   private final BlockingQueue<PendingShuffleFlushEvent> pendingEvents = Queues.newLinkedBlockingQueue();
   private final long pendingEventTimeoutSec;
-  private final boolean useMultiStorage;
   private int processPendingEventIndex = 0;
 
   public ShuffleFlushManager(ShuffleServerConf shuffleServerConf, String shuffleServerId, ShuffleServer shuffleServer,
@@ -89,7 +88,6 @@ public class ShuffleFlushManager {
     threadPoolExecutor = new ThreadPoolExecutor(poolSize, poolSize, keepAliveTime, TimeUnit.SECONDS, waitQueue);
     storageBasePaths = shuffleServerConf.getString(ShuffleServerConf.RSS_STORAGE_BASE_PATH).split(",");
     pendingEventTimeoutSec = shuffleServerConf.getLong(ShuffleServerConf.PENDING_EVENT_TIMEOUT_SEC);
-    useMultiStorage = shuffleServerConf.getBoolean(ShuffleServerConf.MULTI_STORAGE_ENABLE);
     // the thread for flush data
     processEventThread = () -> {
       while (true) {
@@ -290,9 +288,6 @@ public class ShuffleFlushManager {
 
   @VisibleForTesting
   void processPendingEvents() throws Exception {
-    if (!useMultiStorage) {
-      return;
-    }
     PendingShuffleFlushEvent event = pendingEvents.take();
     Storage storage = storageManager.selectStorage(event.getEvent());
     if (System.currentTimeMillis() - event.getCreateTimeStamp() > pendingEventTimeoutSec * 1000L) {

@@ -25,6 +25,8 @@ public class StorageReadMetrics {
   private int shuffleId;
 
   public StorageReadMetrics(String appId, int shuffleId) {
+    this.appId = appId;
+    this.shuffleId = shuffleId;
     lastReadTs = System.currentTimeMillis();
   }
 

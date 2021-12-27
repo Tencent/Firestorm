@@ -163,7 +163,7 @@ public class MultiStorageManagerTest {
     }
     assertTrue(isException);
 
-    conf.set(ShuffleServerConf.HDFS_BASE_PATH, "testPath");
+    conf.set(ShuffleServerConf.UPLOADER_BASE_PATH, "testPath");
     conf.set(ShuffleServerConf.UPLOAD_STORAGE_TYPE, "LOCALFILE");
     isException = false;
     try {

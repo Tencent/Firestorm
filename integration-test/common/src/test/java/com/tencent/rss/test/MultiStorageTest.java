@@ -75,7 +75,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
     shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE_AND_HDFS.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
-    shuffleServerConf.setString(ShuffleServerConf.HDFS_BASE_PATH,  HDFS_URI + "rss/multi_storage");
+    shuffleServerConf.setString(ShuffleServerConf.UPLOADER_BASE_PATH,  HDFS_URI + "rss/multi_storage");
     shuffleServerConf.setDouble(ShuffleServerConf.CLEANUP_THRESHOLD, 0.0);
     shuffleServerConf.setLong(ShuffleServerConf.CLEANUP_INTERVAL_MS, 1000);
     shuffleServerConf.setDouble(ShuffleServerConf.HIGH_WATER_MARK_OF_WRITE, 100.0);
@@ -87,7 +87,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     shuffleServerConf.setLong(ShuffleServerConf.SERVER_APP_EXPIRED_WITHOUT_HEARTBEAT, 60L * 1000L * 60L);
     shuffleServerConf.setLong(ShuffleServerConf.SERVER_COMMIT_TIMEOUT, 20L * 1000L);
     shuffleServerConf.setLong(ShuffleServerConf.PENDING_EVENT_TIMEOUT_SEC, 30);
-    shuffleServerConf.setBoolean(ShuffleServerConf.MULTI_STORAGE_ENABLE, true);
+    shuffleServerConf.setLong(ShuffleServerConf.FLUSH_COLD_STORAGE_THRESHOLD_SIZE, 1024L * 1024L * 1024L * 1024L);
     createAndStartServers(shuffleServerConf, coordinatorConf);
   }
 
@@ -502,14 +502,14 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     sendSinglePartitionToShuffleServerWithoutReport(appId, 2, 2, 2, blocks1);
     sendSinglePartitionToShuffleServerWithoutReport(appId, 3, 1,2, blocks2);
     shuffleServers.get(0).getShuffleTaskManager().removeResources(appId);
-    LocalStorage item = (LocalStorage) shuffleServers.get(0).getStorageManager()
+    LocalStorage storage = (LocalStorage) shuffleServers.get(0).getStorageManager()
         .selectStorage(new ShuffleDataReadEvent(appId, 2, 0));
     Uninterruptibles.sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
-    Set<String> keys = item.getShuffleMetaSet();
+    Set<String> keys = storage.getShuffleMetaSet();
     assertTrue(keys.isEmpty());
-    item = (LocalStorage) shuffleServers.get(0).getStorageManager()
+    storage = (LocalStorage) shuffleServers.get(0).getStorageManager()
         .selectStorage(new ShuffleDataReadEvent(appId, 3, 1));
-    keys = item.getShuffleMetaSet();
+    keys = storage.getShuffleMetaSet();
     assertTrue(keys.isEmpty());
 
     appId = "app_read_diskusage_data_with_report";
@@ -519,10 +519,10 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
         0, 0, 1,30, 10 * 1024, blockIdBitmap1, expectedData);
     sendSinglePartitionToShuffleServer(appId, 0, 0, 2, blocks1);
     shuffleServers.get(0).getShuffleTaskManager().removeResources(appId);
-    item = (LocalStorage) shuffleServers.get(0).getStorageManager()
+    storage = (LocalStorage) shuffleServers.get(0).getStorageManager()
         .selectStorage(new ShuffleDataReadEvent(appId, 0, 0));
     Uninterruptibles.sleepUninterruptibly(1500, TimeUnit.MILLISECONDS);
-    keys = item.getShuffleMetaSet();
+    keys = storage.getShuffleMetaSet();
     assertTrue(keys.isEmpty());
   }
 

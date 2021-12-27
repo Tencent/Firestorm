@@ -149,7 +149,7 @@ public class ShuffleUploader {
       referenceUploadSpeedMBS = conf.get(ShuffleServerConf.REFERENCE_UPLOAD_SPEED_MBS);
       cleanupThreshold = conf.get(ShuffleServerConf.CLEANUP_THRESHOLD);
 
-      hdfsBasePath = conf.get(ShuffleServerConf.HDFS_BASE_PATH);
+      hdfsBasePath = conf.get(ShuffleServerConf.UPLOADER_BASE_PATH);
       if (StringUtils.isEmpty(hdfsBasePath)) {
         throw new IllegalArgumentException("hdfsBasePath couldn't be empty");
       }
@@ -219,6 +219,7 @@ public class ShuffleUploader {
 
     List<ShuffleFileInfo> shuffleFileInfos = selectShuffleFiles(uploadThreadNum, forceUpload);
     if (shuffleFileInfos == null || shuffleFileInfos.isEmpty()) {
+      cleanUploadedShuffle(Sets.newHashSet());
       return;
     }
 
@@ -460,13 +461,12 @@ public class ShuffleUploader {
   @VisibleForTesting
   void cleanUploadedShuffle(Set<String> successUploadShuffles) {
     Queue<String> expiredShuffleKeys = localStorage.getExpiredShuffleKeys();
-    for (String key = expiredShuffleKeys.poll(); key != null; key = expiredShuffleKeys.poll()) {
-      LOG.info("Remove expired shuffle {}", key);
-      localStorage.removeResources(key);
-    }
-
     if (localStorage.getDiskSize() * 100 / localStorage.getCapacity() < cleanupThreshold) {
       return;
+    }
+
+    for (String key = expiredShuffleKeys.poll(); key != null; key = expiredShuffleKeys.poll()) {
+      successUploadShuffles.add(key);
     }
 
     successUploadShuffles.forEach((shuffleKey) -> {
@@ -478,13 +478,17 @@ public class ShuffleUploader {
         try {
           File baseFolder = new File(shufflePath);
           FileUtils.deleteDirectory(baseFolder);
+          System.out.println(baseFolder.exists());
           LOG.info("Clean shuffle {}", shuffleKey);
           localStorage.removeResources(shuffleKey);
           LOG.info("Delete shuffle data for shuffle [" + shuffleKey + "] with " + shufflePath
               + " cost " + (System.currentTimeMillis() - start) + " ms");
         } catch (Exception e) {
           LOG.warn("Can't delete shuffle data for shuffle [" + shuffleKey + "] with " + shufflePath, e);
+          expiredShuffleKeys.add(shuffleKey);
         }
+      } else {
+          expiredShuffleKeys.add(shuffleKey);
       }
     });
   }

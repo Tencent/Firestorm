@@ -64,7 +64,6 @@ public class ShuffleTaskManager {
   private final ScheduledExecutorService scheduledExecutorService;
   private final ScheduledExecutorService expiredAppCleanupExecutorService;
   private final StorageManager storageManager;
-  private final boolean useMultiStorage;
   private AtomicLong requireBufferId = new AtomicLong(0);
   private ShuffleServerConf conf;
   private long appExpiredWithoutHB;
@@ -102,7 +101,6 @@ public class ShuffleTaskManager {
     this.appExpiredWithoutHB = conf.getLong(ShuffleServerConf.SERVER_APP_EXPIRED_WITHOUT_HEARTBEAT);
     this.commitCheckIntervalMax = conf.getLong(ShuffleServerConf.SERVER_COMMIT_CHECK_INTERVAL_MAX);
     this.preAllocationExpired = conf.getLong(ShuffleServerConf.SERVER_PRE_ALLOCATION_EXPIRED);
-    this.useMultiStorage = conf.getBoolean(ShuffleServerConf.MULTI_STORAGE_ENABLE);
     // the thread for checking application status
     this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("checkResource-%d").build());

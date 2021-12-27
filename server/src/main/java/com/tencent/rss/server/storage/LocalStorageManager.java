@@ -49,6 +49,7 @@ public class LocalStorageManager extends SingleStorageManager {
       throw new IllegalArgumentException("Base path dirs must not be empty");
     }
     storageBasePaths = storageBasePathStr.split(",");
+    long shuffleExpiredTimeoutMs = conf.get(ShuffleServerConf.SHUFFLE_EXPIRED_TIMEOUT_MS);
     long capacity = conf.getSizeAsBytes(ShuffleServerConf.DISK_CAPACITY);
     double highWaterMarkOfWrite = conf.get(ShuffleServerConf.HIGH_WATER_MARK_OF_WRITE);
     double lowWaterMarkOfWrite = conf.get(ShuffleServerConf.LOW_WATER_MARK_OF_WRITE);
@@ -61,6 +62,7 @@ public class LocalStorageManager extends SingleStorageManager {
           .capacity(capacity)
           .lowWaterMarkOfWrite(lowWaterMarkOfWrite)
           .highWaterMarkOfWrite(highWaterMarkOfWrite)
+          .shuffleExpiredTimeoutMs(shuffleExpiredTimeoutMs)
           .build());
     }
   }
@@ -88,7 +90,7 @@ public class LocalStorageManager extends SingleStorageManager {
     for (LocalStorage storage : localStorages) {
       for (Integer shuffleId : shuffleSet) {
         storage.removeHandlers(appId);
-        storage.addExpiredShuffleKey(RssUtils.generateShuffleKey(appId, shuffleId));
+        storage.removeResources(RssUtils.generateShuffleKey(appId, shuffleId));
       }
     }
     // delete shuffle data for application

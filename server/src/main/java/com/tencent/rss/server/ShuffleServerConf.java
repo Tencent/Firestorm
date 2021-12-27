@@ -203,6 +203,12 @@ public class ShuffleServerConf extends RssBaseConf {
       .withDescription("The threshold of the combine mode");
 
   public static final ConfigOption<String> HDFS_BASE_PATH = ConfigOptions
+      .key("rss.server.hdfs.base.path")
+      .stringType()
+      .noDefaultValue()
+      .withDescription("The base path of the hdfs storage");
+
+  public static final ConfigOption<String> UPLOADER_BASE_PATH = ConfigOptions
       .key("rss.server.uploader.base.path")
       .stringType()
       .noDefaultValue()
@@ -242,12 +248,6 @@ public class ShuffleServerConf extends RssBaseConf {
       .defaultValue(60L * 1000 * 2)
       .withDescription("If the shuffle is not read for the long time, and shuffle is uploaded totally,"
           + " , we can delete the shuffle");
-
-  public static final ConfigOption<Boolean> MULTI_STORAGE_ENABLE = ConfigOptions
-      .key("rss.server.multistorage.enable")
-      .booleanType()
-      .defaultValue(false)
-      .withDescription("The function switch for multiStorage");
 
   public static final ConfigOption<Long> SHUFFLE_MAX_UPLOAD_SIZE = ConfigOptions
       .key("rss.server.shuffle.max.upload.size")
