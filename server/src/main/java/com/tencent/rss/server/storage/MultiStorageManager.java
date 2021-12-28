@@ -42,7 +42,7 @@ public class MultiStorageManager implements StorageManager {
   private final boolean uploadShuffleEnable;
   private final long flushColdStorageThresholdSize;
 
-  public MultiStorageManager(ShuffleServerConf conf, String shuffleServerId) {
+  MultiStorageManager(ShuffleServerConf conf, String shuffleServerId) {
     warmStorageManager = new LocalStorageManager(conf);
     coldStorageManager = new HdfsStorageManager(conf);
     uploadShuffleEnable = conf.get(ShuffleServerConf.UPLOADER_ENABLE);

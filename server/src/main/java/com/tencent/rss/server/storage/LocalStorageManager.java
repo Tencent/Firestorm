@@ -42,7 +42,7 @@ public class LocalStorageManager extends SingleStorageManager {
   private final List<LocalStorage> localStorages = Lists.newArrayList();
   private final String[] storageBasePaths;
 
-  public LocalStorageManager(ShuffleServerConf conf) {
+  LocalStorageManager(ShuffleServerConf conf) {
     super(conf);
     String storageBasePathStr = conf.getString(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
     if (StringUtils.isEmpty(storageBasePathStr)) {
