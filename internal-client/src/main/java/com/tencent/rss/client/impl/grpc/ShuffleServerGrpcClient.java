@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
-import static com.tencent.rss.proto.RssProtos.StatusCode.INTERRUPTED;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +85,8 @@ import com.tencent.rss.proto.RssProtos.ShuffleRegisterResponse;
 import com.tencent.rss.proto.RssProtos.StatusCode;
 import com.tencent.rss.proto.ShuffleServerGrpc;
 import com.tencent.rss.proto.ShuffleServerGrpc.ShuffleServerBlockingStub;
+
+import static com.tencent.rss.proto.RssProtos.StatusCode.INTERRUPTED;
 
 public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServerClient {
 
