@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+import static com.tencent.rss.proto.RssProtos.StatusCode.INTERRUPTED;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,6 @@ import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.exception.RssException;
-import com.tencent.rss.proto.RssProtos;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
@@ -359,6 +359,9 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
       case SUCCESS:
         response = new RssReportShuffleResultResponse(ResponseStatusCode.SUCCESS);
         break;
+      case INTERRUPTED:
+        response = new RssReportShuffleResultResponse(ResponseStatusCode.INTERRUPTED);
+        break;
       default:
         String msg = "Can't report shuffle result to " + host + ":" + port
             + " for [appId=" + request.getAppId() + ", shuffleId=" + request.getShuffleId()
@@ -380,12 +383,10 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
       } catch (StatusRuntimeException sre) {
         Throwable throwable = sre.getCause();
         if (throwable != null && throwable instanceof InterruptedException) {
-          LOG.warn("Report shuffle result to host[" + host + "], port[" + port
-              + "] is interrupted, it should be kill by driver because of speculation task, "
-              + "mark rpc as successful to avoid exception in log.");
+          // it should be killed by client, client should decide how to deal with it
+          LOG.warn("Report shuffle result to host[{}], port[{}] is interrupted.", host, port);
           return ReportShuffleResultResponse.newBuilder()
-              .setStatus(RssProtos.StatusCode.SUCCESS)
-              .setRetMsg("")
+              .setStatus(INTERRUPTED)
               .build();
         }
       } catch (Exception e) {
@@ -405,8 +406,20 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setShuffleId(request.getShuffleId())
         .setPartitionId(request.getPartitionId())
         .build();
-    GetShuffleResultResponse rpcResponse = blockingStub.getShuffleResult(rpcRequest);
-    StatusCode statusCode = rpcResponse.getStatus();
+    GetShuffleResultResponse rpcResponse = null;
+    StatusCode statusCode = null;
+
+    try {
+      rpcResponse = blockingStub.getShuffleResult(rpcRequest);
+      statusCode = rpcResponse.getStatus();
+    } catch (StatusRuntimeException sre) {
+      Throwable throwable = sre.getCause();
+      if (throwable != null && throwable instanceof InterruptedException) {
+        // it should be killed by client, client should decide how to deal with it
+        LOG.warn("Report shuffle result to host[{}], port[{}] is interrupted.", host, port);
+        statusCode = INTERRUPTED;
+      }
+    }
 
     RssGetShuffleResultResponse response;
     switch (statusCode) {
@@ -414,6 +427,13 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         try {
           response = new RssGetShuffleResultResponse(ResponseStatusCode.SUCCESS,
               rpcResponse.getSerializedBitmap().toByteArray());
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        break;
+      case INTERRUPTED:
+        try {
+          response = new RssGetShuffleResultResponse(ResponseStatusCode.INTERRUPTED, new byte[]{});
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

@@ -267,7 +267,8 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
       // if failed when send data to shuffle server, mark task as failed
       if (failedBlockIds.size() > 0) {
         String errorMsg =
-            "Send failed: Task[" + taskId + "] failed because " + failedBlockIds.size()
+            "Send failed: appId[" + appId + "], shuffleId[" + shuffleId + "], taskId[" + taskId
+                + "] failed because " + failedBlockIds.size()
                 + " blocks can't be sent to shuffle server.";
         LOG.error(errorMsg);
         throw new RssException(errorMsg);

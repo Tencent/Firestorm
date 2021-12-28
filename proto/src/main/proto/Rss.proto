@@ -231,6 +231,7 @@ enum StatusCode {
   NO_PARTITION = 5;
   INTERNAL_ERROR = 6;
   TIMEOUT = 7;
+  INTERRUPTED = 8;
   // add more status
 }
 

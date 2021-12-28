@@ -277,6 +277,8 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
         if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
           LOG.info("Report shuffle result to " + ssi + " for appId[" + appId
               + "], shuffleId[" + shuffleId + "] successfully");
+        } else if (response.getStatusCode() == ResponseStatusCode.INTERRUPTED) {
+          // ignore the interrupted exception
         } else {
           isSuccessful = false;
           LOG.warn("Report shuffle result to " + ssi + " for appId[" + appId
@@ -311,6 +313,9 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
           blockIdBitmap = response.getBlockIdBitmap();
           isSuccessful = true;
           break;
+        } else if (response.getStatusCode() == ResponseStatusCode.INTERRUPTED) {
+          // ignore the interrupted exception
+          return Roaring64NavigableMap.bitmapOf();
         }
       } catch (Exception e) {
         LOG.warn("Get shuffle result is failed from " + ssi
