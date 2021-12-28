@@ -150,7 +150,6 @@ public class ShuffleFlushManager {
         writeSuccess = true;
         LOG.warn("AppId {} was removed already, event {} should be dropped", event.getAppId(), event);
       } else {
-        // ShuffleWriteHandler handler = getHandler(event);
         ShuffleWriteHandler handler = storage.createWriteHandler(new CreateShuffleWriteHandlerRequest(
             storageType,
             event.getAppId(),

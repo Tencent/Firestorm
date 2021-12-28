@@ -478,7 +478,6 @@ public class ShuffleUploader {
         try {
           File baseFolder = new File(shufflePath);
           FileUtils.deleteDirectory(baseFolder);
-          System.out.println(baseFolder.exists());
           LOG.info("Clean shuffle {}", shuffleKey);
           localStorage.removeResources(shuffleKey);
           LOG.info("Delete shuffle data for shuffle [" + shuffleKey + "] with " + shufflePath

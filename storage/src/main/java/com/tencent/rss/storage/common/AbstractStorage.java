@@ -38,16 +38,13 @@ public abstract class AbstractStorage implements Storage {
 
     handlers.putIfAbsent(request.getAppId(), Maps.newConcurrentMap());
     Map<String, ShuffleWriteHandler> map = handlers.get(request.getAppId());
-    map.computeIfAbsent(RssUtils.generatePartitionKey(
+    String partitionKey = RssUtils.generatePartitionKey(
         request.getAppId(),
         request.getShuffleId(),
         request.getStartPartition()
-    ), key -> newWriteHandler(request));
-    return map.get(RssUtils.generatePartitionKey(
-        request.getAppId(),
-        request.getShuffleId(),
-        request.getStartPartition()
-    ));
+    );
+    map.computeIfAbsent(partitionKey, key -> newWriteHandler(request));
+    return map.get(partitionKey);
   }
 
   @Override

@@ -39,7 +39,7 @@ import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 
 public class LocalStorage extends AbstractStorage {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalStorageMeta.class);
+  private static final Logger LOG = LoggerFactory.getLogger(LocalStorage.class);
 
   private final long capacity;
   private final String basePath;

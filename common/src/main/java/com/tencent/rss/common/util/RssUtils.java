@@ -200,6 +200,6 @@ public class RssUtils {
   }
 
   public static String generatePartitionKey(String appId, Integer shuffleId, Integer partition) {
-    return String.join("/", appId, String.valueOf(shuffleId), String.valueOf(partition));
+    return String.join(Constants.KEY_SPLIT_CHAR, appId, String.valueOf(shuffleId), String.valueOf(partition));
   }
 }

@@ -24,11 +24,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.tencent.rss.common.util.RssUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.roaringbitmap.RoaringBitmap;
@@ -36,7 +35,6 @@ import org.roaringbitmap.RoaringBitmap;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 
 public class LocalStorageTest {
@@ -86,11 +84,13 @@ public class LocalStorageTest {
   public void removeResourcesTest() {
     try {
       LocalStorage item = prepareDiskItem();
-      item.removeResources("1/1");
+      String key1 = RssUtils.generateShuffleKey("1", 1);
+      String key2 = RssUtils.generatePartitionKey("1", 2);
+      item.removeResources(key1);
       assertEquals(50L, item.getMetaData().getDiskSize().get());
-      assertEquals(0L, item.getMetaData().getShuffleSize("1/1"));
-      assertEquals(50L, item.getMetaData().getShuffleSize("1/2"));
-      assertTrue(item.getMetaData().getNotUploadedPartitions("1/1").isEmpty());
+      assertEquals(0L, item.getMetaData().getShuffleSize(key1));
+      assertEquals(50L, item.getMetaData().getShuffleSize(key2));
+      assertTrue(item.getMetaData().getNotUploadedPartitions(key1).isEmpty());
     } catch (Exception e) {
       e.printStackTrace();
       fail();

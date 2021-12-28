@@ -39,15 +39,16 @@ public class HdfsStorageManager extends SingleStorageManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(HdfsStorageManager.class);
 
-  String storageBasePath;
-  HdfsStorage storage;
-  Configuration hadoopConf;
+  private final String storageBasePath;
+  private final HdfsStorage storage;
+  private final Configuration hadoopConf;
 
   HdfsStorageManager(ShuffleServerConf conf) {
     super(conf);
-    storageBasePath = conf.getString(ShuffleServerConf.HDFS_BASE_PATH);
-    if (StringUtils.isEmpty(storageBasePath)) {
+    if (StringUtils.isEmpty(conf.getString(ShuffleServerConf.HDFS_BASE_PATH))) {
       storageBasePath = conf.getString(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
+    } else {
+      storageBasePath = conf.getString(ShuffleServerConf.HDFS_BASE_PATH);
     }
     if (StringUtils.isEmpty(storageBasePath)) {
       throw new IllegalArgumentException("hdfs base path is empty");
