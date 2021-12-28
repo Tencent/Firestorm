@@ -85,7 +85,7 @@ public class LocalStorageTest {
     try {
       LocalStorage item = prepareDiskItem();
       String key1 = RssUtils.generateShuffleKey("1", 1);
-      String key2 = RssUtils.generatePartitionKey("1", 2);
+      String key2 = RssUtils.generateShuffleKey("1", 2);
       item.removeResources(key1);
       assertEquals(50L, item.getMetaData().getDiskSize().get());
       assertEquals(0L, item.getMetaData().getShuffleSize(key1));
