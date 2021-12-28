@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,7 @@ import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.proto.RssProtos;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.FinishShuffleRequest;
@@ -375,6 +377,17 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         ReportShuffleResultResponse response = blockingStub.withDeadlineAfter(
             RPC_TIMEOUT_DEFAULT_MS, TimeUnit.MILLISECONDS).reportShuffleResult(rpcRequest);
         return response;
+      } catch (StatusRuntimeException sre) {
+        Throwable throwable = sre.getCause();
+        if (throwable != null && throwable instanceof InterruptedException) {
+          LOG.warn("Report shuffle result to host[" + host + "], port[" + port
+              + "] is interrupted, it should be kill by driver because of speculation task, "
+              + "mark rpc as successful to avoid exception in log.");
+          return ReportShuffleResultResponse.newBuilder()
+              .setStatus(RssProtos.StatusCode.SUCCESS)
+              .setRetMsg("")
+              .build();
+        }
       } catch (Exception e) {
         retryNum++;
         LOG.warn("Report shuffle result to host[" + host + "], port[" + port

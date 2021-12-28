@@ -307,7 +307,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         return Option.apply(mapStatus);
       } catch (Exception e) {
         LOG.error("Error when stop task.", e);
-        throw new RuntimeException(e);
+        throw e;
       }
     } else {
       return Option.empty();
