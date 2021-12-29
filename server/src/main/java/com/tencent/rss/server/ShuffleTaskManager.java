@@ -275,6 +275,7 @@ public class ShuffleTaskManager {
       String appId, Integer shuffleId, Integer partitionId) throws IOException {
     refreshAppId(appId);
     Storage storage = storageManager.selectStorage(new ShuffleDataReadEvent(appId, shuffleId, partitionId));
+    // update shuffle's timestamp that was recently read.
     storage.updateReadMetrics(new StorageReadMetrics(appId, shuffleId));
 
     Map<Integer, Roaring64NavigableMap[]> shuffleIdToPartitions = partitionsToBlockIds.get(appId);

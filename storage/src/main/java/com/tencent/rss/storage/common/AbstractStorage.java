@@ -34,7 +34,7 @@ public abstract class AbstractStorage implements Storage {
   abstract ShuffleWriteHandler newWriteHandler(CreateShuffleWriteHandlerRequest request);
 
   @Override
-  public ShuffleWriteHandler createWriteHandler(CreateShuffleWriteHandlerRequest request) {
+  public ShuffleWriteHandler getOrCreateWriteHandler(CreateShuffleWriteHandlerRequest request) {
 
     handlers.putIfAbsent(request.getAppId(), Maps.newConcurrentMap());
     Map<String, ShuffleWriteHandler> map = handlers.get(request.getAppId());

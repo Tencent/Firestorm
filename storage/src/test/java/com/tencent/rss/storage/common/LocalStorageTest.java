@@ -55,46 +55,36 @@ public class LocalStorageTest {
 
   @Test
   public void canWriteTest() {
-    try {
-      LocalStorage item = LocalStorage.newBuilder().basePath(testBaseDir.getAbsolutePath())
-          .cleanupThreshold(50)
-          .highWaterMarkOfWrite(95)
-          .lowWaterMarkOfWrite(80)
-          .capacity(100)
-          .cleanIntervalMs(5000)
-          .build();
+    LocalStorage item = LocalStorage.newBuilder().basePath(testBaseDir.getAbsolutePath())
+        .cleanupThreshold(50)
+        .highWaterMarkOfWrite(95)
+        .lowWaterMarkOfWrite(80)
+        .capacity(100)
+        .cleanIntervalMs(5000)
+        .build();
 
-      item.getMetaData().updateDiskSize(20);
-      assertTrue(item.canWrite());
-      item.getMetaData().updateDiskSize(65);
-      assertTrue(item.canWrite());
-      item.getMetaData().updateDiskSize(10);
-      assertFalse(item.canWrite());
-      item.getMetaData().updateDiskSize(-10);
-      assertFalse(item.canWrite());
-      item.getMetaData().updateDiskSize(-10);
-      assertTrue(item.canWrite());
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail();
-    }
+    item.getMetaData().updateDiskSize(20);
+    assertTrue(item.canWrite());
+    item.getMetaData().updateDiskSize(65);
+    assertTrue(item.canWrite());
+    item.getMetaData().updateDiskSize(10);
+    assertFalse(item.canWrite());
+    item.getMetaData().updateDiskSize(-10);
+    assertFalse(item.canWrite());
+    item.getMetaData().updateDiskSize(-10);
+    assertTrue(item.canWrite());
   }
 
   @Test
-  public void removeResourcesTest() {
-    try {
-      LocalStorage item = prepareDiskItem();
-      String key1 = RssUtils.generateShuffleKey("1", 1);
-      String key2 = RssUtils.generateShuffleKey("1", 2);
-      item.removeResources(key1);
-      assertEquals(50L, item.getMetaData().getDiskSize().get());
-      assertEquals(0L, item.getMetaData().getShuffleSize(key1));
-      assertEquals(50L, item.getMetaData().getShuffleSize(key2));
-      assertTrue(item.getMetaData().getNotUploadedPartitions(key1).isEmpty());
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail();
-    }
+  public void removeResourcesTest() throws Exception {
+    LocalStorage item = prepareDiskItem();
+    String key1 = RssUtils.generateShuffleKey("1", 1);
+    String key2 = RssUtils.generateShuffleKey("1", 2);
+    item.removeResources(key1);
+    assertEquals(50L, item.getMetaData().getDiskSize().get());
+    assertEquals(0L, item.getMetaData().getShuffleSize(key1));
+    assertEquals(50L, item.getMetaData().getShuffleSize(key2));
+    assertTrue(item.getMetaData().getNotUploadedPartitions(key1).isEmpty());
   }
 
   private LocalStorage prepareDiskItem() {
@@ -121,28 +111,23 @@ public class LocalStorageTest {
   }
 
   @Test
-  public void concurrentRemoveResourcesTest() {
-    try {
-      LocalStorage item = prepareDiskItem();
-      Runnable runnable = () -> item.removeResources("1/1");
-      List<Thread> testThreads = Lists.newArrayList(new Thread(runnable), new Thread(runnable), new Thread(runnable));
-      testThreads.forEach(Thread::start);
-      testThreads.forEach(t -> {
-        try {
-          t.join();
-        } catch (InterruptedException e) {
+  public void concurrentRemoveResourcesTest() throws Exception {
+    LocalStorage item = prepareDiskItem();
+    Runnable runnable = () -> item.removeResources("1/1");
+    List<Thread> testThreads = Lists.newArrayList(new Thread(runnable), new Thread(runnable), new Thread(runnable));
+    testThreads.forEach(Thread::start);
+    testThreads.forEach(t -> {
+      try {
+        t.join();
+      } catch (InterruptedException e) {
 
-        }
-      });
+      }
+    });
 
-      assertEquals(50L, item.getMetaData().getDiskSize().get());
-      assertEquals(0L, item.getMetaData().getShuffleSize("1/1"));
-      assertEquals(50L, item.getMetaData().getShuffleSize("1/2"));
-      assertTrue(item.getMetaData().getNotUploadedPartitions("1/1").isEmpty());
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail();
-    }
+    assertEquals(50L, item.getMetaData().getDiskSize().get());
+    assertEquals(0L, item.getMetaData().getShuffleSize("1/1"));
+    assertEquals(50L, item.getMetaData().getShuffleSize("1/2"));
+    assertTrue(item.getMetaData().getNotUploadedPartitions("1/1").isEmpty());
   }
 
   @Test

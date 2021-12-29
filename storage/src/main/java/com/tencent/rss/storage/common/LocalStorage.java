@@ -94,7 +94,7 @@ public class LocalStorage extends AbstractStorage {
       return false;
     }
     lock.readLock().unlock();
-    return false;
+    return true;
   }
 
   @Override

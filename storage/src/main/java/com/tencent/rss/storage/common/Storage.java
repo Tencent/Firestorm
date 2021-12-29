@@ -40,7 +40,7 @@ public interface Storage {
 
   void updateReadMetrics(StorageReadMetrics metrics);
 
-  ShuffleWriteHandler createWriteHandler(CreateShuffleWriteHandlerRequest request) throws IOException;
+  ShuffleWriteHandler getOrCreateWriteHandler(CreateShuffleWriteHandlerRequest request) throws IOException;
 
   void removeHandlers(String appId);
 

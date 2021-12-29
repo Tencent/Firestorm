@@ -150,7 +150,7 @@ public class ShuffleFlushManager {
         writeSuccess = true;
         LOG.warn("AppId {} was removed already, event {} should be dropped", event.getAppId(), event);
       } else {
-        ShuffleWriteHandler handler = storage.createWriteHandler(new CreateShuffleWriteHandlerRequest(
+        ShuffleWriteHandler handler = storage.getOrCreateWriteHandler(new CreateShuffleWriteHandlerRequest(
             storageType,
             event.getAppId(),
             event.getShuffleId(),
@@ -181,8 +181,8 @@ public class ShuffleFlushManager {
           boolean locked = storage.lockShuffleShared(shuffleKey);
           if (!locked) {
             writeSuccess = true;
-            LOG.warn("AppId {} was removed already, lock don't exist {} should be dropped, may leak one handler",
-                event.getAppId(), event);
+            LOG.warn("AppId {} shuffleId {} was removed already, lock don't exist {} should be dropped," +
+                    " may leak one handler", event.getAppId(), event.getShuffleId(), event);
             break;
           }
 
