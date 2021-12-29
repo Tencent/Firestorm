@@ -18,11 +18,14 @@
 
 package com.tencent.rss.storage.handler.impl;
 
+import java.util.concurrent.Callable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.storage.handler.api.ClientReadHandler;
+
 
 public class ComposedClientReadHandler implements ClientReadHandler {
 
@@ -31,9 +34,15 @@ public class ComposedClientReadHandler implements ClientReadHandler {
   private ClientReadHandler hotDataReadHandler;
   private ClientReadHandler warmDataReadHandler;
   private ClientReadHandler coldDataReadHandler;
+  private ClientReadHandler frozenDataReadHandler;
+  private Callable<ClientReadHandler> hotHandlerCreator;
+  private Callable<ClientReadHandler> warmHandlerCreator;
+  private Callable<ClientReadHandler> coldHandlerCreator;
+  private Callable<ClientReadHandler> frozenHandlerCreator;
   private static final int HOT = 1;
   private static final int WARM = 2;
   private static final int COLD = 3;
+  private static final int FROZEN = 4;
   private int currentHandler = HOT;
 
   public ComposedClientReadHandler(ClientReadHandler... handlers) {
@@ -47,6 +56,25 @@ public class ComposedClientReadHandler implements ClientReadHandler {
     if (size > 2) {
       this.coldDataReadHandler = handlers[2];
     }
+    if (size > 3) {
+      this.frozenDataReadHandler = handlers[3];
+    }
+  }
+
+  public ComposedClientReadHandler(Callable<ClientReadHandler>... creators) {
+    int size = creators.length;
+    if (size > 0) {
+      this.hotHandlerCreator = creators[0];
+    }
+    if (size > 1) {
+      this.warmHandlerCreator = creators[1];
+    }
+    if (size > 2) {
+      this.coldHandlerCreator = creators[2];
+    }
+    if (size > 3) {
+      this.frozenHandlerCreator = creators[3];
+    }
   }
 
   @Override
@@ -55,32 +83,55 @@ public class ComposedClientReadHandler implements ClientReadHandler {
     switch (currentHandler) {
       case HOT:
         try {
+          if (hotDataReadHandler == null) {
+            if (hotHandlerCreator == null) {
+              return null;
+            }
+            hotDataReadHandler = hotHandlerCreator.call();
+          }
           shuffleDataResult = hotDataReadHandler.readShuffleData();
         } catch (Exception e) {
           LOG.error("Failed to read shuffle data from hot handler", e);
         }
         break;
       case WARM:
-        if (warmDataReadHandler != null) {
           try {
+            if (warmDataReadHandler == null) {
+              if (warmHandlerCreator == null) {
+                return null;
+              }
+              warmDataReadHandler = warmHandlerCreator.call();
+            }
             shuffleDataResult = warmDataReadHandler.readShuffleData();
           } catch (Exception e) {
             LOG.error("Failed to read shuffle data from warm handler", e);
           }
-        } else {
-          return null;
-        }
         break;
       case COLD:
-        if (coldDataReadHandler != null) {
           try {
+            if (coldDataReadHandler == null) {
+              if (coldHandlerCreator == null) {
+                return null;
+              }
+              coldDataReadHandler = coldHandlerCreator.call();
+            }
             shuffleDataResult = coldDataReadHandler.readShuffleData();
           } catch (Exception e) {
             LOG.error("Failed to read shuffle data from cold handler", e);
           }
-        } else {
-          return null;
-        }
+        break;
+      case FROZEN:
+          try {
+            if (frozenDataReadHandler == null)  {
+              if (frozenHandlerCreator == null) {
+                return null;
+              }
+              frozenDataReadHandler = frozenHandlerCreator.call();
+            }
+            shuffleDataResult = frozenDataReadHandler.readShuffleData();
+          } catch (Exception e) {
+            LOG.error("Failed to read shuffle data from frozen handler", e);
+          }
         break;
       default:
         return null;
@@ -105,6 +156,10 @@ public class ComposedClientReadHandler implements ClientReadHandler {
 
     if (coldDataReadHandler != null) {
       coldDataReadHandler.close();
+    }
+
+    if (frozenDataReadHandler != null) {
+      frozenDataReadHandler.close();
     }
   }
 }
