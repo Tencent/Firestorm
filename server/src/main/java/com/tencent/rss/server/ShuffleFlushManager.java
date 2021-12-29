@@ -181,8 +181,8 @@ public class ShuffleFlushManager {
           boolean locked = storage.lockShuffleShared(shuffleKey);
           if (!locked) {
             writeSuccess = true;
-            LOG.warn("AppId {} shuffleId {} was removed already, lock don't exist {} should be dropped," +
-                    " may leak one handler", event.getAppId(), event.getShuffleId(), event);
+            LOG.warn("AppId {} shuffleId {} was removed already, lock don't exist {} should be dropped,"
+                + " may leak one handler", event.getAppId(), event.getShuffleId(), event);
             break;
           }
 
