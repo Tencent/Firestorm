@@ -31,8 +31,8 @@ import com.tencent.rss.storage.handler.api.ShuffleDeleteHandler;
 import com.tencent.rss.storage.handler.impl.ComposedClientReadHandler;
 import com.tencent.rss.storage.handler.impl.HdfsClientReadHandler;
 import com.tencent.rss.storage.handler.impl.HdfsShuffleDeleteHandler;
-import com.tencent.rss.storage.handler.impl.LocalFileClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileDeleteHandler;
+import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileServerReadHandler;
 import com.tencent.rss.storage.handler.impl.MemoryClientReadHandler;
 import com.tencent.rss.storage.handler.impl.MultiStorageReadHandler;
@@ -71,7 +71,7 @@ public class ShuffleHandlerFactory {
       List<ShuffleServerClient> shuffleServerClients = shuffleServerInfoList.stream().map(
           ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(ClientType.GRPC.name(), ssi)).collect(
           Collectors.toList());
-      return new LocalFileClientReadHandler(request.getAppId(), request.getShuffleId(), request.getPartitionId(),
+      return new LocalFileQuorumClientReadHandler(request.getAppId(), request.getShuffleId(), request.getPartitionId(),
           request.getIndexReadLimit(), request.getPartitionNumPerRange(), request.getPartitionNum(),
           request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),
           shuffleServerClients);
@@ -94,7 +94,7 @@ public class ShuffleHandlerFactory {
           request.getPartitionId(),
           request.getReadBufferSize(),
           shuffleServerClients);
-      ClientReadHandler localClientReadHandler = new LocalFileClientReadHandler(request.getAppId(),
+      ClientReadHandler localClientReadHandler = new LocalFileQuorumClientReadHandler(request.getAppId(),
           request.getShuffleId(), request.getPartitionId(), request.getIndexReadLimit(),
           request.getPartitionNumPerRange(), request.getPartitionNum(),
           request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),
@@ -135,7 +135,7 @@ public class ShuffleHandlerFactory {
           request.getPartitionId(),
           request.getReadBufferSize(),
           shuffleServerClients);
-      ClientReadHandler localClientReadHandler = new LocalFileClientReadHandler(request.getAppId(),
+      ClientReadHandler localClientReadHandler = new LocalFileQuorumClientReadHandler(request.getAppId(),
           request.getShuffleId(), request.getPartitionId(), request.getIndexReadLimit(),
           request.getPartitionNumPerRange(), request.getPartitionNum(),
           request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),

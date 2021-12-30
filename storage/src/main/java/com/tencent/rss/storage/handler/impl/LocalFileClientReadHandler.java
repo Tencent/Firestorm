@@ -18,78 +18,79 @@
 
 package com.tencent.rss.storage.handler.impl;
 
-import java.util.List;
-
-import com.google.common.collect.Lists;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.client.api.ShuffleServerClient;
+import com.tencent.rss.client.request.RssGetShuffleDataRequest;
+import com.tencent.rss.client.request.RssGetShuffleIndexRequest;
+import com.tencent.rss.client.response.RssGetShuffleDataResponse;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.ShuffleDataSegment;
+import com.tencent.rss.common.ShuffleIndexResult;
 import com.tencent.rss.common.exception.RssException;
 
-public class LocalFileClientReadHandler extends AbstractClientReadHandler {
+public class LocalFileClientReadHandler extends DataSkippableReadHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(
+      LocalFileClientReadHandler.class);
+  private final int partitionNumPerRange;
+  private final int partitionNum;
+  private ShuffleServerClient shuffleServerClient;
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalFileClientReadHandler.class);
-  private List<ShuffleDataSegment> shuffleDataSegments = Lists.newLinkedList();
-  private int segmentIndex = 0;
-
-  private List<LocalFileReplicaReadHandler> handlers = Lists.newLinkedList();
-
-  Roaring64NavigableMap expectBlockIds;
-  Roaring64NavigableMap processBlockIds;
-
-  public LocalFileClientReadHandler(
-    String appId,
-    int shuffleId,
-    int partitionId,
-    int indexReadLimit,
-    int partitionNumPerRange,
-    int partitionNum,
-    int readBufferSize,
-    Roaring64NavigableMap expectBlockIds,
-    Roaring64NavigableMap processBlockIds,
-    List<ShuffleServerClient> shuffleServerClients) {
-      this.appId = appId;
-      this.shuffleId = shuffleId;
-      this.partitionId = partitionId;
-      this.readBufferSize = readBufferSize;
-      this.expectBlockIds = expectBlockIds;
-      this.processBlockIds = processBlockIds;
-      for (ShuffleServerClient client: shuffleServerClients) {
-        handlers.add(new LocalFileReplicaReadHandler(
-          appId,
-          shuffleId,
-          partitionId,
-          indexReadLimit,
-          partitionNumPerRange,
-          partitionNum,
-          readBufferSize,
-          expectBlockIds,
-          processBlockIds,
-          client
-        ));
-      }
+  LocalFileClientReadHandler(
+      String appId,
+      int shuffleId,
+      int partitionId,
+      int indexReadLimit,
+      int partitionNumPerRange,
+      int partitionNum,
+      int readBufferSize,
+      Roaring64NavigableMap expectBlockIds,
+      Roaring64NavigableMap processBlockIds,
+      ShuffleServerClient shuffleServerClient) {
+    super(appId, shuffleId, partitionId, readBufferSize, expectBlockIds, processBlockIds);
+    this.shuffleServerClient = shuffleServerClient;
+    this.partitionNumPerRange = partitionNumPerRange;
+    this.partitionNum = partitionNum;
   }
 
   @Override
-  public ShuffleDataResult readShuffleData() {
-    boolean readSuccessful = false;
-    ShuffleDataResult result = null;
-    for (LocalFileReplicaReadHandler handler : handlers) {
-      try {
-        result = handler.readShuffleData();
-        readSuccessful = true;
-        break;
-      } catch (Exception e) {
-        LOG.warn("Failed to read a replica due to ", e);
-      }
+  public ShuffleIndexResult readShuffleIndex() {
+    ShuffleIndexResult shuffleIndexResult = null;
+    RssGetShuffleIndexRequest request = new RssGetShuffleIndexRequest(
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum);
+    try {
+      shuffleIndexResult = shuffleServerClient.getShuffleIndex(request).getShuffleIndexResult();
+    } catch (Exception e) {
+      throw new RssException("Failed to read shuffle index for appId[" + appId + "], shuffleId["
+        + shuffleId + "], partitionId[" + partitionId + "] due to " + e.getMessage());
     }
-    if (!readSuccessful) {
-      throw new RssException("Failed to read all replicas for appId[" + appId + "], shuffleId["
-        + shuffleId + "], partitionId[" + partitionId + "]");
+    return shuffleIndexResult;
+  }
+
+  @Override
+  public ShuffleDataResult readShuffleData(ShuffleDataSegment shuffleDataSegment) {
+    ShuffleDataResult result = null;
+    int expectedLength = shuffleDataSegment.getLength();
+    if (expectedLength <= 0) {
+      throw new RssException("Failed to read shuffle data for appId[" + appId + "], shuffleId["
+          + shuffleId + "], partitionId[" + partitionId + "], "
+          + "the length field in the index segment is " + expectedLength + " <= 0!");
+    }
+    RssGetShuffleDataRequest request = new RssGetShuffleDataRequest(
+        appId, shuffleId, partitionId, partitionNumPerRange, partitionNum,
+        shuffleDataSegment.getOffset(), expectedLength);
+    try {
+      RssGetShuffleDataResponse response = shuffleServerClient.getShuffleData(request);
+      result = new ShuffleDataResult(response.getShuffleData(), shuffleDataSegment.getBufferSegments());
+    } catch (Exception e) {
+      throw new RssException("Failed to read shuffle data with "
+          + shuffleServerClient.getClientInfo() + " due to " + e.getMessage());
+    }
+    if (result.getData().length != expectedLength) {
+      throw new RssException("Wrong data length expect " + result.getData().length
+          + " but actual is " + expectedLength);
     }
     return result;
   }

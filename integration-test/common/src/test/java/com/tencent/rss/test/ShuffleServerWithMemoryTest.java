@@ -33,7 +33,7 @@ import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.server.buffer.ShuffleBuffer;
 import com.tencent.rss.storage.handler.api.ClientReadHandler;
 import com.tencent.rss.storage.handler.impl.ComposedClientReadHandler;
-import com.tencent.rss.storage.handler.impl.LocalFileClientReadHandler;
+import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.MemoryClientReadHandler;
 import com.tencent.rss.storage.util.StorageType;
 import org.junit.After;
@@ -147,12 +147,12 @@ public class ShuffleServerWithMemoryTest extends ShuffleReadWriteBase {
     expectBlockIds.addLong(blocks2.get(0).getBlockId());
     expectBlockIds.addLong(blocks2.get(1).getBlockId());
     expectBlockIds.addLong(blocks2.get(2).getBlockId());
-    LocalFileClientReadHandler localFileClientReadHandler = new LocalFileClientReadHandler(
+    LocalFileQuorumClientReadHandler localFileQuorumClientReadHandler = new LocalFileQuorumClientReadHandler(
         testAppId, shuffleId, partitionId, 0, 1, 3,
         50, expectBlockIds, Roaring64NavigableMap.bitmapOf(), Lists.newArrayList(shuffleServerClient));
     ClientReadHandler[] handlers = new ClientReadHandler[2];
     handlers[0] = memoryClientReadHandler;
-    handlers[1] = localFileClientReadHandler;
+    handlers[1] = localFileQuorumClientReadHandler;
     ComposedClientReadHandler composedClientReadHandler = new ComposedClientReadHandler(handlers);
     // read from memory with ComposedClientReadHandler
     sdr  = composedClientReadHandler.readShuffleData();
