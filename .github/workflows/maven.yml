@@ -45,6 +45,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: test-results-of-rss-spark2
+        if: failure()
         path: "**/target/surefire-reports/*.txt"
     - name: Build with Maven with Profile spark3
       run: mvn -B package --file pom.xml -Pspark3
@@ -52,4 +53,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: test-results-of-rss-spark3
+        if: failure()
         path: "**/target/surefire-reports/*.txt"
