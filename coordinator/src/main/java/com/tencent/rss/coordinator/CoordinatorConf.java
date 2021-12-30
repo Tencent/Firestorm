@@ -63,6 +63,48 @@ public class CoordinatorConf extends RssBaseConf {
       .intType()
       .defaultValue(9)
       .withDescription("The max number of shuffle server when do the assignment");
+  public static final ConfigOption<Boolean> COORDINATOR_ACCESS_MANAGER_ENABLE = ConfigOptions
+      .key("rss.coordinator.access.manager.enable")
+      .booleanType()
+      .defaultValue(false)
+      .withDescription("Access access manager enable");
+  public static final ConfigOption<String> COORDINATOR_ACCESS_CHECKERS = ConfigOptions
+      .key("rss.coordinator.access.checkers")
+      .stringType()
+      .noDefaultValue()
+      .withDescription("Access checkers");
+  public static final ConfigOption<Integer> COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC = ConfigOptions
+      .key("rss.coordinator.access.cleanup.interval.sec")
+      .intType()
+      .defaultValue(10 * 60)
+      .withDescription("Accessed cron task param cleanup interval in seconds");
+  public static final ConfigOption<Integer> COORDINATOR_ACCESS_EXPIRE_THRESHOLD_SEC = ConfigOptions
+      .key("rss.coordinator.access.expire.threshold.sec")
+      .intType()
+      .defaultValue(24 * 3600)
+      .withDescription("Accessed cron task param expire threshold in seconds");
+  public static final ConfigOption<Integer> COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC = ConfigOptions
+      .key("rss.coordinator.access.candidates.update.interval.sec")
+      .intType()
+      .defaultValue(60)
+      .withDescription("Accessed candidates update interval in seconds");
+  public static final ConfigOption<String> COORDINATOR_ACCESS_CANDIDATES_PATH = ConfigOptions
+      .key("rss.coordinator.access.expire.threshold")
+      .stringType()
+      .noDefaultValue()
+      .withDescription("Accessed candidates file path");
+  public static final ConfigOption<Double> COORDINATOR_ACCESS_MEMORY_PERCENTAGE = ConfigOptions
+      .key("rss.coordinator.access.memory.percentage")
+      .doubleType()
+      .checkValue(ConfigUtils.percentageDoubleValidator,
+          "The recovery usage percentage must be between 0.0 and 100.0")
+      .defaultValue(15.0)
+      .withDescription("The minimal percentage of available memory percentage of a server");
+  public static final ConfigOption<Integer> COORDINATOR_ACCESS_SERVER_NUM_THRESHOLD = ConfigOptions
+      .key("rss.coordinator.access.serverNum.threshold")
+      .intType()
+      .noDefaultValue()
+      .withDescription("Accessed candidates file path");
 
   public CoordinatorConf() {
   }

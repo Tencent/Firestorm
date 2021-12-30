@@ -256,6 +256,9 @@ service CoordinatorServer {
 
   // Heartbeat between Shuffle Application and Coordinator Server
   rpc appHeartbeat(AppHeartBeatRequest) returns (AppHeartBeatResponse);
+
+  // Access to the remote shuffle service cluster
+  rpc accessCluster(AccessClusterRequest) returns (AccessClusterResponse);
 }
 
 message AppHeartBeatRequest {
@@ -320,4 +323,13 @@ message GetShuffleDataStorageInfoResponse {
 message CheckServiceAvailableResponse {
   StatusCode status = 1;
   bool available = 2;
+}
+
+message AccessClusterRequest {
+  string cronTaskParam = 1;
+}
+
+message AccessClusterResponse {
+  StatusCode status = 1;
+  string retMsg = 2;
 }
