@@ -22,13 +22,13 @@ import java.util.List;
 
 public class StorageWriteMetrics {
 
-  final String appId;
-  final int shuffleId;
-  final long eventSize;
-  final long writeBlocks;
-  final long writeTime;
-  final long dataSize;
-  final List<Integer> partitions;
+  private final String appId;
+  private final int shuffleId;
+  private final long eventSize;
+  private final long writeBlocks;
+  private final long writeTime;
+  private final long dataSize;
+  private final List<Integer> partitions;
 
   public StorageWriteMetrics(
       long eventSize,
