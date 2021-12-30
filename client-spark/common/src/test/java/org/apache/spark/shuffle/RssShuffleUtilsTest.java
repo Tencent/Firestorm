@@ -58,7 +58,7 @@ public class RssShuffleUtilsTest {
     conf.set(RssClientConfig.RSS_OZONE_FS_ABSTRACT_FILE_SYSTEM_HDFS_IMPL, "expect_odfs_abstract_impl");
     conf1 = RssShuffleUtils.newHadoopConfiguration(conf);
     assertEquals("expect_odfs_impl", conf1.get("fs.hdfs.impl"));
-    assertEquals("expect_odfs_abstract_impl", conf1.get("fs.AbstractFileSystem.hdfs.implxxxx"));
+    assertEquals("expect_odfs_abstract_impl", conf1.get("fs.AbstractFileSystem.hdfs.impl"));
   }
 
   private void singleTest(int size) {
