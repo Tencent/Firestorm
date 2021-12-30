@@ -298,7 +298,7 @@ public class MultiStorageHdfsClientReadHandlerTest extends HdfsTestBase {
       List<byte[]> expectedData,
       int limit) throws IllegalStateException {
     // read directly and compare
-    MultiStorageHdfsClientReadHandler handler = new MultiStorageHdfsClientReadHandler(appId,
+    UploadedStorageHdfsClientReadHandler handler = new UploadedStorageHdfsClientReadHandler(appId,
         shuffleId, partitionId, limit, 1, 3, 1024,
         basePath, conf);
     try {
@@ -319,7 +319,7 @@ public class MultiStorageHdfsClientReadHandlerTest extends HdfsTestBase {
     return data;
   }
 
-  private List<ByteBuffer> readData(MultiStorageHdfsClientReadHandler handler) throws IllegalStateException {
+  private List<ByteBuffer> readData(UploadedStorageHdfsClientReadHandler handler) throws IllegalStateException {
     ShuffleDataResult sdr;
     List<ByteBuffer> result = Lists.newArrayList();
     do {

@@ -35,7 +35,7 @@ import com.tencent.rss.storage.handler.impl.LocalFileClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileDeleteHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileServerReadHandler;
 import com.tencent.rss.storage.handler.impl.MemoryClientReadHandler;
-import com.tencent.rss.storage.handler.impl.MultiStorageHdfsClientReadHandler;
+import com.tencent.rss.storage.handler.impl.UploadedStorageHdfsClientReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleDeleteHandlerRequest;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
 import com.tencent.rss.storage.util.StorageType;
@@ -98,7 +98,7 @@ public class ShuffleHandlerFactory {
             request.getStorageBasePath(),
             request.getHadoopConf());
       }, () -> {
-        return new MultiStorageHdfsClientReadHandler(
+        return new UploadedStorageHdfsClientReadHandler(
             request.getAppId(),
             request.getShuffleId(),
             request.getPartitionId(),
