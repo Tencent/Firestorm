@@ -73,7 +73,8 @@ public class ShuffleHandlerFactory {
           Collectors.toList());
       return new LocalFileClientReadHandler(request.getAppId(), request.getShuffleId(), request.getPartitionId(),
           request.getIndexReadLimit(), request.getPartitionNumPerRange(), request.getPartitionNum(),
-          request.getReadBufferSize(), shuffleServerClients);
+          request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),
+          shuffleServerClients);
     } else if (StorageType.LOCALFILE_AND_HDFS.name().equals(request.getStorageType())) {
       return new MultiStorageReadHandler(
           StorageType.LOCALFILE,
@@ -96,7 +97,8 @@ public class ShuffleHandlerFactory {
       ClientReadHandler localClientReadHandler = new LocalFileClientReadHandler(request.getAppId(),
           request.getShuffleId(), request.getPartitionId(), request.getIndexReadLimit(),
           request.getPartitionNumPerRange(), request.getPartitionNum(),
-          request.getReadBufferSize(), shuffleServerClients);
+          request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),
+          shuffleServerClients);
       return new ComposedClientReadHandler(memoryClientReadHandler, localClientReadHandler);
     } else if (StorageType.MEMORY_HDFS.name().equals(request.getStorageType())) {
       List<ShuffleServerInfo> shuffleServerInfoList = request.getShuffleServerInfoList();
@@ -136,7 +138,8 @@ public class ShuffleHandlerFactory {
       ClientReadHandler localClientReadHandler = new LocalFileClientReadHandler(request.getAppId(),
           request.getShuffleId(), request.getPartitionId(), request.getIndexReadLimit(),
           request.getPartitionNumPerRange(), request.getPartitionNum(),
-          request.getReadBufferSize(), shuffleServerClients);
+          request.getReadBufferSize(), request.getExpectBlockIds(), request.getProcessBlockIds(),
+          shuffleServerClients);
       ClientReadHandler hdfsClientReadHandler = new HdfsClientReadHandler(
           request.getAppId(),
           request.getShuffleId(),

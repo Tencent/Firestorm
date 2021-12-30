@@ -98,6 +98,9 @@ public class ShuffleServerWithMemoryTest extends ShuffleReadWriteBase {
     List<ShuffleBlockInfo> blocks = createShuffleBlockList(
         shuffleId, partitionId, 0, 3, 25,
         Roaring64NavigableMap.bitmapOf(), dataMap, mockSSI);
+    List<ShuffleBlockInfo> blocks2 = createShuffleBlockList(
+        shuffleId, partitionId, 0, 3, 50,
+        Roaring64NavigableMap.bitmapOf(), dataMap, mockSSI);
     Map<Integer, List<ShuffleBlockInfo>> partitionToBlocks = Maps.newHashMap();
     partitionToBlocks.put(partitionId, blocks);
     Map<Integer, Map<Integer, List<ShuffleBlockInfo>>> shuffleToBlocks = Maps.newHashMap();
@@ -137,9 +140,16 @@ public class ShuffleServerWithMemoryTest extends ShuffleReadWriteBase {
     // case: read with ComposedClientReadHandler
     memoryClientReadHandler = new MemoryClientReadHandler(
         testAppId, shuffleId, partitionId, 50, Lists.newArrayList(shuffleServerClient));
+    Roaring64NavigableMap expectBlockIds = Roaring64NavigableMap.bitmapOf();
+    expectBlockIds.addLong(blocks.get(0).getBlockId());
+    expectBlockIds.addLong(blocks.get(1).getBlockId());
+    expectBlockIds.addLong(blocks.get(2).getBlockId());
+    expectBlockIds.addLong(blocks2.get(0).getBlockId());
+    expectBlockIds.addLong(blocks2.get(1).getBlockId());
+    expectBlockIds.addLong(blocks2.get(2).getBlockId());
     LocalFileClientReadHandler localFileClientReadHandler = new LocalFileClientReadHandler(
         testAppId, shuffleId, partitionId, 0, 1, 3,
-        50, Lists.newArrayList(shuffleServerClient));
+        50, expectBlockIds, Roaring64NavigableMap.bitmapOf(), Lists.newArrayList(shuffleServerClient));
     ClientReadHandler[] handlers = new ClientReadHandler[2];
     handlers[0] = memoryClientReadHandler;
     handlers[1] = localFileClientReadHandler;
@@ -152,9 +162,6 @@ public class ShuffleServerWithMemoryTest extends ShuffleReadWriteBase {
     validateResult(expectedData, sdr);
 
     // send data to shuffle server, flush should happen
-    List<ShuffleBlockInfo> blocks2 = createShuffleBlockList(
-        shuffleId, partitionId, 0, 3, 50,
-        Roaring64NavigableMap.bitmapOf(), dataMap, mockSSI);
     partitionToBlocks = Maps.newHashMap();
     partitionToBlocks.put(partitionId, blocks2);
     shuffleToBlocks = Maps.newHashMap();
