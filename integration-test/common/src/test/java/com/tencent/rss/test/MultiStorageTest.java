@@ -422,7 +422,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     Set<Long> expectedBlock1 = Sets.newHashSet();
     Roaring64NavigableMap blockIdBitmap1 = Roaring64NavigableMap.bitmapOf();
     List<ShuffleBlockInfo> blocks1 = createShuffleBlockList(
-        0, 0, 1,40, 10 * 1024 * 1024, blockIdBitmap1, expectedData);
+        0, 0, 1, 40, 10 * 1024 * 1024, blockIdBitmap1, expectedData);
     blocks1.forEach(b -> expectedBlock1.add(b.getBlockId()));
     Map<Integer, List<ShuffleBlockInfo>> partitionToBlocks = Maps.newHashMap();
     partitionToBlocks.put(0, blocks1);

@@ -31,11 +31,11 @@ import org.slf4j.LoggerFactory;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
-public class UploadedStorageHdfsClientReadHandler extends HdfsClientReadHandler {
+public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UploadedStorageHdfsClientReadHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UploadedHdfsClientReadHandler.class);
 
-  public UploadedStorageHdfsClientReadHandler(
+  public UploadedHdfsClientReadHandler(
       String appId,
       int shuffleId,
       int partitionId,
