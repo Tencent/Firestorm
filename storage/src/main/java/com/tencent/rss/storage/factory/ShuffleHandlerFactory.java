@@ -31,7 +31,6 @@ import com.tencent.rss.storage.handler.api.ShuffleDeleteHandler;
 import com.tencent.rss.storage.handler.impl.ComposedClientReadHandler;
 import com.tencent.rss.storage.handler.impl.HdfsClientReadHandler;
 import com.tencent.rss.storage.handler.impl.HdfsShuffleDeleteHandler;
-import com.tencent.rss.storage.handler.impl.LocalFileClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileDeleteHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileServerReadHandler;
@@ -84,10 +83,17 @@ public class ShuffleHandlerFactory {
           Collectors.toList());
 
       return new ComposedClientReadHandler(() -> {
-        return new LocalFileClientReadHandler(request.getAppId(),
-          request.getShuffleId(), request.getPartitionId(), request.getIndexReadLimit(),
-          request.getPartitionNumPerRange(), request.getPartitionNum(),
-          request.getReadBufferSize(), shuffleServerClients);
+        return new LocalFileQuorumClientReadHandler(
+          request.getAppId(),
+          request.getShuffleId(),
+          request.getPartitionId(),
+          request.getIndexReadLimit(),
+          request.getPartitionNumPerRange(),
+          request.getPartitionNum(),
+          request.getReadBufferSize(),
+          request.getExpectBlockIds(),
+          request.getProcessBlockIds(),
+          shuffleServerClients);
       }, () -> {
         return new HdfsClientReadHandler(
             request.getAppId(),
