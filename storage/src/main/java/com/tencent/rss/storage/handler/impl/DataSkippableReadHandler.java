@@ -76,11 +76,11 @@ public abstract class DataSkippableReadHandler extends AbstractClientReadHandler
       segment.getBufferSegments().forEach(block -> blocksOfSegment.addLong(block.getBlockId()));
       // skip unexpected blockIds
       blocksOfSegment.and(expectBlockIds);
-      if (blocksOfSegment.getLongCardinality() > 0) {
+      if (!blocksOfSegment.isEmpty()) {
         // skip processed blockIds
         blocksOfSegment.or(processBlockIds);
         blocksOfSegment.xor(processBlockIds);
-        if (blocksOfSegment.getLongCardinality() > 0) {
+        if (!blocksOfSegment.isEmpty()) {
           result = readShuffleData(segment);
           segmentIndex++;
           break;
@@ -88,7 +88,6 @@ public abstract class DataSkippableReadHandler extends AbstractClientReadHandler
       }
       segmentIndex++;
     }
-
     return result;
   }
 }

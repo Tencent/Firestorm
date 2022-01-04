@@ -21,56 +21,42 @@ package com.tencent.rss.storage.handler.impl;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.client.api.ShuffleServerClient;
 import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.common.util.Constants;
 
-public class LocalFileQuorumClientReadHandler extends AbstractClientReadHandler {
+public class MemoryQuorumClientReadHandler extends AbstractClientReadHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(LocalFileQuorumClientReadHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MemoryQuorumClientReadHandler.class);
+  private long lastBlockId = Constants.INVALID_BLOCK_ID;
+  private List<MemoryClientReadHandler> handlers = Lists.newLinkedList();
 
-  private List<LocalFileClientReadHandler> handlers = Lists.newLinkedList();
-
-  public LocalFileQuorumClientReadHandler(
-    String appId,
-    int shuffleId,
-    int partitionId,
-    int indexReadLimit,
-    int partitionNumPerRange,
-    int partitionNum,
-    int readBufferSize,
-    Roaring64NavigableMap expectBlockIds,
-    Roaring64NavigableMap processBlockIds,
-    List<ShuffleServerClient> shuffleServerClients) {
-      this.appId = appId;
-      this.shuffleId = shuffleId;
-      this.partitionId = partitionId;
-      this.readBufferSize = readBufferSize;
-      for (ShuffleServerClient client: shuffleServerClients) {
-        handlers.add(new LocalFileClientReadHandler(
-          appId,
-          shuffleId,
-          partitionId,
-          indexReadLimit,
-          partitionNumPerRange,
-          partitionNum,
-          readBufferSize,
-          expectBlockIds,
-          processBlockIds,
-          client
-        ));
-      }
+  public MemoryQuorumClientReadHandler(
+      String appId,
+      int shuffleId,
+      int partitionId,
+      int readBufferSize,
+      List<ShuffleServerClient> shuffleServerClients) {
+    this.appId = appId;
+    this.shuffleId = shuffleId;
+    this.partitionId = partitionId;
+    this.readBufferSize = readBufferSize;
+    shuffleServerClients.forEach(client ->
+      handlers.add(new MemoryClientReadHandler(
+          appId, shuffleId, partitionId, readBufferSize, client))
+    );
   }
 
   @Override
   public ShuffleDataResult readShuffleData() {
     boolean readSuccessful = false;
     ShuffleDataResult result = null;
-    for (LocalFileClientReadHandler handler : handlers) {
+
+    for (MemoryClientReadHandler handler: handlers) {
       try {
         result = handler.readShuffleData();
         readSuccessful = true;
@@ -79,10 +65,12 @@ public class LocalFileQuorumClientReadHandler extends AbstractClientReadHandler 
         LOG.warn("Failed to read a replica due to ", e);
       }
     }
+
     if (!readSuccessful) {
-      throw new RssException("Failed to read all replicas for appId[" + appId + "], shuffleId["
-        + shuffleId + "], partitionId[" + partitionId + "]");
+      throw new RssException("Failed to read in memory shuffle data for appId[" + appId
+          + "], shuffleId[" + shuffleId + "], partitionId[" + partitionId + "]");
     }
+
     return result;
   }
 }

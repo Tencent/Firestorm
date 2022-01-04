@@ -34,7 +34,7 @@ import com.tencent.rss.storage.handler.impl.HdfsShuffleDeleteHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileDeleteHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.LocalFileServerReadHandler;
-import com.tencent.rss.storage.handler.impl.MemoryClientReadHandler;
+import com.tencent.rss.storage.handler.impl.MemoryQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.MultiStorageReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleDeleteHandlerRequest;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
@@ -88,7 +88,7 @@ public class ShuffleHandlerFactory {
           ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(
               ClientType.GRPC.name(), ssi)).collect(
           Collectors.toList());
-      ClientReadHandler memoryClientReadHandler = new MemoryClientReadHandler(
+      ClientReadHandler memoryClientReadHandler = new MemoryQuorumClientReadHandler(
           request.getAppId(),
           request.getShuffleId(),
           request.getPartitionId(),
@@ -106,7 +106,7 @@ public class ShuffleHandlerFactory {
           ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(
               ClientType.GRPC.name(), ssi)).collect(
           Collectors.toList());
-      ClientReadHandler memoryClientReadHandler = new MemoryClientReadHandler(
+      ClientReadHandler memoryClientReadHandler = new MemoryQuorumClientReadHandler(
           request.getAppId(),
           request.getShuffleId(),
           request.getPartitionId(),
@@ -129,7 +129,7 @@ public class ShuffleHandlerFactory {
           ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(
               ClientType.GRPC.name(), ssi)).collect(
           Collectors.toList());
-      ClientReadHandler memoryClientReadHandler = new MemoryClientReadHandler(
+      ClientReadHandler memoryClientReadHandler = new MemoryQuorumClientReadHandler(
           request.getAppId(),
           request.getShuffleId(),
           request.getPartitionId(),

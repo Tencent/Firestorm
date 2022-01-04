@@ -339,6 +339,37 @@ public class SparkClientWithLocalTest extends ShuffleReadWriteBase {
     readClient.close();
   }
 
+  @Test
+  public void readTest10() throws Exception {
+    String testAppId = "localReadTest10";
+    registerApp(testAppId, Lists.newArrayList(new PartitionRange(0, 0)));
+
+    Map<Long, byte[]> expectedData = Maps.newHashMap();
+    Roaring64NavigableMap expectedBlockIds = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap unexpectedBlockIds = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0, 1);
+    // send some expected data
+    List<ShuffleBlockInfo> blocks = createShuffleBlockList(
+      0, 0, 0, 2, 30, expectedBlockIds, expectedData, mockSSI);
+    sendTestData(testAppId, blocks);
+    // send some unexpected data
+    blocks = createShuffleBlockList(
+      0, 0, 0, 2, 30, unexpectedBlockIds,
+        Maps.newHashMap(), mockSSI);
+    sendTestData(testAppId, blocks);
+    // send some expected data
+    blocks = createShuffleBlockList(
+      0, 0, 1, 2, 30, expectedBlockIds, expectedData, mockSSI);
+    sendTestData(testAppId, blocks);
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1, 10, 1000,
+      "", expectedBlockIds, taskIdBitmap, shuffleServerInfo, null);
+
+    validateResult(readClient, expectedData);
+    readClient.checkProcessedBlockIds();
+    readClient.close();
+  }
+
   protected void registerApp(String testAppId, List<PartitionRange> partitionRanges) {
     RssRegisterShuffleRequest rrsr = new RssRegisterShuffleRequest(testAppId, 0, partitionRanges);
     shuffleServerClient.registerShuffle(rrsr);

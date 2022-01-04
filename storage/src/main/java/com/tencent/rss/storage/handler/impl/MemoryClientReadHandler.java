@@ -33,49 +33,38 @@ import com.tencent.rss.common.util.Constants;
 
 public class MemoryClientReadHandler extends AbstractClientReadHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MemoryClientReadHandler.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MemoryQuorumClientReadHandler.class);
   private long lastBlockId = Constants.INVALID_BLOCK_ID;
-  private List<ShuffleServerClient> shuffleServerClients;
+  private ShuffleServerClient shuffleServerClient;
 
   public MemoryClientReadHandler(
       String appId,
       int shuffleId,
       int partitionId,
       int readBufferSize,
-      List<ShuffleServerClient> shuffleServerClients) {
+      ShuffleServerClient shuffleServerClient) {
     this.appId = appId;
     this.shuffleId = shuffleId;
     this.partitionId = partitionId;
     this.readBufferSize = readBufferSize;
-    this.shuffleServerClients = shuffleServerClients;
+    this.shuffleServerClient = shuffleServerClient;
   }
 
   @Override
   public ShuffleDataResult readShuffleData() {
-    boolean readSuccessful = false;
     ShuffleDataResult result = null;
 
     RssGetInMemoryShuffleDataRequest request = new RssGetInMemoryShuffleDataRequest(
-        appId,shuffleId, partitionId, lastBlockId, readBufferSize);
+      appId,shuffleId, partitionId, lastBlockId, readBufferSize);
 
-    for (ShuffleServerClient shuffleServerClient : shuffleServerClients) {
-      try {
-        RssGetInMemoryShuffleDataResponse response =
-            shuffleServerClient.getInMemoryShuffleData(request);
-        result = new ShuffleDataResult(response.getData(), response.getBufferSegments());
-
-        readSuccessful = true;
-        break;
-      } catch (Exception e) {
-        // todo: fault tolerance solution should be added
-        LOG.warn("Failed to read in memory shuffle data with {}",
-            shuffleServerClient.getClientInfo(), e);
-      }
-    }
-
-    if (!readSuccessful) {
-      throw new RssException("Failed to read in memory shuffle data for appId[" + appId
-          + "], shuffleId[" + shuffleId + "], partitionId[" + partitionId + "]");
+    try {
+      RssGetInMemoryShuffleDataResponse response =
+          shuffleServerClient.getInMemoryShuffleData(request);
+      result = new ShuffleDataResult(response.getData(), response.getBufferSegments());
+    } catch (Exception e) {
+      // todo: fault tolerance solution should be added
+      throw new RssException("Failed to read in memory shuffle data with "
+          + shuffleServerClient.getClientInfo() + " due to " + e);
     }
 
     // update lastBlockId for next rpc call
