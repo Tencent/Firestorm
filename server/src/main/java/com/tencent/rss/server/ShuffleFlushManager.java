@@ -214,7 +214,7 @@ public class ShuffleFlushManager {
                 hadoopConf,
                 storageDataReplica));
           }
-        } while (event.getRetryTimes() <= retryMax) ;
+        } while (event.getRetryTimes() <= retryMax);
       }
     } catch (Exception e) {
       // just log the error, don't throw the exception and stop the flush thread
