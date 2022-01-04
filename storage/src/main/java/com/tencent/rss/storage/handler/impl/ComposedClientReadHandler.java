@@ -113,22 +113,43 @@ public class ComposedClientReadHandler implements ClientReadHandler {
           return null;
       }
     } catch (Exception e) {
-      LOG.error("Failed to read shuffle data from " + currentHandler + " handler", e);
-    } finally {
-      // there is no data for current handler, try next one if there has
-      if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
-        currentHandler++;
-        return readShuffleData();
-      }
+      LOG.error("Failed to read shuffle data from " + getCurrentHandlerName() + " handler", e);
     }
+    // there is no data for current handler, try next one if there has
+    if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
+      currentHandler++;
+      return readShuffleData();
+    }
+
     return shuffleDataResult;
   }
 
   private ClientReadHandler createReadHandlerIfNotExist(Callable<ClientReadHandler> creator) throws Exception {
     if (creator == null) {
-      throw new IllegalStateException("create " + currentHandler + " fail");
+      throw new IllegalStateException("create " + getCurrentHandlerName() + " fail");
     }
     return creator.call();
+  }
+
+  private String getCurrentHandlerName() {
+    String name = "UNKNOWN";
+    switch (currentHandler) {
+      case HOT:
+        name = "HOT";
+        break;
+      case WARM:
+        name = "WARM";
+        break;
+      case COLD:
+        name = "COLD";
+        break;
+      case FROZEN:
+        name = "FROZEN";
+        break;
+      default:
+        break;
+    }
+    return name;
   }
 
   @Override
