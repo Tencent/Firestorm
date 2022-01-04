@@ -41,11 +41,13 @@ public class MultiStorageManager implements StorageManager {
   private final List<ShuffleUploader> uploaders  = Lists.newArrayList();
   private final boolean uploadShuffleEnable;
   private final long flushColdStorageThresholdSize;
+  private final long fallBackTimes;
 
   MultiStorageManager(ShuffleServerConf conf, String shuffleServerId) {
     warmStorageManager = new LocalStorageManager(conf);
     coldStorageManager = new HdfsStorageManager(conf);
     uploadShuffleEnable = conf.get(ShuffleServerConf.UPLOADER_ENABLE);
+    fallBackTimes = conf.get(ShuffleServerConf.FALLBACK_TIMES);
     flushColdStorageThresholdSize = conf.getSizeAsBytes(ShuffleServerConf.FLUSH_COLD_STORAGE_THRESHOLD_SIZE);
     if (uploadShuffleEnable) {
       if (!(warmStorageManager instanceof LocalStorageManager)) {
@@ -73,12 +75,17 @@ public class MultiStorageManager implements StorageManager {
   }
 
   @Override
+  public boolean supportFallback() {
+    return true;
+  }
+
+  @Override
   public void updateWriteMetrics(ShuffleDataFlushEvent event, long writeTime) {
     selectStorageManager(event).updateWriteMetrics(event, writeTime);
   }
 
   private StorageManager selectStorageManager(ShuffleDataFlushEvent event) {
-    if (event.getSize() > flushColdStorageThresholdSize) {
+    if (event.getRetryTimes() <= fallBackTimes && event.getSize() > flushColdStorageThresholdSize) {
       return coldStorageManager;
     } else {
       return warmStorageManager;

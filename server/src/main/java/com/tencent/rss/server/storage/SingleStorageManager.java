@@ -45,6 +45,11 @@ public abstract class SingleStorageManager implements StorageManager {
   }
 
   @Override
+  public boolean supportFallback() {
+    return false;
+  }
+
+  @Override
   public void updateWriteMetrics(ShuffleDataFlushEvent event, long writeTime) {
     StorageWriteMetrics metrics = createStorageWriteMetrics(event, writeTime);
     ShuffleServerMetrics.counterTotalWriteTime.inc(metrics.getWriteTime());

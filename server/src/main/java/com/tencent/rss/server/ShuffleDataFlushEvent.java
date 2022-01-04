@@ -19,6 +19,7 @@
 package com.tencent.rss.server;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.tencent.rss.common.ShufflePartitionedBlock;
@@ -35,6 +36,7 @@ public class ShuffleDataFlushEvent {
   private List<ShufflePartitionedBlock> shuffleBlocks;
   private Supplier<Boolean> valid = null;
   private ShuffleBuffer shuffleBuffer;
+  private AtomicInteger retryTimes = new AtomicInteger();
 
   public ShuffleDataFlushEvent(
       long eventId,
@@ -94,6 +96,14 @@ public class ShuffleDataFlushEvent {
       return true;
     }
     return valid.get();
+  }
+
+  public int getRetryTimes() {
+    return retryTimes.get();
+  }
+
+  public void increaseRetryTimes() {
+    retryTimes.incrementAndGet();
   }
 
   @Override

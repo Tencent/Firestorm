@@ -31,6 +31,8 @@ public interface StorageManager {
 
   Storage selectStorage(ShuffleDataReadEvent event);
 
+  boolean supportFallback();
+
   void updateWriteMetrics(ShuffleDataFlushEvent event, long writeTime);
 
   void removeResources(String appId, Set<Integer> shuffleSet);

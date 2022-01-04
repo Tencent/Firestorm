@@ -46,5 +46,7 @@ public class MultiStorageManagerTest {
     event = new ShuffleDataFlushEvent(
         1, "1", 1, 1, 1, 1000000, blocks, null, null);
     assertTrue((manager.selectStorage(event) instanceof HdfsStorage));
+    event.increaseRetryTimes();
+    assertTrue(manager.selectStorage(event) instanceof LocalStorage);
   }
 }

@@ -161,9 +161,8 @@ public class ShuffleFlushManager {
             hadoopConf,
             storageDataReplica));
 
-        int retry = 0;
-        while (!writeSuccess) {
-          if (retry > retryMax) {
+        do {
+          if (event.getRetryTimes() > retryMax) {
             LOG.error("Failed to write data for " + event + " in " + retryMax + " times, shuffle data will be lost");
             break;
           }
@@ -193,6 +192,7 @@ public class ShuffleFlushManager {
             storageManager.updateWriteMetrics(event, writeTime);
             updateCommittedBlockIds(event.getAppId(), event.getShuffleId(), blocks);
             writeSuccess = true;
+            break;
           } catch (Exception e) {
             LOG.warn("Exception happened when write data for " + event + ", try again", e);
             ShuffleServerMetrics.counterWriteException.inc();
@@ -200,8 +200,21 @@ public class ShuffleFlushManager {
           } finally {
             storage.unlockShuffleShared(RssUtils.generateShuffleKey(event.getAppId(), event.getShuffleId()));
           }
-          retry++;
-        }
+          event.increaseRetryTimes();
+          if (storageManager.supportFallback()) {
+            storage = storageManager.selectStorage(event);
+            handler = storage.getOrCreateWriteHandler(new CreateShuffleWriteHandlerRequest(
+                storageType,
+                event.getAppId(),
+                event.getShuffleId(),
+                event.getStartPartition(),
+                event.getEndPartition(),
+                storageBasePaths,
+                shuffleServerId,
+                hadoopConf,
+                storageDataReplica));
+          }
+        } while (event.getRetryTimes() <= retryMax) ;
       }
     } catch (Exception e) {
       // just log the error, don't throw the exception and stop the flush thread
