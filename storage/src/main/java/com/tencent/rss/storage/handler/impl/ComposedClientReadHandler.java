@@ -80,68 +80,55 @@ public class ComposedClientReadHandler implements ClientReadHandler {
   @Override
   public ShuffleDataResult readShuffleData() {
     ShuffleDataResult shuffleDataResult = null;
-    switch (currentHandler) {
-      case HOT:
-        try {
+    try {
+      switch (currentHandler) {
+        case HOT:
           if (hotDataReadHandler == null) {
-            if (hotHandlerCreator == null) {
-              return null;
-            }
+            hotDataReadHandler = createReadHandlerIfNotExist(hotHandlerCreator);
             hotDataReadHandler = hotHandlerCreator.call();
           }
           shuffleDataResult = hotDataReadHandler.readShuffleData();
-        } catch (Exception e) {
-          LOG.error("Failed to read shuffle data from hot handler", e);
-        }
-        break;
-      case WARM:
-          try {
-            if (warmDataReadHandler == null) {
-              if (warmHandlerCreator == null) {
-                return null;
-              }
-              warmDataReadHandler = warmHandlerCreator.call();
-            }
-            shuffleDataResult = warmDataReadHandler.readShuffleData();
-          } catch (Exception e) {
-            LOG.error("Failed to read shuffle data from warm handler", e);
+          break;
+        case WARM:
+          if (warmDataReadHandler == null) {
+            warmDataReadHandler = createReadHandlerIfNotExist(warmHandlerCreator);
+            warmDataReadHandler = warmHandlerCreator.call();
           }
-        break;
-      case COLD:
-          try {
-            if (coldDataReadHandler == null) {
-              if (coldHandlerCreator == null) {
-                return null;
-              }
-              coldDataReadHandler = coldHandlerCreator.call();
-            }
-            shuffleDataResult = coldDataReadHandler.readShuffleData();
-          } catch (Exception e) {
-            LOG.error("Failed to read shuffle data from cold handler", e);
+          shuffleDataResult = warmDataReadHandler.readShuffleData();
+          break;
+        case COLD:
+          if (coldDataReadHandler == null) {
+            coldDataReadHandler = createReadHandlerIfNotExist(coldHandlerCreator);
+            coldDataReadHandler = coldHandlerCreator.call();
           }
-        break;
-      case FROZEN:
-          try {
-            if (frozenDataReadHandler == null)  {
-              if (frozenHandlerCreator == null) {
-                return null;
-              }
-              frozenDataReadHandler = frozenHandlerCreator.call();
-            }
-            shuffleDataResult = frozenDataReadHandler.readShuffleData();
-          } catch (Exception e) {
-            LOG.error("Failed to read shuffle data from frozen handler", e);
+          shuffleDataResult = coldDataReadHandler.readShuffleData();
+          break;
+        case FROZEN:
+          if (frozenDataReadHandler == null) {
+            frozenDataReadHandler = createReadHandlerIfNotExist(frozenHandlerCreator);
           }
-        break;
-      default:
-        return null;
-    }
-    // there is no data for current handler, try next one if there has
-    if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
-      currentHandler++;
-      return readShuffleData();
+          shuffleDataResult = frozenDataReadHandler.readShuffleData();
+          break;
+        default:
+          return null;
+      }
+    } catch (Exception e) {
+      LOG.error("Failed to read shuffle data from " + currentHandler + " handler", e);
+    } finally {
+      // there is no data for current handler, try next one if there has
+      if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
+        currentHandler++;
+        return readShuffleData();
+      }
     }
     return shuffleDataResult;
+  }
+
+  private ClientReadHandler createReadHandlerIfNotExist(Callable<ClientReadHandler> creator) {
+    if (creator == null) {
+      throw new IllegalStateException("create " + currentHandler + " fail");
+    }
+    return creator.call();
   }
 
   @Override
