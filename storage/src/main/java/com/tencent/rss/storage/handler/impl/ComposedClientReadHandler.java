@@ -124,7 +124,7 @@ public class ComposedClientReadHandler implements ClientReadHandler {
     return shuffleDataResult;
   }
 
-  private ClientReadHandler createReadHandlerIfNotExist(Callable<ClientReadHandler> creator) {
+  private ClientReadHandler createReadHandlerIfNotExist(Callable<ClientReadHandler> creator) throws Exception {
     if (creator == null) {
       throw new IllegalStateException("create " + currentHandler + " fail");
     }
