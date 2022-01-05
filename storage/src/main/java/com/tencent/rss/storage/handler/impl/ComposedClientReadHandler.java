@@ -85,21 +85,18 @@ public class ComposedClientReadHandler implements ClientReadHandler {
         case HOT:
           if (hotDataReadHandler == null) {
             hotDataReadHandler = createReadHandlerIfNotExist(hotHandlerCreator);
-            hotDataReadHandler = hotHandlerCreator.call();
           }
           shuffleDataResult = hotDataReadHandler.readShuffleData();
           break;
         case WARM:
           if (warmDataReadHandler == null) {
             warmDataReadHandler = createReadHandlerIfNotExist(warmHandlerCreator);
-            warmDataReadHandler = warmHandlerCreator.call();
           }
           shuffleDataResult = warmDataReadHandler.readShuffleData();
           break;
         case COLD:
           if (coldDataReadHandler == null) {
             coldDataReadHandler = createReadHandlerIfNotExist(coldHandlerCreator);
-            coldDataReadHandler = coldHandlerCreator.call();
           }
           shuffleDataResult = coldDataReadHandler.readShuffleData();
           break;
