@@ -48,7 +48,7 @@ public class SparkSQLMultiStorageRssTest extends SparkSQLTest {
     File dataDir1 = new File(tmpDir, "data1");
     File dataDir2 = new File(tmpDir, "data2");
     basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE_AND_HDFS.name());
+    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE_HDFS.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
 
     // uploader and remote storage config
@@ -66,7 +66,8 @@ public class SparkSQLMultiStorageRssTest extends SparkSQLTest {
 
   @Override
   public void updateRssStorage(SparkConf sparkConf) {
-    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, "LOCALFILE_AND_HDFS");
+    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS.name());
+    sparkConf.set(RssClientConfig.RSS_BASE_PATH, HDFS_URI + "rss/test");
   }
 
   @Override

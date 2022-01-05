@@ -54,7 +54,7 @@ public class SparkFallbackReadTest extends SparkIntegrationTestBase {
     File dataDir2 = new File(tmpDir, "data2");
     tmpDir.deleteOnExit();
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE_AND_HDFS.name());
+    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE_HDFS.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
     shuffleServerConf.setString(ShuffleServerConf.UPLOADER_BASE_PATH,  HDFS_URI + "rss/multi_storage_integration");
     shuffleServerConf.setString(ShuffleServerConf.HDFS_BASE_PATH, HDFS_URI + "rss/multi_storage_integration");
