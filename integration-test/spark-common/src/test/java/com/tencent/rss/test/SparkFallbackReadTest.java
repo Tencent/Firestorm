@@ -102,7 +102,7 @@ public class SparkFallbackReadTest extends SparkIntegrationTestBase {
   @Override
   public void updateSparkConfCustomer(SparkConf sparkConf) {
     sparkConf.setMaster("local[4, 2]");
-    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, "LOCALFILE_AND_HDFS");
+    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS.name());
     sparkConf.set(RssClientConfig.RSS_BASE_PATH, HDFS_URI + "rss/multi_storage_integration");
   }
 

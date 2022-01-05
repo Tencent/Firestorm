@@ -218,7 +218,7 @@ public class MultiStorageFaultToleranceTest extends ShuffleReadWriteBase {
 
   protected void validateResult(String appId, int shuffleId, int partitionId, Roaring64NavigableMap blockBitmap,
                                 Roaring64NavigableMap taskBitmap, Map<Long, byte[]> expectedData) {
-    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl("LOCALFILE_AND_HDFS",
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE_HDFS.name(),
         appId, shuffleId, partitionId, 100, 1, 10, 1000, HDFS_URI + "rss/multi_storage_fault",
         blockBitmap, taskBitmap, Lists.newArrayList(new ShuffleServerInfo("test", LOCALHOST, SHUFFLE_SERVER_PORT)), conf);
     CompressedShuffleBlock csb = readClient.readShuffleBlockData();
