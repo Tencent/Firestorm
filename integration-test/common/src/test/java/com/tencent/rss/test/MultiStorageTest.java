@@ -84,7 +84,7 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     shuffleServerConf.setBoolean(ShuffleServerConf.UPLOADER_ENABLE, true);
     shuffleServerConf.setLong(ShuffleServerConf.PENDING_EVENT_TIMEOUT_SEC, 30L);
     shuffleServerConf.setLong(ShuffleServerConf.UPLOAD_COMBINE_THRESHOLD_MB, 1L);
-    shuffleServerConf.setLong(ShuffleServerConf.SHUFFLE_EXPIRED_TIMEOUT_MS, 6000L);
+    shuffleServerConf.setLong(ShuffleServerConf.SHUFFLE_EXPIRED_TIMEOUT_MS, 4000L);
     shuffleServerConf.setLong(ShuffleServerConf.SERVER_APP_EXPIRED_WITHOUT_HEARTBEAT, 60L * 1000L * 60L);
     shuffleServerConf.setLong(ShuffleServerConf.SERVER_COMMIT_TIMEOUT, 20L * 1000L);
     shuffleServerConf.setLong(ShuffleServerConf.PENDING_EVENT_TIMEOUT_SEC, 30);
@@ -306,11 +306,11 @@ public class MultiStorageTest extends ShuffleReadWriteBase {
     shuffleServerClient.getShuffleResult(rg4);
 
     Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+    validateResult(appId, 1, 2, expectedData, getExpectBlockIds(blocks3));
+    Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
     validateResult(appId, 1, 0, expectedData, getExpectBlockIds(blocks1));
     Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
     validateResult(appId, 1, 1, expectedData, getExpectBlockIds(blocks2));
-    Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-    validateResult(appId, 1, 2, expectedData, getExpectBlockIds(blocks3));
     Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
     validateResult(appId, 1, 3, expectedData, getExpectBlockIds(blocks4));
     Uninterruptibles.sleepUninterruptibly(20, TimeUnit.SECONDS);
