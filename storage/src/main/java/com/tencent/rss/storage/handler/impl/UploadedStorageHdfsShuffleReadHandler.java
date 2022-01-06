@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,11 +37,15 @@ public class UploadedStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandle
   private long dataFileOffset;
 
   public UploadedStorageHdfsShuffleReadHandler(
+      String appId,
+      int shuffleId,
       int partitionId,
       String filePrefix,
       int readBufferSize,
+      Roaring64NavigableMap expectBlockIds,
+      Roaring64NavigableMap processBlockIds,
       Configuration conf)  throws IOException {
-    super(filePrefix, readBufferSize, conf);
+    super(appId, shuffleId, partitionId, filePrefix, readBufferSize, expectBlockIds, processBlockIds, conf);
     this.partitionId = partitionId;
   }
 

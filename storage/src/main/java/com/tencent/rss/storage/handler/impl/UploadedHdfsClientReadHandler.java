@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,8 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
       int partitionNumPerRange,
       int partitionNum,
       int readBufferSize,
+      Roaring64NavigableMap expectBlockIds,
+      Roaring64NavigableMap processBlockIds,
       String storageBasePath,
       Configuration hadoopConf) {
     super(appId,
@@ -52,6 +55,8 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
         partitionNumPerRange,
         partitionNum,
         readBufferSize,
+        expectBlockIds,
+        processBlockIds,
         storageBasePath,
         hadoopConf);
     String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
@@ -90,7 +95,8 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
         String fileNamePrefix = getFileNamePrefix(status.getPath().toUri().toString());
         try {
           HdfsShuffleReadHandler handler = new UploadedStorageHdfsShuffleReadHandler(
-              partitionId, fileNamePrefix, readBufferSize, hadoopConf);
+              appId, shuffleId, partitionId, fileNamePrefix, readBufferSize,
+              expectBlockIds, processBlockIds, hadoopConf);
           readHandlers.add(handler);
         } catch (Exception e) {
           LOG.warn("Can't create ShuffleReaderHandler for " + fileNamePrefix, e);
