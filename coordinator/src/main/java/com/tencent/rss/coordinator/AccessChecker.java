@@ -20,7 +20,7 @@ package com.tencent.rss.coordinator;
 
 public interface AccessChecker {
 
-  AccessCheckResult check(String cronTaskParam);
+  AccessCheckResult check(String accessInfo);
 
   void stop();
 }

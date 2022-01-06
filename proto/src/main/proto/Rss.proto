@@ -326,7 +326,7 @@ message CheckServiceAvailableResponse {
 }
 
 message AccessClusterRequest {
-  string cronTaskParam = 1;
+  string accessInfo = 1;
 }
 
 message AccessClusterResponse {

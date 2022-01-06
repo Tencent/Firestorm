@@ -61,8 +61,8 @@ public class AccessCandidatesChecker implements AccessChecker {
         this::updateAccessCandidates, 0, updateIntervalS, TimeUnit.SECONDS);
   }
 
-  public AccessCheckResult check(String cronTaskParam) {
-    String taskId = checkAndExtractTaskId(cronTaskParam);
+  public AccessCheckResult check(String accessInfo) {
+    String taskId = checkAndExtractTaskId(accessInfo);
     if (!candidates.get().contains(taskId)) {
       String msg = String.format("Reject taskId[%s] access request.", taskId);
       LOG.debug(msg);

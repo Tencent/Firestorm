@@ -196,27 +196,33 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
 
   @Override
   public void accessCluster(AccessClusterRequest request, StreamObserver<AccessClusterResponse> responseObserver) {
-    String cronTaskParam = request.getCronTaskParam();
+    String accessInfo = request.getAccessInfo();
+    StatusCode statusCode = StatusCode.SUCCESS;
+    AccessClusterResponse response;
     AccessManager accessManager = coordinatorServer.getAccessManager();
+
     if (accessManager == null) {
-      LOG.warn("AccessManager is disabled return success directly for {}", cronTaskParam);
+      LOG.warn("AccessManager is disabled return success directly for {}", accessInfo);
+      response = AccessClusterResponse
+          .newBuilder()
+          .setStatus(statusCode)
+          .setRetMsg("No AccessManager")
+          .build();
+    } else {
+      AccessCheckResult result = accessManager.handleAccessRequest(accessInfo);
+      if (!result.isSuccess()) {
+        statusCode = StatusCode.INTERNAL_ERROR;
+      }
+      response = AccessClusterResponse
+          .newBuilder()
+          .setStatus(statusCode)
+          .setRetMsg(result.getMsg())
+          .build();
     }
-
-    AccessCheckResult result = accessManager.handleAccessRequest(cronTaskParam);
-    StatusCode statusCode = StatusCode.INTERNAL_ERROR;
-    if (result.isSuccess()) {
-      statusCode = StatusCode.SUCCESS;
-    }
-
-    AccessClusterResponse response = AccessClusterResponse
-        .newBuilder()
-        .setStatus(statusCode)
-        .setRetMsg(result.getMsg())
-        .build();
 
     if (Context.current().isCancelled()) {
       responseObserver.onError(Status.CANCELLED.withDescription("Cancelled by client").asRuntimeException());
-      LOG.warn("Cancelled by client {} for after deadline.", cronTaskParam);
+      LOG.warn("Cancelled by client {} for after deadline.", accessInfo);
       return;
     }
 

@@ -20,14 +20,8 @@ package com.tencent.rss.coordinator;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -39,20 +33,13 @@ public class AccessManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(AccessManager.class);
 
-  private final int cleanUpIntervalS;
-  private final long accessExpireThresholdS;
   private final CoordinatorConf coordinatorConf;
   private final ClusterManager clusterManager;
   private List<AccessChecker> accessCheckers = Lists.newArrayList();
-  private final Map<String, Long> accessedCronTaskParams = Maps.newConcurrentMap();
-
-  private ScheduledExecutorService cleanUpExpiredTaskParamsSES = null;
 
   public AccessManager(CoordinatorConf conf, ClusterManager clusterManager) throws RuntimeException {
     this.coordinatorConf = conf;
     this.clusterManager = clusterManager;
-    this.cleanUpIntervalS = conf.get(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC);
-    this.accessExpireThresholdS = conf.get(CoordinatorConf.COORDINATOR_ACCESS_EXPIRE_THRESHOLD_SEC);
     init();
   }
 
@@ -77,44 +64,17 @@ public class AccessManager {
           CoordinatorConf.COORDINATOR_ACCESS_CHECKERS.toString());
       throw new RuntimeException(msg);
     }
-
-    cleanUpExpiredTaskParamsSES = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CleanUpExpiredTaskParams-%d").build());
-    cleanUpExpiredTaskParamsSES.scheduleAtFixedRate(
-        this::cleanUpExpiredAccessedTaskParams, 0, cleanUpIntervalS, TimeUnit.SECONDS);
   }
 
-  public AccessCheckResult handleAccessRequest(String cronTaskParam) {
-    if (accessedCronTaskParams.containsKey(cronTaskParam)) {
-      String msg = String.format("Reject task[%s] for it is a retrying task.", cronTaskParam);
-      LOG.info(msg);
-      return new AccessCheckResult(false, msg);
-    }
-
+  public AccessCheckResult handleAccessRequest(String accessInfo) {
     for (AccessChecker checker : accessCheckers) {
-      AccessCheckResult accessCheckResult = checker.check(cronTaskParam);
+      AccessCheckResult accessCheckResult = checker.check(accessInfo);
       if (!accessCheckResult.isSuccess()) {
         return accessCheckResult;
       }
     }
 
-    accessedCronTaskParams.put(cronTaskParam, System.currentTimeMillis() / 1000);
     return new AccessCheckResult(true, "");
-  }
-
-  private void cleanUpExpiredAccessedTaskParams() {
-    List<String> expiredTaskParams = Lists.newArrayList();
-    for (Map.Entry<String, Long> entry : accessedCronTaskParams.entrySet()) {
-      long ts = entry.getValue();
-      long cur = (System.currentTimeMillis() - ts) / 1000;
-      if (cur > accessExpireThresholdS) {
-        expiredTaskParams.add(entry.getKey());
-      }
-    }
-
-    for (String taskParam : expiredTaskParams) {
-      accessedCronTaskParams.remove(taskParam);
-    }
   }
 
   public CoordinatorConf getCoordinatorConf() {
@@ -125,10 +85,6 @@ public class AccessManager {
     return clusterManager;
   }
 
-  public Map<String, Long> getAccessedCronTaskParams() {
-    return accessedCronTaskParams;
-  }
-
   public List<AccessChecker> getAccessCheckers() {
     return accessCheckers;
   }
@@ -136,10 +92,6 @@ public class AccessManager {
   public void close() {
     for (AccessChecker checker : accessCheckers) {
       checker.stop();
-    }
-
-    if (cleanUpExpiredTaskParamsSES != null) {
-      cleanUpExpiredTaskParamsSES.shutdownNow();
     }
   }
 }

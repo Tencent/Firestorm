@@ -21,7 +21,6 @@ package com.tencent.rss.coordinator;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.collect.Sets;
@@ -69,19 +68,10 @@ public class AccessCandidatesCheckerTest {
       sleep(1200);
       assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
       assertTrue(checker.check("9527_1").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("9527_1", System.currentTimeMillis() / 1000);
       assertTrue(checker.check("135_1").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("135_1", System.currentTimeMillis() / 1000);
       assertTrue(checker.check("135_2").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("135_2", System.currentTimeMillis() / 1000);
       assertFalse(checker.check("1").isSuccess());
       assertFalse(checker.check("1_2").isSuccess());
-
-      Map<String, Long> taskParams = accessManager.getAccessedCronTaskParams();
-      assertEquals(3, taskParams.size());
-      assertTrue(taskParams.containsKey("9527_1"));
-      assertTrue(taskParams.containsKey("135_1"));
-      assertTrue(taskParams.containsKey("135_2"));
 
       sleep(1100);
       fileWriter = new FileWriter(cfgFile);
@@ -93,16 +83,8 @@ public class AccessCandidatesCheckerTest {
       sleep(1200);
       assertEquals(Sets.newHashSet("13", "57"), checker.getCandidates().get());
       assertTrue(checker.check("13_1").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("13_1", System.currentTimeMillis() / 1000);
       assertTrue(checker.check("57_1").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("57_1", System.currentTimeMillis() / 1000);
       assertTrue(checker.check("57_2").isSuccess());
-      accessManager.getAccessedCronTaskParams().put("57_2", System.currentTimeMillis() / 1000);
-      taskParams = accessManager.getAccessedCronTaskParams();
-      assertEquals(3, taskParams.size());
-      assertTrue(taskParams.containsKey("13_1"));
-      assertTrue(taskParams.containsKey("57_1"));
-      assertTrue(taskParams.containsKey("57_2"));
 
       checker.stop();
       folder.delete();

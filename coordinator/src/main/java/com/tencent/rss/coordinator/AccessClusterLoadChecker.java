@@ -40,7 +40,7 @@ public class AccessClusterLoadChecker implements AccessChecker {
         conf.get(CoordinatorConf.COORDINATOR_SHUFFLE_NODES_MAX));
   }
 
-  public AccessCheckResult check(String cronTaskParam) {
+  public AccessCheckResult check(String accessInfo) {
     List<ServerNode> servers = clusterManager.getServerList();
     List<ServerNode> healthyNodes = servers.stream().filter(ServerNode::isHealthy).collect(Collectors.toList());
     List<ServerNode> availableNodes = healthyNodes.stream().filter(this::checkMemory).collect(Collectors.toList());
@@ -48,13 +48,13 @@ public class AccessClusterLoadChecker implements AccessChecker {
     if (size >= availableServerNumThreshold) {
       LOG.debug("{} cluster load check passed total {} nodes, {} healthy nodes, "
               + "{} available nodes, memory percent threshold {}, threshold num {}.",
-          cronTaskParam, servers.size(), healthyNodes.size(), availableNodes.size(),
+          accessInfo, servers.size(), healthyNodes.size(), availableNodes.size(),
           memoryPercentThreshold, availableServerNumThreshold);
       return new AccessCheckResult(true, "");
     } else {
       String msg = String.format("%s cluster load check failed total %s nodes, %s healthy nodes, "
               + "%s available nodes, memory percent threshold %s, available num threshold %s.",
-          cronTaskParam, servers.size(), healthyNodes.size(), availableNodes.size(),
+          accessInfo, servers.size(), healthyNodes.size(), availableNodes.size(),
           memoryPercentThreshold, availableServerNumThreshold);
       LOG.warn(msg);
       return new AccessCheckResult(false, msg);

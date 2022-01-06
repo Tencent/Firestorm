@@ -21,7 +21,6 @@ package com.tencent.rss.coordinator;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -69,11 +68,6 @@ public class AccessManagerTest {
       assertEquals(1, accessManager.getAccessCheckers().size());
       assertTrue(accessManager.handleAccessRequest("mock1").isSuccess());
       assertTrue(accessManager.handleAccessRequest("mock2").isSuccess());
-      assertFalse(accessManager.handleAccessRequest("mock1").isSuccess());
-      assertEquals(2, accessManager.getAccessedCronTaskParams().size());
-      assertTrue(accessManager.getAccessedCronTaskParams().containsKey("mock1"));
-      sleep(1100);
-      assertEquals(0, accessManager.getAccessedCronTaskParams().size());
 
       conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
           "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,"
@@ -81,8 +75,6 @@ public class AccessManagerTest {
       accessManager = new AccessManager(conf, null);
       assertEquals(2, accessManager.getAccessCheckers().size());
       assertFalse(accessManager.handleAccessRequest("mock1").isSuccess());
-      assertEquals(0, accessManager.getAccessedCronTaskParams().size());
-      accessManager.close();
       accessManager.close();
     } catch (Exception e) {
       e.printStackTrace();
@@ -97,7 +89,7 @@ public class AccessManagerTest {
     public void stop() {
     }
 
-    public AccessCheckResult check(String cronTaskParam) {
+    public AccessCheckResult check(String accessInfo) {
       return new AccessCheckResult(true, "");
     }
   }
@@ -108,7 +100,7 @@ public class AccessManagerTest {
 
     public void stop() {}
 
-    public AccessCheckResult check(String cronTaskParam) {
+    public AccessCheckResult check(String accessInfo) {
       return new AccessCheckResult(false, "MockAccessCheckerAlwaysFalse");
     }
   }
