@@ -18,6 +18,7 @@
 
 package com.tencent.rss.server.storage;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -31,6 +32,7 @@ import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.server.ShuffleUploader;
 import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.common.Storage;
+import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
 
 public class MultiStorageManager implements StorageManager {
 
@@ -75,17 +77,29 @@ public class MultiStorageManager implements StorageManager {
   }
 
   @Override
-  public boolean supportFallback() {
-    return true;
-  }
-
-  @Override
   public void updateWriteMetrics(ShuffleDataFlushEvent event, long writeTime) {
     selectStorageManager(event).updateWriteMetrics(event, writeTime);
   }
 
+  @Override
+  public boolean write(Storage storage, ShuffleWriteHandler handler, ShuffleDataFlushEvent event) {
+    StorageManager storageManager = selectStorageManager(event);
+    if (storageManager == coldStorageManager && event.getRetryTimes() > fallBackTimes) {
+      storage = warmStorageManager.selectStorage(event);
+      try {
+        handler = storage.getOrCreateWriteHandler(handler.getCreateShuffleWriteHandlerRequest());
+      } catch (IOException ioe) {
+        LOG.warn("Create fallback write handler failed ", ioe);
+        return false;
+      }
+      return warmStorageManager.write(storage, handler, event);
+    } else {
+      return storageManager.write(storage, handler, event);
+    }
+  }
+
   private StorageManager selectStorageManager(ShuffleDataFlushEvent event) {
-    if (event.getRetryTimes() <= fallBackTimes && event.getSize() > flushColdStorageThresholdSize) {
+    if (event.getSize() > flushColdStorageThresholdSize) {
       return coldStorageManager;
     } else {
       return warmStorageManager;

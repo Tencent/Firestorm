@@ -47,7 +47,7 @@ public class HdfsShuffleReadHandlerTest extends HdfsShuffleHandlerTestBase {
               1,
               basePath,
               "test",
-              conf);
+              conf, null);
 
       Map<Long, byte[]> expectedData = Maps.newHashMap();
 

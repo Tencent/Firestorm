@@ -135,7 +135,7 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
         .setRetMsg("")
         .setStatus(StatusCode.SUCCESS)
         .build();
-    LOG.debug("Got heartbeat from " + serverNode);
+    LOG.warn("Got heartbeat from " + serverNode);
     responseObserver.onNext(response);
     responseObserver.onCompleted();
   }

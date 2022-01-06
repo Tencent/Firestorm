@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
+import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
 public class LocalFileWriteHandler implements ShuffleWriteHandler {
@@ -37,6 +38,7 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
 
   private String fileNamePrefix;
   private String basePath;
+  private CreateShuffleWriteHandlerRequest request;
 
   public LocalFileWriteHandler(
       String appId,
@@ -44,10 +46,12 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
       int startPartition,
       int endPartition,
       String storageBasePath,
-      String fileNamePrefix) {
+      String fileNamePrefix,
+      CreateShuffleWriteHandlerRequest request) {
     this.fileNamePrefix = fileNamePrefix;
     this.basePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
         ShuffleStorageUtils.getShuffleDataPath(appId, shuffleId, startPartition, endPartition));
+    this.request = request;
     createBasePath();
   }
 
@@ -125,6 +129,11 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
         "Write handler write {} blocks cost {} ms with file open close",
         shuffleBlocks.size(),
         (System.currentTimeMillis() - accessTime));
+  }
+
+  @Override
+  public CreateShuffleWriteHandlerRequest getCreateShuffleWriteHandlerRequest() {
+    return request;
   }
 
   private LocalFileWriter createWriter(String fileName) throws IOException, IllegalStateException {

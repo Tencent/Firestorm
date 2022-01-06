@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
+import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
 public class HdfsShuffleWriteHandler implements ShuffleWriteHandler {
@@ -44,6 +45,7 @@ public class HdfsShuffleWriteHandler implements ShuffleWriteHandler {
   private String fileNamePrefix;
   private Lock writeLock = new ReentrantLock();
   private int failTimes = 0;
+  private CreateShuffleWriteHandlerRequest request;
 
   public HdfsShuffleWriteHandler(
       String appId,
@@ -52,11 +54,13 @@ public class HdfsShuffleWriteHandler implements ShuffleWriteHandler {
       int endPartition,
       String storageBasePath,
       String fileNamePrefix,
-      Configuration hadoopConf) throws IOException, IllegalStateException {
+      Configuration hadoopConf,
+      CreateShuffleWriteHandlerRequest request) throws IOException, IllegalStateException {
     this.hadoopConf = hadoopConf;
     this.fileNamePrefix = fileNamePrefix;
     this.basePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
         ShuffleStorageUtils.getShuffleDataPath(appId, shuffleId, startPartition, endPartition));
+    this.request = request;
     initialize();
   }
 
@@ -128,6 +132,11 @@ public class HdfsShuffleWriteHandler implements ShuffleWriteHandler {
         shuffleBlocks.size(),
         (System.currentTimeMillis() - start),
         fileNamePrefix);
+  }
+
+  @Override
+  public CreateShuffleWriteHandlerRequest getCreateShuffleWriteHandlerRequest() {
+    return request;
   }
 
   private HdfsFileWriter createWriter(String fileName) throws IOException, IllegalStateException {

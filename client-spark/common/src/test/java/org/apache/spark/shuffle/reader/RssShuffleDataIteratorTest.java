@@ -55,7 +55,7 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest1() throws Exception {
     String basePath = HDFS_URI + "readTest1";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test1", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test1", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
@@ -95,9 +95,9 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest2() throws Exception {
     String basePath = HDFS_URI + "readTest2";
     HdfsShuffleWriteHandler writeHandler1 =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test2_1", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test2_1", conf, null);
     HdfsShuffleWriteHandler writeHandler2 =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test2_2", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test2_2", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
@@ -119,9 +119,9 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest3() throws Exception {
     String basePath = HDFS_URI + "readTest3";
     HdfsShuffleWriteHandler writeHandler1 =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test3_1", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test3_1", conf, null);
     HdfsShuffleWriteHandler writeHandler2 =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test3_2", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test3_2", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
@@ -151,7 +151,7 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest4() throws Exception {
     String basePath = HDFS_URI + "readTest4";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test1", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test1", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
@@ -185,7 +185,7 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest5() throws Exception {
     String basePath = HDFS_URI + "readTest5";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
@@ -211,7 +211,7 @@ public class RssShuffleDataIteratorTest extends AbstractRssReaderTest {
   public void readTest7() throws Exception {
     String basePath = HDFS_URI + "readTest7";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test", conf);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 1, basePath, "test", conf, null);
 
     Map<String, String> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
