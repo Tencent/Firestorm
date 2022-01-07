@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.List;
 
 import com.tencent.rss.common.ShufflePartitionedBlock;
-import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 
 public interface ShuffleWriteHandler {
 

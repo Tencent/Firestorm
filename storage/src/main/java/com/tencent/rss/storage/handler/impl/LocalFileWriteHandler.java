@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.storage.common.FileBasedShuffleSegment;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
-import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
 public class LocalFileWriteHandler implements ShuffleWriteHandler {
