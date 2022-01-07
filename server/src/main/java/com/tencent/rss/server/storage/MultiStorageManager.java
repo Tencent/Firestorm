@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
-import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +33,7 @@ import com.tencent.rss.server.ShuffleUploader;
 import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.common.Storage;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
+import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 
 public class MultiStorageManager implements StorageManager {
 
