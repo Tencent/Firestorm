@@ -27,7 +27,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.shuffle.RssClientConfig;
 import org.junit.BeforeClass;
 
-public class RepartitionWithMultiStorageRssTest extends RepartitionTest {
+public class RepartitionWithUploadMultiStorageRssTest extends RepartitionTest {
   @BeforeClass
   public static void setupServers() throws Exception {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
