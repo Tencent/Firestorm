@@ -81,6 +81,36 @@ public class ShuffleHandlerFactory {
           ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(
               ClientType.GRPC.name(), ssi)).collect(
           Collectors.toList());
+      return new ComposedClientReadHandler(() -> {
+        return new LocalFileQuorumClientReadHandler(
+            request.getAppId(),
+            request.getShuffleId(),
+            request.getPartitionId(),
+            request.getIndexReadLimit(),
+            request.getPartitionNumPerRange(),
+            request.getPartitionNum(),
+            request.getReadBufferSize(),
+            request.getExpectBlockIds(),
+            request.getProcessBlockIds(),
+            shuffleServerClients);
+      }, () -> {
+        return new HdfsClientReadHandler(
+            request.getAppId(),
+            request.getShuffleId(),
+            request.getPartitionId(),
+            request.getIndexReadLimit(),
+            request.getPartitionNumPerRange(),
+            request.getPartitionNum(),
+            request.getReadBufferSize(),
+            request.getStorageBasePath(),
+            request.getHadoopConf());
+      });
+    } else if (StorageType.LOCALFILE_HDFS_2.name().equals(request.getStorageType())) {
+      List<ShuffleServerInfo> shuffleServerInfoList = request.getShuffleServerInfoList();
+      List<ShuffleServerClient> shuffleServerClients = shuffleServerInfoList.stream().map(
+          ssi -> ShuffleServerClientFactory.getInstance().getShuffleServerClient(
+              ClientType.GRPC.name(), ssi)).collect(
+          Collectors.toList());
 
       return new ComposedClientReadHandler(() -> {
         return new LocalFileQuorumClientReadHandler(
@@ -200,6 +230,7 @@ public class ShuffleHandlerFactory {
   public ServerReadHandler createServerReadHandler(CreateShuffleReadHandlerRequest request) {
     if (StorageType.LOCALFILE.name().equals(request.getStorageType())
       || StorageType.LOCALFILE_HDFS.name().equals(request.getStorageType())
+      || StorageType.LOCALFILE_HDFS_2.name().equals(request.getStorageType())
       || StorageType.MEMORY_LOCALFILE.name().equals(request.getStorageType())
       || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(request.getStorageType())) {
       return new LocalFileServerReadHandler(
@@ -218,8 +249,7 @@ public class ShuffleHandlerFactory {
   public ShuffleDeleteHandler createShuffleDeleteHandler(CreateShuffleDeleteHandlerRequest request) {
     if (StorageType.HDFS.name().equals(request.getStorageType())) {
       return new HdfsShuffleDeleteHandler(request.getConf());
-    } else if (StorageType.LOCALFILE.name().equals(request.getStorageType())
-      || StorageType.LOCALFILE_HDFS.name().equals(request.getStorageType())) {
+    } else if (StorageType.LOCALFILE.name().equals(request.getStorageType())) {
       return new LocalFileDeleteHandler();
     } else {
       throw new UnsupportedOperationException("Doesn't support storage type for shuffle delete handler:"

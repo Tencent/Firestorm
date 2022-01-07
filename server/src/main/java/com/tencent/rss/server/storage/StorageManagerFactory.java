@@ -37,7 +37,9 @@ public class StorageManagerFactory {
       return new LocalStorageManager(conf);
     } else if (StorageType.HDFS.equals(type) || StorageType.MEMORY_HDFS.equals(type)) {
       return new HdfsStorageManager(conf);
-    } else if (StorageType.LOCALFILE_HDFS.equals(type) || StorageType.MEMORY_LOCALFILE_HDFS.equals(type)) {
+    } else if (StorageType.LOCALFILE_HDFS.equals(type)
+        || StorageType.LOCALFILE_HDFS_2.equals(type)
+        || StorageType.MEMORY_LOCALFILE_HDFS.equals(type)) {
       return new MultiStorageManager(conf, serverId);
     } else {
       throw new IllegalArgumentException("unknown storageType was found");

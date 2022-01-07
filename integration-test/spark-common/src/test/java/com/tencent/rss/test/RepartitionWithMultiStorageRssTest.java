@@ -41,7 +41,7 @@ public class RepartitionWithMultiStorageRssTest extends RepartitionTest {
     File dataDir2 = new File(tmpDir, "data2");
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, basePath);
-    shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS.name());
+    shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS_2.name());
     shuffleServerConf.set(ShuffleServerConf.HDFS_BASE_PATH, HDFS_URI + "rss/test");
 
     // uploader and remote storage config
@@ -61,7 +61,7 @@ public class RepartitionWithMultiStorageRssTest extends RepartitionTest {
 
   @Override
   public void updateRssStorage(SparkConf sparkConf) {
-    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS.name());
+    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE_HDFS_2.name());
     sparkConf.set(RssClientConfig.RSS_BASE_PATH, HDFS_URI + "rss/test");
   }
 }
