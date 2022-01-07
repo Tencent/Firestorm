@@ -27,16 +27,16 @@ import com.tencent.rss.server.buffer.ShuffleBuffer;
 
 public class ShuffleDataFlushEvent {
 
-  private long eventId;
-  private String appId;
-  private int shuffleId;
-  private int startPartition;
-  private int endPartition;
-  private long size;
-  private List<ShufflePartitionedBlock> shuffleBlocks;
-  private Supplier<Boolean> valid = null;
-  private ShuffleBuffer shuffleBuffer;
-  private AtomicInteger retryTimes = new AtomicInteger();
+  private final long eventId;
+  private final String appId;
+  private final int shuffleId;
+  private final int startPartition;
+  private final int endPartition;
+  private final long size;
+  private final List<ShufflePartitionedBlock> shuffleBlocks;
+  private final Supplier<Boolean> valid;
+  private final ShuffleBuffer shuffleBuffer;
+  private final AtomicInteger retryTimes = new AtomicInteger();
 
   public ShuffleDataFlushEvent(
       long eventId,

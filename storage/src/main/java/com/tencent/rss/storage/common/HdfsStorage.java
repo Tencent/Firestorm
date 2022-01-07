@@ -79,8 +79,8 @@ public class HdfsStorage extends AbstractStorage {
           request.getEndPartition(),
           storagePath,
           request.getFileNamePrefix(),
-          request.getConf(),
-          request);
+          request.getConf()
+      );
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

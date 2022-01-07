@@ -49,7 +49,7 @@ public class HdfsHandlerTest extends HdfsTestBase {
   @Test
   public void initTest() throws IOException {
     String basePath = HDFS_URI + "test_base";
-    new HdfsShuffleWriteHandler("appId", 0, 0, 0, basePath, "test", conf, null);
+    new HdfsShuffleWriteHandler("appId", 0, 0, 0, basePath, "test", conf);
     Path path = new Path(basePath);
     assertTrue(fs.isDirectory(path));
   }
@@ -58,7 +58,7 @@ public class HdfsHandlerTest extends HdfsTestBase {
   public void writeTest() throws IOException, IllegalStateException {
     String basePath = HDFS_URI + "writeTest";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 1, 1, 1, basePath, "test", conf, null);
+        new HdfsShuffleWriteHandler("appId", 1, 1, 1, basePath, "test", conf);
     List<ShufflePartitionedBlock> blocks = new LinkedList<>();
     List<Long> expectedBlockId = new LinkedList<>();
     List<byte[]> expectedData = new LinkedList<>();
@@ -90,7 +90,7 @@ public class HdfsHandlerTest extends HdfsTestBase {
       pos += i * 8;
     }
     writeHandler =
-        new HdfsShuffleWriteHandler("appId", 1, 1, 1, basePath, "test", conf, null);
+        new HdfsShuffleWriteHandler("appId", 1, 1, 1, basePath, "test", conf);
     writeHandler.write(blocksAppend);
 
     compareDataAndIndex("appId", 1, 1, basePath, expectedData, expectedBlockId);

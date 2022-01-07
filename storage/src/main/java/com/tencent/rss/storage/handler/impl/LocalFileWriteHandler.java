@@ -38,7 +38,6 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
 
   private String fileNamePrefix;
   private String basePath;
-  private CreateShuffleWriteHandlerRequest request;
 
   public LocalFileWriteHandler(
       String appId,
@@ -46,12 +45,10 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
       int startPartition,
       int endPartition,
       String storageBasePath,
-      String fileNamePrefix,
-      CreateShuffleWriteHandlerRequest request) {
+      String fileNamePrefix) {
     this.fileNamePrefix = fileNamePrefix;
     this.basePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
         ShuffleStorageUtils.getShuffleDataPath(appId, shuffleId, startPartition, endPartition));
-    this.request = request;
     createBasePath();
   }
 
@@ -129,11 +126,6 @@ public class LocalFileWriteHandler implements ShuffleWriteHandler {
         "Write handler write {} blocks cost {} ms with file open close",
         shuffleBlocks.size(),
         (System.currentTimeMillis() - accessTime));
-  }
-
-  @Override
-  public CreateShuffleWriteHandlerRequest getCreateShuffleWriteHandlerRequest() {
-    return request;
   }
 
   private LocalFileWriter createWriter(String fileName) throws IOException, IllegalStateException {

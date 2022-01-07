@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
+import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,14 @@ public class MultiStorageManager implements StorageManager {
     if (storageManager == coldStorageManager && event.getRetryTimes() > fallBackTimes) {
       storage = warmStorageManager.selectStorage(event);
       try {
-        handler = storage.getOrCreateWriteHandler(handler.getCreateShuffleWriteHandlerRequest());
+        CreateShuffleWriteHandlerRequest request = storage.getCreateWriterHandlerRequest(
+            event.getAppId(),
+            event.getShuffleId(),
+            event.getStartPartition());
+        if (request == null) {
+          return false;
+        }
+        handler = storage.getOrCreateWriteHandler(request);
       } catch (IOException ioe) {
         LOG.warn("Create fallback write handler failed ", ioe);
         return false;

@@ -51,9 +51,9 @@ public class RssShuffleReaderTest extends AbstractRssReaderTest {
 
     String basePath = HDFS_URI + "readTest1";
     HdfsShuffleWriteHandler writeHandler =
-        new HdfsShuffleWriteHandler("appId", 0, 0, 0, basePath, "test", conf, null);
+        new HdfsShuffleWriteHandler("appId", 0, 0, 0, basePath, "test", conf);
     HdfsShuffleWriteHandler writeHandler1 =
-        new HdfsShuffleWriteHandler("appId", 0, 1, 1, basePath, "test", conf, null);
+        new HdfsShuffleWriteHandler("appId", 0, 1, 1, basePath, "test", conf);
 
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
