@@ -40,7 +40,7 @@ public class AccessManagerTest {
       try {
         new AccessManager(conf, null);
       } catch (RuntimeException e) {
-        assertTrue(e.getMessage().startsWith("Access checkers can not be empty once access manager enabled"));
+        assertTrue(e.getMessage().startsWith("Access checkers can not be empty"));
       }
 
       conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, " , ");
@@ -86,7 +86,7 @@ public class AccessManagerTest {
     public MockAccessCheckerAlwaysTrue(AccessManager accessManager) {
     }
 
-    public void stop() {
+    public void close() {
     }
 
     public AccessCheckResult check(String accessInfo) {
@@ -98,7 +98,7 @@ public class AccessManagerTest {
     public MockAccessCheckerAlwaysFalse() {
     }
 
-    public void stop() {}
+    public void close() {}
 
     public AccessCheckResult check(String accessInfo) {
       return new AccessCheckResult(false, "MockAccessCheckerAlwaysFalse");

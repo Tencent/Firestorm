@@ -65,7 +65,7 @@ public class AccessClusterLoadChecker implements AccessChecker {
     double availableMemory = (double) serverNode.getAvailableMemory();
     double total = (double) serverNode.getTotalMemory();
     double availablePercent = availableMemory / (total / 100.0);
-    return Double.compare(availablePercent, memoryPercentThreshold) > 0;
+    return Double.compare(availablePercent, memoryPercentThreshold) >= 0;
   }
 
   public ClusterManager getClusterManager() {
@@ -80,6 +80,6 @@ public class AccessClusterLoadChecker implements AccessChecker {
     return availableServerNumThreshold;
   }
 
-  public void stop() {
+  public void close() {
   }
 }

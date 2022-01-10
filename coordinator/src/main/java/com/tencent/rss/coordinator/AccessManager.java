@@ -46,7 +46,7 @@ public class AccessManager {
   private void init() throws RuntimeException {
     String checkers = coordinatorConf.get(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS);
     if (StringUtils.isEmpty(checkers)) {
-      String msg = "Access checkers can not be empty once access manager enabled.";
+      String msg = "Access checkers can not be empty when access manager is enabled.";
       LOG.error(msg);
       throw new RuntimeException(msg);
     }
@@ -91,7 +91,7 @@ public class AccessManager {
 
   public void close() {
     for (AccessChecker checker : accessCheckers) {
-      checker.stop();
+      checker.close();
     }
   }
 }

@@ -22,5 +22,5 @@ public interface AccessChecker {
 
   AccessCheckResult check(String accessInfo);
 
-  void stop();
+  void close();
 }

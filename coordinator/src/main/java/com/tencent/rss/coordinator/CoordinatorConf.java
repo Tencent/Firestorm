@@ -86,6 +86,7 @@ public class CoordinatorConf extends RssBaseConf {
   public static final ConfigOption<Integer> COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC = ConfigOptions
       .key("rss.coordinator.access.candidates.update.interval.sec")
       .intType()
+      .checkValue(ConfigUtils.positiveIntegerValidator, "")
       .defaultValue(60)
       .withDescription("Accessed candidates update interval in seconds");
   public static final ConfigOption<String> COORDINATOR_ACCESS_CANDIDATES_PATH = ConfigOptions
@@ -103,6 +104,7 @@ public class CoordinatorConf extends RssBaseConf {
   public static final ConfigOption<Integer> COORDINATOR_ACCESS_SERVER_NUM_THRESHOLD = ConfigOptions
       .key("rss.coordinator.access.serverNum.threshold")
       .intType()
+      .checkValue(ConfigUtils.positiveIntegerValidator, "")
       .noDefaultValue()
       .withDescription("Accessed candidates file path");
 

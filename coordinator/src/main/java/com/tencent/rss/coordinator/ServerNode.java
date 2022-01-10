@@ -139,6 +139,6 @@ public class ServerNode implements Comparable<ServerNode> {
   }
 
   long getTotalMemory() {
-    return availableMemory + usedMemory + preAllocatedMemory;
+    return availableMemory + usedMemory;
   }
 }

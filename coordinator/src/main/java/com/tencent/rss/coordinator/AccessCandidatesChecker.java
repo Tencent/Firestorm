@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,9 +63,15 @@ public class AccessCandidatesChecker implements AccessChecker {
   }
 
   public AccessCheckResult check(String accessInfo) {
-    String taskId = checkAndExtractTaskId(accessInfo);
-    if (!candidates.get().contains(taskId)) {
-      String msg = String.format("Reject taskId[%s] access request.", taskId);
+    String accessId = checkAndExtractTaskId(accessInfo);
+    if (StringUtils.isEmpty(accessId)) {
+      String msg = String.format("Reject for accessId is empty.");
+      LOG.debug(msg);
+      return new AccessCheckResult(false, msg);
+    }
+
+    if (!candidates.get().contains(accessId)) {
+      String msg = String.format("Reject accessInfo[%s] accessId[%s] access request.", accessInfo, accessId);
       LOG.debug(msg);
       return new AccessCheckResult(false, msg);
     }
@@ -72,7 +79,7 @@ public class AccessCandidatesChecker implements AccessChecker {
     return new AccessCheckResult(true, "");
   }
 
-  public void stop() {
+  public void close() {
     if (updateAccessCandidatesSES != null) {
       updateAccessCandidatesSES.shutdownNow();
       updateAccessCandidatesSES = null;
@@ -113,14 +120,14 @@ public class AccessCandidatesChecker implements AccessChecker {
   }
 
   @VisibleForTesting
-  String checkAndExtractTaskId(String cronTaskParam) {
-    if (StringUtils.isEmpty(cronTaskParam.trim())) {
+  String checkAndExtractTaskId(String accessInfo) {
+    if (StringUtils.isEmpty(accessInfo.trim())) {
       return null;
     }
 
-    String[] fields = cronTaskParam.trim().split(CRON_TASK_PARAM_DELIMITER, 2);
-    if (fields != null && fields.length == 2) {
-      return fields[0];
+    String[] fields = accessInfo.trim().split(CRON_TASK_PARAM_DELIMITER, 2);
+    if (!ArrayUtils.isEmpty(fields)) {
+      return fields[0].trim();
     }
 
     return null;

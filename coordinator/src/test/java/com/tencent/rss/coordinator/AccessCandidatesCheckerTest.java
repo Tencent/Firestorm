@@ -82,11 +82,10 @@ public class AccessCandidatesCheckerTest {
 
       sleep(1200);
       assertEquals(Sets.newHashSet("13", "57"), checker.getCandidates().get());
-      assertTrue(checker.check("13_1").isSuccess());
-      assertTrue(checker.check("57_1").isSuccess());
-      assertTrue(checker.check("57_2").isSuccess());
+      assertTrue(checker.check("13_321").isSuccess());
+      assertTrue(checker.check("57").isSuccess());
 
-      checker.stop();
+      checker.close();
       folder.delete();
     } catch (Exception e) {
       fail(e.getMessage());
