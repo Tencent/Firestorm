@@ -50,7 +50,7 @@ public class MultiStorageManager implements StorageManager {
     warmStorageManager = new LocalStorageManager(conf);
     coldStorageManager = new HdfsStorageManager(conf);
     uploadShuffleEnable = conf.get(ShuffleServerConf.UPLOADER_ENABLE);
-    fallBackTimes = conf.get(ShuffleServerConf.FALLBACK_TIMES);
+    fallBackTimes = conf.get(ShuffleServerConf.FALLBACK_MAX_FAIL_TIMES);
     flushColdStorageThresholdSize = conf.getSizeAsBytes(ShuffleServerConf.FLUSH_COLD_STORAGE_THRESHOLD_SIZE);
     if (uploadShuffleEnable) {
       if (!(warmStorageManager instanceof LocalStorageManager)) {
