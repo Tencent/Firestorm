@@ -18,13 +18,13 @@
 
 package com.tencent.rss.coordinator;
 
+import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AccessManagerTest {
   @Before
@@ -34,52 +34,43 @@ public class AccessManagerTest {
 
   @Test
   public void test() {
+    // test init
+    CoordinatorConf conf = new CoordinatorConf();
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, " , ");
     try {
-      // test init
-      CoordinatorConf conf = new CoordinatorConf();
-      try {
-        new AccessManager(conf, null);
-      } catch (RuntimeException e) {
-        assertTrue(e.getMessage().startsWith("Access checkers can not be empty"));
-      }
-
-      conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, " , ");
-      try {
-        new AccessManager(conf, null);
-      } catch (RuntimeException e) {
-        String expectedMessage = "Key: 'rss.coordinator.access.checkers' , default: null is wrong ";
-        assertTrue(e.getMessage().startsWith(expectedMessage));
-      }
-
-      conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
-          "com.Dummy,com.tencent.rss.coordinator.AccessManagerTest$MockAccessChecker");
-      try {
-        new AccessManager(conf, null);
-      } catch (RuntimeException e) {
-        String expectedMessage = "java.lang.ClassNotFoundException: com.Dummy";
-        assertTrue(e.getMessage().startsWith(expectedMessage));
-      }
-
-      // test checkers
-      conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
-          "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,");
-      conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
-      AccessManager accessManager = new AccessManager(conf, null);
-      assertEquals(1, accessManager.getAccessCheckers().size());
-      assertTrue(accessManager.handleAccessRequest("mock1").isSuccess());
-      assertTrue(accessManager.handleAccessRequest("mock2").isSuccess());
-
-      conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
-          "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,"
-              + "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysFalse");
-      accessManager = new AccessManager(conf, null);
-      assertEquals(2, accessManager.getAccessCheckers().size());
-      assertFalse(accessManager.handleAccessRequest("mock1").isSuccess());
-      accessManager.close();
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail(e.getMessage());
+      new AccessManager(conf, null);
+    } catch (RuntimeException e) {
+      String expectedMessage = "Checkers config value[ , ] is wrong.";
+      assertTrue(e.getMessage().startsWith(expectedMessage));
     }
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.Dummy,com.tencent.rss.coordinator.AccessManagerTest$MockAccessChecker");
+    try {
+      new AccessManager(conf, null);
+    } catch (RuntimeException e) {
+      String expectedMessage = "java.lang.ClassNotFoundException: com.Dummy";
+      assertTrue(e.getMessage().startsWith(expectedMessage));
+    }
+    // test empty checkers
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, "");
+    AccessManager accessManager = new AccessManager(conf, null);
+    assertTrue(accessManager.handleAccessRequest(String.valueOf(new Random().nextInt())).isSuccess());
+    accessManager.close();
+    // test mock checkers
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,");
+    conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
+    accessManager = new AccessManager(conf, null);
+    assertEquals(1, accessManager.getAccessCheckers().size());
+    assertTrue(accessManager.handleAccessRequest("mock1").isSuccess());
+    assertTrue(accessManager.handleAccessRequest("mock2").isSuccess());
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,"
+            + "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysFalse");
+    accessManager = new AccessManager(conf, null);
+    assertEquals(2, accessManager.getAccessCheckers().size());
+    assertFalse(accessManager.handleAccessRequest("mock1").isSuccess());
+    accessManager.close();
   }
 
   public static class MockAccessCheckerAlwaysTrue implements AccessChecker {

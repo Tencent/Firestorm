@@ -46,15 +46,14 @@ public class AccessManager {
   private void init() throws RuntimeException {
     String checkers = coordinatorConf.get(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS);
     if (StringUtils.isEmpty(checkers)) {
-      String msg = "Access checkers can not be empty when access manager is enabled.";
-      LOG.error(msg);
-      throw new RuntimeException(msg);
+     LOG.warn("Access checkers is empty, will not init any checkers.");
+     return;
     }
 
     String[] names = checkers.trim().split(",");
     if (ArrayUtils.isEmpty(names)) {
-      String msg = String.format("%s is wrong and empty access checkers, AccessManager will do nothing.",
-          CoordinatorConf.COORDINATOR_ACCESS_CHECKERS.toString());
+      String msg = String.format("Checkers config value[%s] is wrong.", checkers);
+      LOG.error(msg);
       throw new RuntimeException(msg);
     }
 

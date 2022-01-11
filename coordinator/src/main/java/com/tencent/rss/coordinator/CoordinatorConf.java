@@ -63,11 +63,6 @@ public class CoordinatorConf extends RssBaseConf {
       .intType()
       .defaultValue(9)
       .withDescription("The max number of shuffle server when do the assignment");
-  public static final ConfigOption<Boolean> COORDINATOR_ACCESS_MANAGER_ENABLE = ConfigOptions
-      .key("rss.coordinator.access.manager.enable")
-      .booleanType()
-      .defaultValue(false)
-      .withDescription("Access access manager enable");
   public static final ConfigOption<String> COORDINATOR_ACCESS_CHECKERS = ConfigOptions
       .key("rss.coordinator.access.checkers")
       .stringType()

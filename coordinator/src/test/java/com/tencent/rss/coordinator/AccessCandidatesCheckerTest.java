@@ -33,7 +33,6 @@ import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AccessCandidatesCheckerTest {
   @Rule
@@ -45,50 +44,42 @@ public class AccessCandidatesCheckerTest {
   }
 
   @Test
-  public void testHandleAccessRequest() {
-    try {
-      File cfgFile = folder.newFile();
-      FileWriter fileWriter = new FileWriter(cfgFile);
-      PrintWriter printWriter = new PrintWriter(fileWriter);
-      printWriter.println("9527");
-      printWriter.println(" 135 ");
-      printWriter.println("2 ");
-      printWriter.flush();
-      printWriter.close();
-
-      final String filePath = Objects.requireNonNull(
-          getClass().getClassLoader().getResource("coordinator.conf")).getFile();
-      CoordinatorConf conf = new CoordinatorConf(filePath);
-      conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.getAbsolutePath());
-      conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
-          "com.tencent.rss.coordinator.AccessCandidatesChecker");
-      conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
-      AccessManager accessManager = new AccessManager(conf, null);
-      AccessCandidatesChecker checker = (AccessCandidatesChecker) accessManager.getAccessCheckers().get(0);
-      sleep(1200);
-      assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
-      assertTrue(checker.check("9527_1").isSuccess());
-      assertTrue(checker.check("135_1").isSuccess());
-      assertTrue(checker.check("135_2").isSuccess());
-      assertFalse(checker.check("1").isSuccess());
-      assertFalse(checker.check("1_2").isSuccess());
-
-      sleep(1100);
-      fileWriter = new FileWriter(cfgFile);
-      printWriter = new PrintWriter(fileWriter);
-      printWriter.println("13");
-      printWriter.println("57");
-      printWriter.close();
-
-      sleep(1200);
-      assertEquals(Sets.newHashSet("13", "57"), checker.getCandidates().get());
-      assertTrue(checker.check("13_321").isSuccess());
-      assertTrue(checker.check("57").isSuccess());
-
-      checker.close();
-      folder.delete();
-    } catch (Exception e) {
-      fail(e.getMessage());
-    }
+  public void testHandleAccessRequest() throws Exception {
+    File cfgFile = folder.newFile();
+    FileWriter fileWriter = new FileWriter(cfgFile);
+    PrintWriter printWriter = new PrintWriter(fileWriter);
+    printWriter.println("9527");
+    printWriter.println(" 135 ");
+    printWriter.println("2 ");
+    printWriter.flush();
+    printWriter.close();
+    final String filePath = Objects.requireNonNull(
+        getClass().getClassLoader().getResource("coordinator.conf")).getFile();
+    CoordinatorConf conf = new CoordinatorConf(filePath);
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.getAbsolutePath());
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.tencent.rss.coordinator.AccessCandidatesChecker");
+    conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
+    AccessManager accessManager = new AccessManager(conf, null);
+    AccessCandidatesChecker checker = (AccessCandidatesChecker) accessManager.getAccessCheckers().get(0);
+    sleep(1200);
+    assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
+    assertTrue(checker.check("9527_1").isSuccess());
+    assertTrue(checker.check("135_1").isSuccess());
+    assertTrue(checker.check("135_2").isSuccess());
+    assertFalse(checker.check("1").isSuccess());
+    assertFalse(checker.check("1_2").isSuccess());
+    sleep(1100);
+    fileWriter = new FileWriter(cfgFile);
+    printWriter = new PrintWriter(fileWriter);
+    printWriter.println("13");
+    printWriter.println("57");
+    printWriter.close();
+    sleep(1200);
+    assertEquals(Sets.newHashSet("13", "57"), checker.getCandidates().get());
+    assertTrue(checker.check("13_321").isSuccess());
+    assertTrue(checker.check("57").isSuccess());
+    checker.close();
+    folder.delete();
   }
 }

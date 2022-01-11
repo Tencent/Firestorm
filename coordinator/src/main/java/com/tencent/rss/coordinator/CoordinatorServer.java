@@ -108,12 +108,7 @@ public class CoordinatorServer {
     AssignmentStrategyFactory assignmentStrategyFactory =
         new AssignmentStrategyFactory(coordinatorConf, clusterManager);
     this.assignmentStrategy = assignmentStrategyFactory.getAssignmentStrategy();
-
-    if (coordinatorConf.getBoolean(CoordinatorConf.COORDINATOR_ACCESS_MANAGER_ENABLE, false)) {
-      this.accessManager = new AccessManager(coordinatorConf, clusterManager);
-    } else {
-      this.accessManager = null;
-    }
+    this.accessManager = new AccessManager(coordinatorConf, clusterManager);
 
     jettyServer = new JettyServer(coordinatorConf);
     registerMetrics();

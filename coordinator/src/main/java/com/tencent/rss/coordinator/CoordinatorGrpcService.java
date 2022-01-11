@@ -201,24 +201,15 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
     AccessClusterResponse response;
     AccessManager accessManager = coordinatorServer.getAccessManager();
 
-    if (accessManager == null) {
-      LOG.warn("AccessManager is disabled return success directly for {}", accessInfo);
-      response = AccessClusterResponse
-          .newBuilder()
-          .setStatus(statusCode)
-          .setRetMsg("No AccessManager")
-          .build();
-    } else {
-      AccessCheckResult result = accessManager.handleAccessRequest(accessInfo);
-      if (!result.isSuccess()) {
-        statusCode = StatusCode.INTERNAL_ERROR;
-      }
-      response = AccessClusterResponse
-          .newBuilder()
-          .setStatus(statusCode)
-          .setRetMsg(result.getMsg())
-          .build();
+    AccessCheckResult result = accessManager.handleAccessRequest(accessInfo);
+    if (!result.isSuccess()) {
+      statusCode = StatusCode.ACCESS_FAIL;
     }
+    response = AccessClusterResponse
+        .newBuilder()
+        .setStatus(statusCode)
+        .setRetMsg(result.getMsg())
+        .build();
 
     if (Context.current().isCancelled()) {
       responseObserver.onError(Status.CANCELLED.withDescription("Cancelled by client").asRuntimeException());
