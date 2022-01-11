@@ -241,13 +241,10 @@ public class ShuffleStorageUtils {
   }
 
   public static boolean containsLocalFile(String storageType) {
-    if (StorageType.LOCALFILE.name().equals(storageType)
+    return StorageType.LOCALFILE.name().equals(storageType)
         || StorageType.LOCALFILE_HDFS.name().equals(storageType)
         || StorageType.LOCALFILE_HDFS_2.name().equals(storageType)
         || StorageType.MEMORY_LOCALFILE.name().equals(storageType)
-        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType)) {
-      return true;
-    }
-    return false;
+        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType);
   }
 }
