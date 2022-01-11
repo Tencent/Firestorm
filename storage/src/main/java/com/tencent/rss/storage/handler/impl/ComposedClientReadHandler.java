@@ -44,36 +44,36 @@ public class ComposedClientReadHandler implements ClientReadHandler {
   private static final int COLD = 3;
   private static final int FROZEN = 4;
   private int currentHandler = HOT;
-  private final int upmostLevelOfHandler;
+  private final int topLevelOfHandler;
 
   public ComposedClientReadHandler(ClientReadHandler... handlers) {
-    upmostLevelOfHandler = handlers.length;
-    if (upmostLevelOfHandler > 0) {
+    topLevelOfHandler = handlers.length;
+    if (topLevelOfHandler > 0) {
       this.hotDataReadHandler = handlers[0];
     }
-    if (upmostLevelOfHandler > 1) {
+    if (topLevelOfHandler > 1) {
       this.warmDataReadHandler = handlers[1];
     }
-    if (upmostLevelOfHandler > 2) {
+    if (topLevelOfHandler > 2) {
       this.coldDataReadHandler = handlers[2];
     }
-    if (upmostLevelOfHandler > 3) {
+    if (topLevelOfHandler > 3) {
       this.frozenDataReadHandler = handlers[3];
     }
   }
 
   public ComposedClientReadHandler(Callable<ClientReadHandler>... creators) {
-    upmostLevelOfHandler = creators.length;
-    if (upmostLevelOfHandler > 0) {
+    topLevelOfHandler = creators.length;
+    if (topLevelOfHandler > 0) {
       this.hotHandlerCreator = creators[0];
     }
-    if (upmostLevelOfHandler > 1) {
+    if (topLevelOfHandler > 1) {
       this.warmHandlerCreator = creators[1];
     }
-    if (upmostLevelOfHandler > 2) {
+    if (topLevelOfHandler > 2) {
       this.coldHandlerCreator = creators[2];
     }
-    if (upmostLevelOfHandler > 3) {
+    if (topLevelOfHandler > 3) {
       this.frozenHandlerCreator = creators[3];
     }
   }
@@ -116,7 +116,7 @@ public class ComposedClientReadHandler implements ClientReadHandler {
     // when is no data for current handler, and the upmostLevel is not reached,
     // then try next one if there has
     if (shuffleDataResult == null || shuffleDataResult.isEmpty()) {
-      if (currentHandler < upmostLevelOfHandler) {
+      if (currentHandler < topLevelOfHandler) {
         currentHandler++;
       } else {
         return null;
