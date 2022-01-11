@@ -156,7 +156,6 @@ public class RssShuffleUtils {
 
   public static ShuffleManager loadShuffleManager(String name, SparkConf conf, boolean isDriver) throws Exception {
     Class<?> klass = Class.forName(name);
-
     Constructor<?> constructor;
     ShuffleManager instance;
     try {
@@ -176,5 +175,4 @@ public class RssShuffleUtils {
     CoordinatorClientFactory coordinatorClientFactory = new CoordinatorClientFactory(clientType);
     return coordinatorClientFactory.createCoordinatorClient(coordinators);
   }
-
 }
