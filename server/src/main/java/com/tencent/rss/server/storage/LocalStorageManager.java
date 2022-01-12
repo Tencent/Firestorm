@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
-import com.tencent.rss.server.ShuffleServerMetrics;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 
@@ -30,6 +29,7 @@ import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleDataReadEvent;
 import com.tencent.rss.server.ShuffleServerConf;
+import com.tencent.rss.server.ShuffleServerMetrics;
 import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.common.Storage;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;

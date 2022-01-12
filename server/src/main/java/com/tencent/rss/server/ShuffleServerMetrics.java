@@ -56,7 +56,7 @@ public class ShuffleServerMetrics {
   private static final String TOTAL_UPLOAD_SIZE = "total_upload_size";
   private static final String TOTAL_UPLOAD_TIME_S = "total_upload_time_s";
   private static final String TOTAL_DROPPED_EVENT_NUM = "total_dropped_event_num";
-  private static final String TOTAL_HDFS_WRITE_DATA= "total_hdfs_write_data";
+  private static final String TOTAL_HDFS_WRITE_DATA = "total_hdfs_write_data";
   private static final String TOTAL_LOCALFILE_WRITE_DATA = "total_localfile_write_data";
 
   public static Counter counterTotalReceivedDataSize;

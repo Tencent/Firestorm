@@ -20,7 +20,6 @@ package com.tencent.rss.server.storage;
 
 import java.util.Set;
 
-import com.tencent.rss.server.ShuffleServerMetrics;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleDataReadEvent;
 import com.tencent.rss.server.ShuffleServerConf;
+import com.tencent.rss.server.ShuffleServerMetrics;
 import com.tencent.rss.storage.common.HdfsStorage;
 import com.tencent.rss.storage.common.Storage;
 import com.tencent.rss.storage.factory.ShuffleHandlerFactory;
