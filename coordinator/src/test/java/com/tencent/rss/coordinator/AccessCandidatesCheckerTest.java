@@ -59,16 +59,14 @@ public class AccessCandidatesCheckerTest {
     conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.getAbsolutePath());
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessCandidatesChecker");
-    conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
     AccessManager accessManager = new AccessManager(conf, null);
     AccessCandidatesChecker checker = (AccessCandidatesChecker) accessManager.getAccessCheckers().get(0);
     sleep(1200);
     assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
-    assertTrue(checker.check("9527_1").isSuccess());
-    assertTrue(checker.check("135_1").isSuccess());
-    assertTrue(checker.check("135_2").isSuccess());
-    assertFalse(checker.check("1").isSuccess());
-    assertFalse(checker.check("1_2").isSuccess());
+    assertTrue(checker.check(new AccessInfo("9527")).isSuccess());
+    assertTrue(checker.check(new AccessInfo("135")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1_2")).isSuccess());
     sleep(1100);
     fileWriter = new FileWriter(cfgFile);
     printWriter = new PrintWriter(fileWriter);
@@ -77,8 +75,8 @@ public class AccessCandidatesCheckerTest {
     printWriter.close();
     sleep(1200);
     assertEquals(Sets.newHashSet("13", "57"), checker.getCandidates().get());
-    assertTrue(checker.check("13_321").isSuccess());
-    assertTrue(checker.check("57").isSuccess());
+    assertTrue(checker.check(new AccessInfo("13")).isSuccess());
+    assertTrue(checker.check(new AccessInfo("57")).isSuccess());
     checker.close();
     folder.delete();
   }

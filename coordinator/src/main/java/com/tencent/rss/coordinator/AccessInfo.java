@@ -18,18 +18,36 @@
 
 package com.tencent.rss.coordinator;
 
-import java.io.Closeable;
+import java.util.Set;
 
-/**
- *  Interface for checking the access info from the client-side.
- */
-public interface AccessChecker extends Closeable {
+import com.google.common.collect.Sets;
 
-  /**
-   * Called when the AccessManager handle the access request.
-   *
-   * @param accessInfo access info of the client
-   * @return  access check result
-   */
-  AccessCheckResult check(AccessInfo accessInfo);
+public class AccessInfo {
+  private final String accessId;
+  private final Set<String> tags;
+
+  public AccessInfo(String accessId, Set<String> tags) {
+    this.accessId = accessId;
+    this.tags = tags;
+  }
+
+  public AccessInfo(String accessId) {
+    this(accessId, Sets.newHashSet());
+  }
+
+  public String getAccessId() {
+    return accessId;
+  }
+
+  public Set<String> getTags() {
+    return tags;
+  }
+
+  @Override
+  public String toString() {
+    return "AccessInfo{"
+        + "accessId='" + accessId + '\''
+        + ", tags=" + tags
+        + '}';
+  }
 }

@@ -21,7 +21,6 @@ package com.tencent.rss.coordinator;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -156,10 +155,6 @@ public class SimpleClusterManager implements ClusterManager {
       }
     }
     return availableNodes;
-  }
-
-  public List<ServerNode> getServerList() {
-    return new ArrayList<>(servers.values());
   }
 
   public Set<String> getExcludeNodes() {

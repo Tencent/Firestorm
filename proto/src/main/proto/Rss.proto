@@ -231,7 +231,7 @@ enum StatusCode {
   NO_PARTITION = 5;
   INTERNAL_ERROR = 6;
   TIMEOUT = 7;
-  ACCESS_FAIL = 8;
+  ACCESS_DENIED = 8;
   // add more status
 }
 
@@ -327,7 +327,8 @@ message CheckServiceAvailableResponse {
 }
 
 message AccessClusterRequest {
-  string accessInfo = 1;
+  string accessId = 1;
+  repeated string tags = 2;
 }
 
 message AccessClusterResponse {

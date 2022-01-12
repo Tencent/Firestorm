@@ -28,48 +28,36 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * AccessCandidatesChecker maintain a list of candidate access id and update it periodically,
+ * it checks the access id in the access request and reject if the id is not in the candidate list.
+ */
 public class AccessCandidatesChecker implements AccessChecker {
   private static final Logger LOG = LoggerFactory.getLogger(AccessCandidatesChecker.class);
 
   private final AtomicReference<Set<String>> candidates = new AtomicReference<>();
   private final AtomicLong lastCandidatesUpdateMS = new AtomicLong(0L);
   private final String path;
-  private final int updateIntervalS;
-
-  private ScheduledExecutorService updateAccessCandidatesSES;
-
-  static final String CRON_TASK_PARAM_DELIMITER = "_";
+  private final ScheduledExecutorService updateAccessCandidatesSES;
 
   public AccessCandidatesChecker(AccessManager accessManager) {
     CoordinatorConf conf = accessManager.getCoordinatorConf();
     this.path = conf.get(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH);
-    this.updateIntervalS = conf.get(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC);
-    init();
-  }
-
-  private void init() {
+    int updateIntervalS = conf.getInteger(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC);
     updateAccessCandidatesSES = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("UpdateAccessCandidates-%d").build());
     updateAccessCandidatesSES.scheduleAtFixedRate(
         this::updateAccessCandidates, 0, updateIntervalS, TimeUnit.SECONDS);
   }
 
-  public AccessCheckResult check(String accessInfo) {
-    String accessId = checkAndExtractTaskId(accessInfo);
-    if (StringUtils.isEmpty(accessId)) {
-      String msg = String.format("Reject for accessId is empty.");
-      LOG.debug(msg);
-      return new AccessCheckResult(false, msg);
-    }
-
+  public AccessCheckResult check(AccessInfo accessInfo) {
+    String accessId = accessInfo.getAccessId().trim();
     if (!candidates.get().contains(accessId)) {
       String msg = String.format("Reject accessInfo[%s] accessId[%s] access request.", accessInfo, accessId);
       LOG.debug(msg);
@@ -82,7 +70,6 @@ public class AccessCandidatesChecker implements AccessChecker {
   public void close() {
     if (updateAccessCandidatesSES != null) {
       updateAccessCandidatesSES.shutdownNow();
-      updateAccessCandidatesSES = null;
     }
   }
 
@@ -117,20 +104,6 @@ public class AccessCandidatesChecker implements AccessChecker {
       LOG.warn("Error when parse file {}", candidatesFile.getAbsolutePath(), e);
     }
     candidates.set(newCandidates);
-  }
-
-  @VisibleForTesting
-  String checkAndExtractTaskId(String accessInfo) {
-    if (StringUtils.isEmpty(accessInfo.trim())) {
-      return null;
-    }
-
-    String[] fields = accessInfo.trim().split(CRON_TASK_PARAM_DELIMITER, 2);
-    if (!ArrayUtils.isEmpty(fields)) {
-      return fields[0].trim();
-    }
-
-    return null;
   }
 
   public AtomicReference<Set<String>> getCandidates() {

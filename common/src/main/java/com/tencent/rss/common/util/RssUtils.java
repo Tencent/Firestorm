@@ -212,7 +212,7 @@ public class RssUtils {
   public static <T> List<T> loadExtensions(
       Class<T> extClass, List<String> classes, Object obj) throws RuntimeException {
     if (classes == null || classes.isEmpty()) {
-      throw new IllegalArgumentException("Empty classes");
+      throw new RuntimeException("Empty classes");
     }
 
     List<T> extensions = Lists.newArrayList();
@@ -220,7 +220,7 @@ public class RssUtils {
       try {
         Class<?> klass = Class.forName(name);
         if (!extClass.isAssignableFrom(klass)) {
-          throw new IllegalArgumentException(name + " is not subclass of " + extClass.getName());
+          throw new RuntimeException(name + " is not subclass of " + extClass.getName());
         }
 
         Constructor<?> constructor;

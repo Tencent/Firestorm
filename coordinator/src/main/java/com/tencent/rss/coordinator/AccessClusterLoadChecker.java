@@ -19,14 +19,18 @@
 package com.tencent.rss.coordinator;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * AccessClusterLoadChecker use the cluster load metrics including memory and healthy to
+ * filter and count available nodes numbers and reject if the number do not reach the threshold.
+ */
 public class AccessClusterLoadChecker implements AccessChecker {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AccessManager.class);
+  private static final Logger LOG = LoggerFactory.getLogger(AccessClusterLoadChecker.class);
 
   private final ClusterManager clusterManager;
   private final double memoryPercentThreshold;
@@ -35,27 +39,22 @@ public class AccessClusterLoadChecker implements AccessChecker {
   public AccessClusterLoadChecker(AccessManager accessManager) {
     clusterManager = accessManager.getClusterManager();
     CoordinatorConf conf = accessManager.getCoordinatorConf();
-    this.memoryPercentThreshold = conf.getDouble(CoordinatorConf.COORDINATOR_ACCESS_MEMORY_PERCENTAGE);
-    this.availableServerNumThreshold = conf.getInteger(CoordinatorConf.COORDINATOR_ACCESS_SERVER_NUM_THRESHOLD,
+    this.memoryPercentThreshold = conf.getDouble(CoordinatorConf.COORDINATOR_ACCESS_LOADCHECKER_MEMORY_PERCENTAGE);
+    this.availableServerNumThreshold = conf.getInteger(
+        CoordinatorConf.COORDINATOR_ACCESS_LOADCHECKER_SERVER_NUM_THRESHOLD,
         conf.get(CoordinatorConf.COORDINATOR_SHUFFLE_NODES_MAX));
   }
 
-  public AccessCheckResult check(String accessInfo) {
-    List<ServerNode> servers = clusterManager.getServerList();
-    List<ServerNode> healthyNodes = servers.stream().filter(ServerNode::isHealthy).collect(Collectors.toList());
-    List<ServerNode> availableNodes = healthyNodes.stream().filter(this::checkMemory).collect(Collectors.toList());
-    int size = availableNodes.size();
+  public AccessCheckResult check(AccessInfo accessInfo) {
+    Set<String> tags = accessInfo.getTags();
+    List<ServerNode> servers = clusterManager.getServerList(tags);
+    int size = (int) servers.stream().filter(ServerNode::isHealthy).filter(this::checkMemory).count();
     if (size >= availableServerNumThreshold) {
-      LOG.debug("{} cluster load check passed total {} nodes, {} healthy nodes, "
-              + "{} available nodes, memory percent threshold {}, threshold num {}.",
-          accessInfo, servers.size(), healthyNodes.size(), availableNodes.size(),
-          memoryPercentThreshold, availableServerNumThreshold);
-      return new AccessCheckResult(true, "");
+      return new AccessCheckResult(true, "SUCCESS");
     } else {
-      String msg = String.format("%s cluster load check failed total %s nodes, %s healthy nodes, "
-              + "%s available nodes, memory percent threshold %s, available num threshold %s.",
-          accessInfo, servers.size(), healthyNodes.size(), availableNodes.size(),
-          memoryPercentThreshold, availableServerNumThreshold);
+      String msg = String.format("%s cluster load check failed total %s nodes, %s available nodes, "
+              + "memory percent threshold %s, available num threshold %s.",
+          accessInfo, servers.size(), size, memoryPercentThreshold, availableServerNumThreshold);
       LOG.warn(msg);
       return new AccessCheckResult(false, msg);
     }

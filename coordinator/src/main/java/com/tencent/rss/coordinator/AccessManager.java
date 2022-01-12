@@ -18,11 +18,11 @@
 
 package com.tencent.rss.coordinator;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,21 +51,10 @@ public class AccessManager {
     }
 
     String[] names = checkers.trim().split(",");
-    if (ArrayUtils.isEmpty(names)) {
-      String msg = String.format("Checkers config value[%s] is wrong.", checkers);
-      LOG.error(msg);
-      throw new RuntimeException(msg);
-    }
-
     accessCheckers = RssUtils.loadExtensions(AccessChecker.class, Arrays.asList(names), this);
-    if (accessCheckers.isEmpty()) {
-      String msg = String.format("%s is wrong and empty access checkers, AccessManager will do nothing.",
-          CoordinatorConf.COORDINATOR_ACCESS_CHECKERS.toString());
-      throw new RuntimeException(msg);
-    }
   }
 
-  public AccessCheckResult handleAccessRequest(String accessInfo) {
+  public AccessCheckResult handleAccessRequest(AccessInfo accessInfo) {
     for (AccessChecker checker : accessCheckers) {
       AccessCheckResult accessCheckResult = checker.check(accessInfo);
       if (!accessCheckResult.isSuccess()) {
@@ -88,7 +77,7 @@ public class AccessManager {
     return accessCheckers;
   }
 
-  public void close() {
+  public void close() throws IOException {
     for (AccessChecker checker : accessCheckers) {
       checker.close();
     }

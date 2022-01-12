@@ -39,13 +39,6 @@ public interface ClusterManager {
   List<ServerNode> getServerList(Set<String> requiredTags);
 
   /**
-   * Get all nodes from the cluster
-   *
-   * @return list of available server nodes
-   */
-  List<ServerNode> getServerList();
-
-  /**
    * @return number of server nodes in the cluster
    */
   int getNodesNum();

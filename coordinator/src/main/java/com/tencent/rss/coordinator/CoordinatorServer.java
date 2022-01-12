@@ -96,6 +96,9 @@ public class CoordinatorServer {
     if (clusterManager != null) {
       clusterManager.shutdown();
     }
+    if (accessManager != null) {
+      accessManager.close();
+    }
     server.stop();
   }
 

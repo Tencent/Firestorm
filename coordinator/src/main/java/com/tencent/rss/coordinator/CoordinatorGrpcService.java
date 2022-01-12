@@ -196,14 +196,14 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
 
   @Override
   public void accessCluster(AccessClusterRequest request, StreamObserver<AccessClusterResponse> responseObserver) {
-    String accessInfo = request.getAccessInfo();
     StatusCode statusCode = StatusCode.SUCCESS;
     AccessClusterResponse response;
     AccessManager accessManager = coordinatorServer.getAccessManager();
 
+    AccessInfo accessInfo = new AccessInfo(request.getAccessId(), Sets.newHashSet(request.getTagsList()));
     AccessCheckResult result = accessManager.handleAccessRequest(accessInfo);
     if (!result.isSuccess()) {
-      statusCode = StatusCode.ACCESS_FAIL;
+      statusCode = StatusCode.ACCESS_DENIED;
     }
     response = AccessClusterResponse
         .newBuilder()

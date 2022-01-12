@@ -18,6 +18,8 @@
 
 package com.tencent.rss.coordinator;
 
+import com.google.common.collect.Sets;
+import com.tencent.rss.common.util.Constants;
 import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,14 +35,14 @@ public class AccessManagerTest {
   }
 
   @Test
-  public void test() {
+  public void test() throws Exception {
     // test init
     CoordinatorConf conf = new CoordinatorConf();
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, " , ");
     try {
       new AccessManager(conf, null);
     } catch (RuntimeException e) {
-      String expectedMessage = "Checkers config value[ , ] is wrong.";
+      String expectedMessage = "Empty classes";
       assertTrue(e.getMessage().startsWith(expectedMessage));
     }
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
@@ -54,22 +56,24 @@ public class AccessManagerTest {
     // test empty checkers
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS, "");
     AccessManager accessManager = new AccessManager(conf, null);
-    assertTrue(accessManager.handleAccessRequest(String.valueOf(new Random().nextInt())).isSuccess());
+    assertTrue(accessManager.handleAccessRequest(
+        new AccessInfo(String.valueOf(new Random().nextInt()),
+            Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION)))
+        .isSuccess());
     accessManager.close();
     // test mock checkers
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,");
-    conf.setInteger(CoordinatorConf.COORDINATOR_ACCESS_CLEANUP_INTERVAL_SEC, 1);
     accessManager = new AccessManager(conf, null);
     assertEquals(1, accessManager.getAccessCheckers().size());
-    assertTrue(accessManager.handleAccessRequest("mock1").isSuccess());
-    assertTrue(accessManager.handleAccessRequest("mock2").isSuccess());
+    assertTrue(accessManager.handleAccessRequest(new AccessInfo("mock1")).isSuccess());
+    assertTrue(accessManager.handleAccessRequest(new AccessInfo("mock2")).isSuccess());
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysTrue,"
             + "com.tencent.rss.coordinator.AccessManagerTest$MockAccessCheckerAlwaysFalse");
     accessManager = new AccessManager(conf, null);
     assertEquals(2, accessManager.getAccessCheckers().size());
-    assertFalse(accessManager.handleAccessRequest("mock1").isSuccess());
+    assertFalse(accessManager.handleAccessRequest(new AccessInfo("mock1")).isSuccess());
     accessManager.close();
   }
 
@@ -80,7 +84,7 @@ public class AccessManagerTest {
     public void close() {
     }
 
-    public AccessCheckResult check(String accessInfo) {
+    public AccessCheckResult check(AccessInfo accessInfo) {
       return new AccessCheckResult(true, "");
     }
   }
@@ -91,7 +95,7 @@ public class AccessManagerTest {
 
     public void close() {}
 
-    public AccessCheckResult check(String accessInfo) {
+    public AccessCheckResult check(AccessInfo accessInfo) {
       return new AccessCheckResult(false, "MockAccessCheckerAlwaysFalse");
     }
   }

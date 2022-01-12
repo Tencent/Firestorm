@@ -21,6 +21,7 @@ package com.tencent.rss.coordinator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,8 +55,8 @@ public class AccessClusterLoadCheckerTest {
     AccessManager accessManager = new AccessManager(conf, clusterManager);
     AccessClusterLoadChecker accessClusterLoadChecker =
         (AccessClusterLoadChecker) accessManager.getAccessCheckers().get(0);
-    when(clusterManager.getServerList()).thenReturn(serverNodeList);
-    assertFalse(accessClusterLoadChecker.check("test").isSuccess());
+    when(clusterManager.getServerList(any())).thenReturn(serverNodeList);
+    assertFalse(accessClusterLoadChecker.check(new AccessInfo("test")).isSuccess());
     assertEquals(2, accessClusterLoadChecker.getAvailableServerNumThreshold());
     assertEquals(0, Double.compare(accessClusterLoadChecker.getMemoryPercentThreshold(), 20.0));
     ServerNode node2 = new ServerNode(
@@ -80,7 +81,7 @@ public class AccessClusterLoadCheckerTest {
         null,
         true);
     serverNodeList.add(node3);
-    assertFalse(accessClusterLoadChecker.check("test").isSuccess());
+    assertFalse(accessClusterLoadChecker.check(new AccessInfo("test")).isSuccess());
     ServerNode node4 = new ServerNode(
         "1",
         "1",
@@ -92,6 +93,6 @@ public class AccessClusterLoadCheckerTest {
         null,
         true);
     serverNodeList.add(node4);
-    assertTrue(accessClusterLoadChecker.check("test").isSuccess());
+    assertTrue(accessClusterLoadChecker.check(new AccessInfo("test")).isSuccess());
   }
 }
