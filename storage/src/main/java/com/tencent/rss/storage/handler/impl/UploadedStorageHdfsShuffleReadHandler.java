@@ -49,6 +49,7 @@ public class UploadedStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandle
     this.partitionId = partitionId;
   }
 
+  @Override
   protected byte[] readShuffleData(long offset, int expectedLength) {
     byte[] data = dataReader.read(dataFileOffset + offset, expectedLength);
     if (data.length != expectedLength) {
@@ -59,6 +60,7 @@ public class UploadedStorageHdfsShuffleReadHandler extends HdfsShuffleReadHandle
     return data;
   }
 
+  @Override
   protected ShuffleIndexResult readShuffleIndex() {
     long start = System.currentTimeMillis();
     try {

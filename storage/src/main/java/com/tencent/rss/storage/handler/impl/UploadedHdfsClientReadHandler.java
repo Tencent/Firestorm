@@ -29,6 +29,7 @@ import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tencent.rss.common.ShuffleDataResult;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
@@ -59,13 +60,7 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
         processBlockIds,
         storageBasePath,
         hadoopConf);
-    String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
-        ShuffleStorageUtils.getUploadShuffleDataPath(appId, shuffleId, partitionId));
-    init(fullShufflePath);
-    String combinePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
-        ShuffleStorageUtils.getCombineDataPath(appId, shuffleId));
-    init(combinePath);
-  }
+    }
 
   @Override
   protected void init(String fullShufflePath) {
@@ -104,5 +99,19 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
       }
       readHandlers.sort(Comparator.comparing(HdfsShuffleReadHandler::getFilePrefix));
     }
+  }
+
+  @Override
+  public ShuffleDataResult readShuffleData() {
+    // init lazily like LocalFileClientRead
+    if (readHandlers.size() == 0) {
+      String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
+        ShuffleStorageUtils.getUploadShuffleDataPath(appId, shuffleId, partitionId));
+      init(fullShufflePath);
+      String combinePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
+        ShuffleStorageUtils.getCombineDataPath(appId, shuffleId));
+      init(combinePath);
+    }
+    return super.readShuffleData();
   }
 }
