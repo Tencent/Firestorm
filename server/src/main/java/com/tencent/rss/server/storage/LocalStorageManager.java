@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
+import com.tencent.rss.server.ShuffleServerMetrics;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 
@@ -83,6 +84,12 @@ public class LocalStorageManager extends SingleStorageManager {
         event.getAppId(),
         event.getShuffleId(),
         event.getStartPartition()));
+  }
+
+  @Override
+  public void updateWriteMetrics(ShuffleDataFlushEvent event, long writeTime) {
+    super.updateWriteMetrics(event, writeTime);
+    ShuffleServerMetrics.counterTotalLocalFileWriteDataSize.inc(event.getSize());
   }
 
   @Override
