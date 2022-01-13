@@ -116,7 +116,7 @@ public class HdfsClientReadHandler extends AbstractClientReadHandler {
   @Override
   public ShuffleDataResult readShuffleData() {
     // init lazily like LocalFileClientRead
-    if (readHandlers.size() == 0) {
+    if (readHandlers.isEmpty()) {
       String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
         ShuffleStorageUtils.getShuffleDataPathWithRange(appId,
           shuffleId, partitionId, partitionNumPerRange, partitionNum));
