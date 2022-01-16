@@ -39,10 +39,7 @@ import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.MemoryQuorumClientReadHandler;
 import com.tencent.rss.storage.util.StorageType;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import java.io.File;
@@ -136,6 +133,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     processBlockIds.addLong(blocks.get(0).getBlockId());
     processBlockIds.addLong(blocks.get(1).getBlockId());
     processBlockIds.addLong(blocks.get(2).getBlockId());
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
 
     // send data to shuffle server, and wait until flush to LocalFile
     List<ShuffleBlockInfo> blocks2 = createShuffleBlockList(
@@ -159,6 +157,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks2.get(0).getBlockId());
     processBlockIds.addLong(blocks2.get(1).getBlockId());
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
 
     // read the 3-th segment from localFile
     sdr  = composedClientReadHandler.readShuffleData();
@@ -166,6 +165,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     expectedData.put(blocks2.get(2).getBlockId(), blocks2.get(2).getData());
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks2.get(2).getBlockId());
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
 
     // send data to shuffle server, and wait until flush to HDFS
     List<ShuffleBlockInfo> blocks3 = createShuffleBlockList(
@@ -188,10 +188,18 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks3.get(0).getBlockId());
     processBlockIds.addLong(blocks3.get(1).getBlockId());
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
 
     // all segments are processed
     sdr  = composedClientReadHandler.readShuffleData();
     assertNull(sdr);
+
+    assert(composedClientReadHandler.getReadBlokNumInfo()
+        .contains("Client read 8 blocks [ hot:3 warm:3 cold:2 frozen:0 ]"));
+    assert(composedClientReadHandler.getReadLengthInfo()
+        .contains("Client read 625 bytes [ hot:75 warm:150 cold:400 frozen:0 ]"));
+    assert(composedClientReadHandler.getReadUncompressLengthInfo()
+        .contains("Client read 625 uncompressed bytes [ hot:75 warm:150 cold:400 frozen:0 ]"));
   }
 
   protected void waitFlush(String appId, int shuffleId) throws InterruptedException {

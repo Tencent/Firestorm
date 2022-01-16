@@ -155,6 +155,8 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
         // mark block as processed
         processedBlockIds.addLong(bs.getBlockId());
         pendingBlockIds.removeLong(bs.getBlockId());
+        // only report the statistics of necessary blocks
+        clientReadHandler.feedbackConsumedBlock(bs);
         break;
       }
       // mark block as processed
@@ -233,5 +235,6 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
     LOG.info("Metrics for shuffleId[" + shuffleId + "], partitionId[" + partitionId + "]"
         + ", read data cost " + readDataTime + " ms, copy data cost " + copyTime
         + " ms, crc check cost " + crcCheckTime + " ms");
+    clientReadHandler.reportConsumedBlockInfo();
   }
 }

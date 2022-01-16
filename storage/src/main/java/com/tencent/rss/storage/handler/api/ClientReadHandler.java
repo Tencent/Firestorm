@@ -18,6 +18,7 @@
 
 package com.tencent.rss.storage.handler.api;
 
+import com.tencent.rss.common.BufferSegment;
 import com.tencent.rss.common.ShuffleDataResult;
 
 public interface ClientReadHandler {
@@ -25,4 +26,8 @@ public interface ClientReadHandler {
   ShuffleDataResult readShuffleData();
 
   void close();
+
+  void feedbackConsumedBlock(BufferSegment bs);
+
+  void reportConsumedBlockInfo();
 }
