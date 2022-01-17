@@ -39,7 +39,10 @@ import com.tencent.rss.storage.handler.impl.LocalFileQuorumClientReadHandler;
 import com.tencent.rss.storage.handler.impl.MemoryQuorumClientReadHandler;
 import com.tencent.rss.storage.util.StorageType;
 
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import java.io.File;
