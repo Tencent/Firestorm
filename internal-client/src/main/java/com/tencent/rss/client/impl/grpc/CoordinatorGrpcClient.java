@@ -246,9 +246,8 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
     try {
       rpcResponse = blockingStub
           .withDeadlineAfter(request.getTimeoutMs(), TimeUnit.MILLISECONDS).accessCluster(rpcRequest);
-
-    } catch (StatusRuntimeException e) {
-       return new RssAccessClusterResponse(ResponseStatusCode.ACCESS_DENIED, e.getMessage());
+    } catch (Exception e) {
+      return new RssAccessClusterResponse(ResponseStatusCode.INTERNAL_ERROR, e.getMessage());
     }
 
     RssAccessClusterResponse response;

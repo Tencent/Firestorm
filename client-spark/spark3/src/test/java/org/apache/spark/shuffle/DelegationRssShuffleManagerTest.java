@@ -35,7 +35,6 @@ import com.tencent.rss.client.response.RssAccessClusterResponse;
 
 import static com.tencent.rss.client.response.ResponseStatusCode.ACCESS_DENIED;
 import static com.tencent.rss.client.response.ResponseStatusCode.SUCCESS;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -80,27 +79,11 @@ public class DelegationRssShuffleManagerTest {
     SparkConf conf = new SparkConf();
     assertCreateSortShuffleManager(conf);
 
-    conf.set(RssClientConfig.RSS_ACCESS_ID_KEY, "mockKey");
+    conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
     assertCreateSortShuffleManager(conf);
 
-    conf.set("mockKey", "value");
-    conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "false");
     conf.set(RssClientConfig.RSS_COORDINATOR_QUORUM, "m1:8001,m2:8002");
     assertCreateRssShuffleManager(conf);
-
-    conf.set(RssClientConfig.RSS_ACCESS_ID_PATTERN, "");
-    assertCreateSortShuffleManager(conf);
-
-    conf.set(RssClientConfig.RSS_ACCESS_ID_PATTERN, "(\\d+)");
-    assertCreateSortShuffleManager(conf);
-    conf.set("mockKey", "123");
-    DelegationRssShuffleManager delegationRssShuffleManager = assertCreateRssShuffleManager(conf);
-    assertEquals("123", delegationRssShuffleManager.getAccessId());
-
-    conf.set(RssClientConfig.RSS_ACCESS_ID_PATTERN, "(\\d+)(\\w+)");
-    conf.set("mockKey", "9527_22_33");
-    delegationRssShuffleManager = assertCreateRssShuffleManager(conf);
-    assertEquals("9527", delegationRssShuffleManager.getAccessId());
   }
 
   @Test
@@ -124,20 +107,22 @@ public class DelegationRssShuffleManagerTest {
     DelegationRssShuffleManager delegationRssShuffleManager;
 
     SparkConf conf = new SparkConf();
-    conf.set(RssClientConfig.RSS_ACCESS_ID_KEY, "mockKey");
-    conf.set("mockKey", "value");
-    conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "false");
+    conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
+    conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "true");
 
     // fall back to SortShuffleManager in driver
     assertCreateSortShuffleManager(conf);
 
     // No fall back in executor
     conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "true");
+    boolean hasException = false;
     try {
       new DelegationRssShuffleManager(conf, false);
     } catch (NoSuchElementException e) {
       assertTrue(e.getMessage().startsWith("spark.rss.coordinator.quorum"));
+      hasException = true;
     }
+    assertTrue(hasException);
   }
 
   private DelegationRssShuffleManager assertCreateSortShuffleManager(SparkConf conf) throws Exception {

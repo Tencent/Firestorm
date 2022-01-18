@@ -19,8 +19,6 @@
 package org.apache.spark.shuffle;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -47,7 +45,6 @@ public class DelegationRssShuffleManager implements ShuffleManager {
   private final List<CoordinatorClient> coordinatorClients;
   private final int accessTimeoutMs;
   private final SparkConf sparkConf;
-  private String accessId;
 
   public DelegationRssShuffleManager(SparkConf sparkConf, boolean isDriver) throws Exception {
     this.sparkConf = sparkConf;
@@ -78,6 +75,7 @@ public class DelegationRssShuffleManager implements ShuffleManager {
       try {
         shuffleManager = new RssShuffleManager(sparkConf, true);
         sparkConf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "true");
+        LOG.info("Use RssShuffleManager");
         return shuffleManager;
       } catch (Exception exception) {
         LOG.warn("Fail to create RssShuffleManager, fallback to SortShuffleManager");
@@ -87,6 +85,7 @@ public class DelegationRssShuffleManager implements ShuffleManager {
     try {
       shuffleManager = RssShuffleUtils.loadShuffleManager(sortShuffleManagerName, sparkConf, true);
       sparkConf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "false");
+      LOG.info("Use SortShuffleManager");
     } catch (Exception e) {
       throw new RssException(e.getMessage());
     }
@@ -95,12 +94,10 @@ public class DelegationRssShuffleManager implements ShuffleManager {
   }
 
   private boolean tryAccessCluster() {
-    String accessIdStr = getAndCheckAccessIdStr();
-    if (StringUtils.isEmpty(accessIdStr)) {
-      return false;
-    }
-
-    if (!extractAccessId(accessIdStr)) {
+    String accessId = sparkConf.get(
+        RssClientConfig.RSS_ACCESS_ID, RssClientConfig.RSS_ACCESS_ID_DEFAULT_VALUE).trim();
+    if (StringUtils.isEmpty(accessId)) {
+      LOG.warn("Access id key is empty");
       return false;
     }
 
@@ -112,9 +109,13 @@ public class DelegationRssShuffleManager implements ShuffleManager {
         if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
           LOG.warn("Success to access cluster {} using {}", coordinatorClient.getDesc(), accessId);
           return true;
+        } else if (response.getStatusCode() == ResponseStatusCode.ACCESS_DENIED) {
+          LOG.warn("Request to access cluster {} is denied using {} for {}",
+              coordinatorClient.getDesc(), accessId, response.getMessage());
+          return false;
+        } else {
+          LOG.warn("Fail to reach cluster {} for {}", coordinatorClient.getDesc(), response.getMessage());
         }
-        LOG.warn("Fail to access cluster {} using {} for {}",
-            coordinatorClient.getDesc(), accessId, response.getMessage());
       } catch (Exception e) {
         LOG.warn("Fail to access cluster {} using {} for {}",
             coordinatorClient.getDesc(), accessId, e.getMessage());
@@ -122,54 +123,6 @@ public class DelegationRssShuffleManager implements ShuffleManager {
     }
 
     return false;
-  }
-
-  private String getAndCheckAccessIdStr() {
-    String accessInfoKey = sparkConf.get(
-        RssClientConfig.RSS_ACCESS_ID_KEY,
-        RssClientConfig.RSS_ACCESS_ID_KEY_DEFAULT_VALUE);
-    if (StringUtils.isEmpty(accessInfoKey)) {
-      LOG.warn("Access id key is empty");
-      return null;
-    }
-
-    String accessId = sparkConf.get(accessInfoKey, RssClientConfig.RSS_ACCESS_ID_DEFAULT_VALUE);
-    if (StringUtils.isEmpty(accessId)) {
-      LOG.warn("Access id is empty");
-      return null;
-    }
-
-    return accessId;
-  }
-
-  private boolean extractAccessId(String accessIdStr) {
-    String patternStr = sparkConf.get(RssClientConfig.RSS_ACCESS_ID_PATTERN,
-        RssClientConfig.RSS_ACCESS_ID_PATTERN_DEFAULT_VALUE);
-    if (StringUtils.isEmpty(patternStr)) {
-      LOG.warn("Access pattern is empty");
-      return false;
-    }
-
-    try {
-      Pattern pattern = Pattern.compile(patternStr);
-      Matcher matcher = pattern.matcher(accessIdStr);
-      if (matcher.find()) {
-        accessId = matcher.group(1);
-      } else {
-        LOG.warn("No match found for access id str {} in pattern {} may be wrong", accessIdStr, patternStr);
-        return false;
-      }
-
-      if (StringUtils.isEmpty(accessId)) {
-        LOG.warn("Access id is empty");
-        return false;
-      }
-    } catch (Exception e) {
-      LOG.warn("Fail to extract access id {} using pattern {} for {}", accessIdStr, patternStr, e.getMessage());
-      return false;
-    }
-
-    return true;
   }
 
   private ShuffleManager createShuffleManagerInExecutor() throws RssException {
@@ -181,9 +134,11 @@ public class DelegationRssShuffleManager implements ShuffleManager {
     if (useRSS) {
       // Executor will not do any fallback
       shuffleManager = new RssShuffleManager(sparkConf, false);
+      LOG.info("Use RssShuffleManager");
     } else {
       try {
         shuffleManager = RssShuffleUtils.loadShuffleManager(sortShuffleManagerName, sparkConf, false);
+        LOG.info("Use SortShuffleManager");
       } catch (Exception e) {
         throw new RssException(e.getMessage());
       }
@@ -195,24 +150,30 @@ public class DelegationRssShuffleManager implements ShuffleManager {
     return delegate;
   }
 
-  public String getAccessId() {
-    return accessId;
+  @Override
+  public <K, V, C> ShuffleHandle registerShuffle(int shuffleId, ShuffleDependency<K, V, C> dependency) {
+    return delegate.registerShuffle(shuffleId, dependency);
   }
 
   @Override
-  public <K, V, C> ShuffleHandle registerShuffle(int shuffleId, int numMaps, ShuffleDependency<K, V, C> dependency) {
-    return delegate.registerShuffle(shuffleId, numMaps, dependency);
-  }
-
-  @Override
-  public <K, V> ShuffleWriter<K, V> getWriter(ShuffleHandle handle, int mapId, TaskContext context) {
-    return delegate.getWriter(handle, mapId, context);
+  public <K, V> ShuffleWriter<K, V> getWriter(
+      ShuffleHandle handle,
+      long mapId,
+      TaskContext context,
+      ShuffleWriteMetricsReporter metrics) {
+    return delegate.getWriter(handle, mapId, context, metrics);
   }
 
   @Override
   public <K, C> ShuffleReader<K, C> getReader(
-      ShuffleHandle handle, int startPartition, int endPartition, TaskContext context) {
-    return delegate.getReader(handle, startPartition, endPartition, context);
+      ShuffleHandle handle,
+      int startMapIndex,
+      int endMapIndex,
+      int startPartition,
+      int endPartition,
+      TaskContext context,
+      ShuffleReadMetricsReporter metrics) {
+    return delegate.getReader(handle, startMapIndex, endMapIndex, startPartition, endPartition, context, metrics);
   }
 
   @Override

@@ -60,11 +60,11 @@ public class AccessCandidatesChecker implements AccessChecker {
     String accessId = accessInfo.getAccessId().trim();
     if (!candidates.get().contains(accessId)) {
       String msg = String.format("Reject accessInfo[%s] accessId[%s] access request.", accessInfo, accessId);
-      LOG.debug(msg);
+      LOG.debug("Candidates is {}, {}", candidates.get(), msg);
       return new AccessCheckResult(false, msg);
     }
 
-    return new AccessCheckResult(true, "");
+    return new AccessCheckResult(true, "SUCCESS");
   }
 
   public void close() {
