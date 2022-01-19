@@ -92,7 +92,7 @@ public class LocalFileQuorumClientReadHandler extends AbstractClientReadHandler 
   }
 
   @Override
-  public void feedbackConsumedBlock(BufferSegment bs) {
+  public void updateConsumedBlockInfo(BufferSegment bs) {
     if (bs == null) {
       return;
     }
@@ -102,7 +102,7 @@ public class LocalFileQuorumClientReadHandler extends AbstractClientReadHandler 
   }
 
   @Override
-  public void reportConsumedBlockInfo() {
+  public void logConsumedBlockInfo() {
     LOG.info("Client read " + readBlockNum + " blocks,"
         + " bytes:" +  readLength + " uncompressed bytes:" + readUncompressLength);
   }

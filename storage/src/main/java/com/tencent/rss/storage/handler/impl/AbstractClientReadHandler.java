@@ -39,10 +39,10 @@ public abstract class AbstractClientReadHandler implements ClientReadHandler {
   }
 
   @Override
-  public void feedbackConsumedBlock(BufferSegment bs) {
+  public void updateConsumedBlockInfo(BufferSegment bs) {
   }
 
   @Override
-  public void reportConsumedBlockInfo() {
+  public void logConsumedBlockInfo() {
   }
 }

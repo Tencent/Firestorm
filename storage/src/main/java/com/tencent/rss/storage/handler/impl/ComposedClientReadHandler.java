@@ -192,7 +192,7 @@ public class ComposedClientReadHandler implements ClientReadHandler {
   }
 
   @Override
-  public void feedbackConsumedBlock(BufferSegment bs) {
+  public void updateConsumedBlockInfo(BufferSegment bs) {
     if (bs == null) {
       return;
     }
@@ -223,7 +223,7 @@ public class ComposedClientReadHandler implements ClientReadHandler {
   }
 
   @Override
-  public void reportConsumedBlockInfo() {
+  public void logConsumedBlockInfo() {
     LOG.info(getReadBlokNumInfo());
     LOG.info(getReadLengthInfo());
     LOG.info(getReadUncompressLengthInfo());

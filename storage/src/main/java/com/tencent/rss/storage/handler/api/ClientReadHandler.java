@@ -29,12 +29,11 @@ public interface ClientReadHandler {
 
   // The handler only returns the segment,
   // but does not know the actually consumed blocks,
-  // so the consumer should feedback this information.
+  // so the consumer should let the handler update statistics.
   // Each type of handler can design their rules.
-  void feedbackConsumedBlock(BufferSegment bs);
+  void updateConsumedBlockInfo(BufferSegment bs);
 
-  // Display the debug information
-  void reportConsumedBlockInfo();
-
+  // Display the statistics of consumed blocks
+  void logConsumedBlockInfo();
 
 }

@@ -136,7 +136,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     processBlockIds.addLong(blocks.get(0).getBlockId());
     processBlockIds.addLong(blocks.get(1).getBlockId());
     processBlockIds.addLong(blocks.get(2).getBlockId());
-    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.updateConsumedBlockInfo(bs));
 
     // send data to shuffle server, and wait until flush to LocalFile
     List<ShuffleBlockInfo> blocks2 = createShuffleBlockList(
@@ -160,7 +160,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks2.get(0).getBlockId());
     processBlockIds.addLong(blocks2.get(1).getBlockId());
-    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.updateConsumedBlockInfo(bs));
 
     // read the 3-th segment from localFile
     sdr  = composedClientReadHandler.readShuffleData();
@@ -168,7 +168,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     expectedData.put(blocks2.get(2).getBlockId(), blocks2.get(2).getData());
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks2.get(2).getBlockId());
-    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.updateConsumedBlockInfo(bs));
 
     // send data to shuffle server, and wait until flush to HDFS
     List<ShuffleBlockInfo> blocks3 = createShuffleBlockList(
@@ -191,7 +191,7 @@ public class ShuffleServerWithMemLocalHdfsTest extends ShuffleReadWriteBase {
     validateResult(expectedData, sdr);
     processBlockIds.addLong(blocks3.get(0).getBlockId());
     processBlockIds.addLong(blocks3.get(1).getBlockId());
-    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.feedbackConsumedBlock(bs));
+    sdr.getBufferSegments().forEach(bs -> composedClientReadHandler.updateConsumedBlockInfo(bs));
 
     // all segments are processed
     sdr  = composedClientReadHandler.readShuffleData();
