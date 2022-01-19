@@ -155,7 +155,7 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
         // mark block as processed
         processedBlockIds.addLong(bs.getBlockId());
         pendingBlockIds.removeLong(bs.getBlockId());
-        // only report the statistics of necessary blocks
+        // only update the statistics of necessary blocks
         clientReadHandler.updateConsumedBlockInfo(bs);
         break;
       }
