@@ -95,7 +95,7 @@ public class DelegationRssShuffleManager implements ShuffleManager {
 
   private boolean tryAccessCluster() {
     String accessId = sparkConf.get(
-        RssClientConfig.RSS_ACCESS_ID, RssClientConfig.RSS_ACCESS_ID_DEFAULT_VALUE).trim();
+        RssClientConfig.RSS_ACCESS_ID, "").trim();
     if (StringUtils.isEmpty(accessId)) {
       LOG.warn("Access id key is empty");
       return false;
@@ -128,9 +128,9 @@ public class DelegationRssShuffleManager implements ShuffleManager {
   private ShuffleManager createShuffleManagerInExecutor() throws RssException {
     ShuffleManager shuffleManager;
     // get useRSS from spark conf
-    boolean useRSS = Boolean.parseBoolean(sparkConf.get(
+    boolean useRSS = sparkConf.getBoolean(
         RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER,
-        RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE));
+        RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE);
     if (useRSS) {
       // Executor will not do any fallback
       shuffleManager = new RssShuffleManager(sparkConf, false);

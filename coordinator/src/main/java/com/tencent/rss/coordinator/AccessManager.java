@@ -62,7 +62,7 @@ public class AccessManager {
       }
     }
 
-    return new AccessCheckResult(true, "");
+    return new AccessCheckResult(true, "SUCCESS");
   }
 
   public CoordinatorConf getCoordinatorConf() {

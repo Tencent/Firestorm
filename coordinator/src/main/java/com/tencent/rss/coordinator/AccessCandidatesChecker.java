@@ -59,7 +59,7 @@ public class AccessCandidatesChecker implements AccessChecker {
   public AccessCheckResult check(AccessInfo accessInfo) {
     String accessId = accessInfo.getAccessId().trim();
     if (!candidates.get().contains(accessId)) {
-      String msg = String.format("Reject accessInfo[%s] accessId[%s] access request.", accessInfo, accessId);
+      String msg = String.format("Denied by AccessCandidatesChecker, accessInfo[%s].", accessInfo);
       LOG.debug("Candidates is {}, {}", candidates.get(), msg);
       return new AccessCheckResult(false, msg);
     }

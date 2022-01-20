@@ -35,6 +35,7 @@ public class AccessClusterLoadChecker implements AccessChecker {
   private final ClusterManager clusterManager;
   private final double memoryPercentThreshold;
   private final int availableServerNumThreshold;
+  private static final String SUCCESS_MESSAGE = "SUCCESS";
 
   public AccessClusterLoadChecker(AccessManager accessManager) {
     clusterManager = accessManager.getClusterManager();
@@ -50,9 +51,10 @@ public class AccessClusterLoadChecker implements AccessChecker {
     List<ServerNode> servers = clusterManager.getServerList(tags);
     int size = (int) servers.stream().filter(ServerNode::isHealthy).filter(this::checkMemory).count();
     if (size >= availableServerNumThreshold) {
-      return new AccessCheckResult(true, "SUCCESS");
+      return new AccessCheckResult(true, SUCCESS_MESSAGE);
     } else {
-      String msg = String.format("%s cluster load check failed total %s nodes, %s available nodes, "
+      String msg = String.format("Denied by AccessClusterLoadChecker accessInfo[%s], "
+              + "total %s nodes, %s available nodes, "
               + "memory percent threshold %s, available num threshold %s.",
           accessInfo, servers.size(), size, memoryPercentThreshold, availableServerNumThreshold);
       LOG.warn(msg);

@@ -80,11 +80,10 @@ public class RssClientConfig {
   public static String RSS_CLIENT_BITMAP_SPLIT_NUM = "spark.rss.client.bitmap.splitNum";
   public static int RSS_CLIENT_BITMAP_SPLIT_NUM_DEFAULT_VALUE = 1;
   public static String RSS_ACCESS_ID = "spark.rss.access.id";
-  public static String RSS_ACCESS_ID_DEFAULT_VALUE = "";
   public static String RSS_ACCESS_TIMEOUT_MS = "spark.rss.access.timeout.ms";
   public static int RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE = 10000;
   public static String RSS_USE_RSS_SHUFFLE_MANAGER = "spark.rss.useRssShuffleManager";
-  public static String RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE = "false";
+  public static boolean RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE = false;
   public static String RSS_SORT_SHUFFLE_MANAGER_IMPL = "spark.rss.sort.shuffle.manager.impl";
   public static String RSS_SORT_SHUFFLE_MANAGER_IMPL_DEFAULT_VALUE = "org.apache.spark.shuffle.sort.SortShuffleManager";
 }
