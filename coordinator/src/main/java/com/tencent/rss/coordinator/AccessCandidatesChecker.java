@@ -34,6 +34,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tencent.rss.common.util.Constants;
+
 /**
  * AccessCandidatesChecker maintain a list of candidate access id and update it periodically,
  * it checks the access id in the access request and reject if the id is not in the candidate list.
@@ -64,7 +66,7 @@ public class AccessCandidatesChecker implements AccessChecker {
       return new AccessCheckResult(false, msg);
     }
 
-    return new AccessCheckResult(true, "SUCCESS");
+    return new AccessCheckResult(true, Constants.COMMON_SUCCESS_MESSAGE);
   }
 
   public void close() {

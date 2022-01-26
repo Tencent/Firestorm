@@ -59,6 +59,9 @@ public class AccessClusterTest extends CoordinatorTestBase {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
     coordinatorConf.setInteger("rss.coordinator.access.loadChecker.serverNum.threshold", 2);
     coordinatorConf.setString("rss.coordinator.access.candidates.path", cfgFile.getAbsolutePath());
+    coordinatorConf.setString(
+        "rss.coordinator.access.checkers",
+        "com.tencent.rss.coordinator.AccessCandidatesChecker,com.tencent.rss.coordinator.AccessClusterLoadChecker");
     createCoordinatorServer(coordinatorConf);
 
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();

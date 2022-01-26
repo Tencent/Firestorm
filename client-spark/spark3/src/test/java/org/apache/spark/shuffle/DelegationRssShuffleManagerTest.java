@@ -108,13 +108,13 @@ public class DelegationRssShuffleManagerTest {
 
     SparkConf conf = new SparkConf();
     conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
-    conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "true");
+    conf.set(RssClientConfig.RSS_ENABLED, "true");
 
     // fall back to SortShuffleManager in driver
     assertCreateSortShuffleManager(conf);
 
     // No fall back in executor
-    conf.set(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER, "true");
+    conf.set(RssClientConfig.RSS_ENABLED, "true");
     boolean hasException = false;
     try {
       new DelegationRssShuffleManager(conf, false);
@@ -129,7 +129,7 @@ public class DelegationRssShuffleManagerTest {
     DelegationRssShuffleManager delegationRssShuffleManager = new DelegationRssShuffleManager(conf, true);
     assertTrue(delegationRssShuffleManager.getDelegate() instanceof SortShuffleManager);
     assertFalse(delegationRssShuffleManager.getDelegate() instanceof RssShuffleManager);
-    assertFalse(Boolean.parseBoolean(conf.get(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER)));
+    assertFalse(Boolean.parseBoolean(conf.get(RssClientConfig.RSS_ENABLED)));
     return delegationRssShuffleManager;
   }
 
@@ -137,7 +137,7 @@ public class DelegationRssShuffleManagerTest {
     DelegationRssShuffleManager delegationRssShuffleManager = new DelegationRssShuffleManager(conf, true);
     assertFalse(delegationRssShuffleManager.getDelegate() instanceof SortShuffleManager);
     assertTrue(delegationRssShuffleManager.getDelegate() instanceof RssShuffleManager);
-    assertTrue(Boolean.parseBoolean(conf.get(RssClientConfig.RSS_USE_RSS_SHUFFLE_MANAGER)));
+    assertTrue(Boolean.parseBoolean(conf.get(RssClientConfig.RSS_ENABLED)));
     return delegationRssShuffleManager;
   }
 }

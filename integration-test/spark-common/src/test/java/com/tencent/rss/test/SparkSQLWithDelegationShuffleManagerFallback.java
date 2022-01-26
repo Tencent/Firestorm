@@ -38,6 +38,9 @@ public class SparkSQLWithDelegationShuffleManagerFallback extends SparkSQLTest {
     final String candidates = Objects.requireNonNull(
         SparkSQLWithDelegationShuffleManager.class.getClassLoader().getResource("candidates")).getFile();
     CoordinatorConf coordinatorConf = getCoordinatorConf();
+    coordinatorConf.setString(
+        CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.tencent.rss.coordinator.AccessCandidatesChecker,com.tencent.rss.coordinator.AccessClusterLoadChecker");
     coordinatorConf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, candidates);
     coordinatorConf.set(CoordinatorConf.COORDINATOR_APP_EXPIRED, 5000L);
     coordinatorConf.set(CoordinatorConf.COORDINATOR_ACCESS_LOADCHECKER_SERVER_NUM_THRESHOLD, 1);
