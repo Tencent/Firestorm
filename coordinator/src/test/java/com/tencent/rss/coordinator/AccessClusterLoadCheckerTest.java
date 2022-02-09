@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
 public class AccessClusterLoadCheckerTest {
@@ -52,7 +54,7 @@ public class AccessClusterLoadCheckerTest {
     CoordinatorConf conf = new CoordinatorConf(filePath);
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessClusterLoadChecker");
-    AccessManager accessManager = new AccessManager(conf, clusterManager);
+    AccessManager accessManager = new AccessManager(conf, clusterManager, new Configuration());
     AccessClusterLoadChecker accessClusterLoadChecker =
         (AccessClusterLoadChecker) accessManager.getAccessCheckers().get(0);
     when(clusterManager.getServerList(any())).thenReturn(serverNodeList);

@@ -39,6 +39,7 @@ import com.tencent.rss.proto.RssProtos.AccessClusterResponse;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.CheckServiceAvailableResponse;
+import com.tencent.rss.proto.RssProtos.FetchClientConfResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleAssignmentsResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleServerListResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleServerNumResponse;
@@ -49,6 +50,7 @@ import com.tencent.rss.proto.RssProtos.ShuffleServerHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.ShuffleServerHeartBeatResponse;
 import com.tencent.rss.proto.RssProtos.ShuffleServerId;
 import com.tencent.rss.proto.RssProtos.StatusCode;
+import com.tencent.rss.proto.RssProtos.StorageConfItem;
 
 /**
  * Implementation class for services defined in protobuf
@@ -205,15 +207,43 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
     if (!result.isSuccess()) {
       statusCode = StatusCode.ACCESS_DENIED;
     }
+    CoordinatorConf coordinatorConf = coordinatorServer.getCoordinatorConf();
     response = AccessClusterResponse
         .newBuilder()
         .setStatus(statusCode)
         .setRetMsg(result.getMsg())
+        .setStorageConf(StorageConfItem
+            .newBuilder()
+            .setStorageType(coordinatorConf.get(CoordinatorConf.COORDINATOR_CLIENT_CONF_STORAGE_TYPE))
+            .setStorageBasePath(coordinatorConf.get(CoordinatorConf.COORDINATOR_CLIENT_CONF_STORAGE_PATH)).build())
         .build();
 
     if (Context.current().isCancelled()) {
       responseObserver.onError(Status.CANCELLED.withDescription("Cancelled by client").asRuntimeException());
       LOG.warn("Cancelled by client {} for after deadline.", accessInfo);
+      return;
+    }
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
+  }
+
+  @Override
+  public void fetchClientConf(Empty empty, StreamObserver<FetchClientConfResponse> responseObserver) {
+    CoordinatorConf coordinatorConf = coordinatorServer.getCoordinatorConf();
+    FetchClientConfResponse response = FetchClientConfResponse
+        .newBuilder()
+        .setStatus(StatusCode.SUCCESS)
+        .setStorageConf(StorageConfItem
+            .newBuilder()
+            .setStorageType(coordinatorConf.get(CoordinatorConf.COORDINATOR_CLIENT_CONF_STORAGE_TYPE))
+            .setStorageBasePath(coordinatorConf.get(CoordinatorConf.COORDINATOR_CLIENT_CONF_STORAGE_PATH)).build())
+
+        .build();
+
+    if (Context.current().isCancelled()) {
+      responseObserver.onError(Status.CANCELLED.withDescription("Cancelled by client").asRuntimeException());
+      LOG.warn("Fetch client conf cancelled by client for after deadline.");
       return;
     }
 

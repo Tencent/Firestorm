@@ -58,6 +58,7 @@ import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
+import com.tencent.rss.common.ShuffleClientConf;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.Constants;
 
@@ -138,6 +139,18 @@ public class RssShuffleManager implements ShuffleManager {
         .getInstance()
         .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum);
     registerCoordinator();
+
+    if (isDriver) {
+      if (!sparkConf.contains(RssClientConfig.RSS_STORAGE_TYPE)) {
+        ShuffleClientConf shuffleClientConf = shuffleWriteClient.fetchClientConf(
+            sparkConf.getInt(RssClientConfig.RSS_ACCESS_TIMEOUT_MS,
+                RssClientConfig.RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE));
+        sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, shuffleClientConf.getStorageType());
+        sparkConf.set(RssClientConfig.RSS_BASE_PATH,shuffleClientConf.getStoragePath());
+      }
+      sparkConf.set("spark.shuffle.service.enabled", "false");
+    }
+
     if (!sparkConf.getBoolean(RssClientConfig.RSS_TEST_FLAG, false)) {
       // for non-driver executor, start a thread for sending shuffle data to shuffle server
       LOG.info("RSS data send thread is starting");

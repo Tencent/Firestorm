@@ -62,6 +62,8 @@ public class AccessClusterTest extends CoordinatorTestBase {
     coordinatorConf.setString(
         "rss.coordinator.access.checkers",
         "com.tencent.rss.coordinator.AccessCandidatesChecker,com.tencent.rss.coordinator.AccessClusterLoadChecker");
+    coordinatorConf.setString("rss.coordinator.client.conf.storageType", "mockType");
+    coordinatorConf.setString("rss.coordinator.client.conf.storagePath", "mockPath");
     createCoordinatorServer(coordinatorConf);
 
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
@@ -102,6 +104,8 @@ public class AccessClusterTest extends CoordinatorTestBase {
     response = coordinatorClient.accessCluster(request);
     assertEquals(ResponseStatusCode.SUCCESS, response.getStatusCode());
     assertTrue(response.getMessage().startsWith("SUCCESS"));
+    assertEquals("mockType", response.getStorageType());
+    assertEquals("mockPath", response.getStoragePath());
     shuffleServer.stopServer();
   }
 }

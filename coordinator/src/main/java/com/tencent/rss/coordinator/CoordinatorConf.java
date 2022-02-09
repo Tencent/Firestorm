@@ -92,6 +92,16 @@ public class CoordinatorConf extends RssBaseConf {
       .checkValue(ConfigUtils.positiveIntegerValidator2, "load checker serverNum threshold must be positive")
       .noDefaultValue()
       .withDescription("Accessed candidates file path");
+  public static final ConfigOption<String> COORDINATOR_CLIENT_CONF_STORAGE_TYPE = ConfigOptions
+      .key("rss.coordinator.client.conf.storageType")
+      .stringType()
+      .defaultValue("")
+      .withDescription("Storage type of the cluster");
+  public static final ConfigOption<String> COORDINATOR_CLIENT_CONF_STORAGE_PATH = ConfigOptions
+      .key("rss.coordinator.client.conf.storagePath")
+      .stringType()
+      .defaultValue("")
+      .withDescription("Remote storage path of the cluster");
 
   public CoordinatorConf() {
   }

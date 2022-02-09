@@ -16,28 +16,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.client.response;
+package com.tencent.rss.client.request;
 
-public class RssAccessClusterResponse extends ClientResponse {
-  private final String storageType;
-  private final String storagePath;
+public class RssFetchClientConfRequest {
+  private final int timeoutMs;
 
-  public RssAccessClusterResponse(ResponseStatusCode statusCode, String message) {
-    this(statusCode, message, "", "");
+  public RssFetchClientConfRequest(int timeoutMs) {
+    this.timeoutMs = timeoutMs;
   }
 
-  public RssAccessClusterResponse(
-      ResponseStatusCode statusCode, String messge, String storageType, String storagePath) {
-    super(statusCode, messge);
-    this.storageType = storageType;
-    this.storagePath = storagePath;
-  }
-
-  public String getStorageType() {
-    return storageType;
-  }
-
-  public String getStoragePath() {
-    return storagePath;
+  public int getTimeoutMs() {
+    return timeoutMs;
   }
 }

@@ -43,6 +43,7 @@ import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.factory.CoordinatorClientFactory;
 import com.tencent.rss.client.factory.ShuffleServerClientFactory;
 import com.tencent.rss.client.request.RssAppHeartBeatRequest;
+import com.tencent.rss.client.request.RssFetchClientConfRequest;
 import com.tencent.rss.client.request.RssFinishShuffleRequest;
 import com.tencent.rss.client.request.RssGetShuffleAssignmentsRequest;
 import com.tencent.rss.client.request.RssGetShuffleResultRequest;
@@ -53,6 +54,7 @@ import com.tencent.rss.client.request.RssSendShuffleDataRequest;
 import com.tencent.rss.client.response.ClientResponse;
 import com.tencent.rss.client.response.ResponseStatusCode;
 import com.tencent.rss.client.response.RssAppHeartBeatResponse;
+import com.tencent.rss.client.response.RssFetchClientConfResponse;
 import com.tencent.rss.client.response.RssFinishShuffleResponse;
 import com.tencent.rss.client.response.RssGetShuffleAssignmentsResponse;
 import com.tencent.rss.client.response.RssGetShuffleResultResponse;
@@ -64,6 +66,7 @@ import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
+import com.tencent.rss.common.ShuffleClientConf;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 
@@ -221,6 +224,23 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   public void registerCoordinators(String coordinators) {
     List<CoordinatorClient> clients = coordinatorClientFactory.createCoordinatorClient(coordinators);
     coordinatorClients.addAll(clients);
+  }
+
+  @Override
+  public ShuffleClientConf fetchClientConf(int timeoutMs) {
+    RssFetchClientConfResponse response =
+        new RssFetchClientConfResponse(ResponseStatusCode.INTERNAL_ERROR, "Empty coordinator clients");
+    for (CoordinatorClient coordinatorClient : coordinatorClients) {
+      response = coordinatorClient.fetchClientConf(new RssFetchClientConfRequest(timeoutMs));
+      if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
+        LOG.info("Success to get conf from {}", coordinatorClient.getDesc());
+        break;
+      } else {
+        LOG.warn("Fail to get conf from {}", coordinatorClient.getDesc());
+      }
+    }
+    throwExceptionIfNecessary(response, response.getMessage());
+    return new ShuffleClientConf(response.getStorageType(), response.getStorageBasePath());
   }
 
   @Override

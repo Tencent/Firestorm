@@ -16,19 +16,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.client.response;
+package com.tencent.rss.common;
 
-public class RssAccessClusterResponse extends ClientResponse {
+public class ShuffleClientConf {
   private final String storageType;
   private final String storagePath;
 
-  public RssAccessClusterResponse(ResponseStatusCode statusCode, String message) {
-    this(statusCode, message, "", "");
-  }
-
-  public RssAccessClusterResponse(
-      ResponseStatusCode statusCode, String messge, String storageType, String storagePath) {
-    super(statusCode, messge);
+  public ShuffleClientConf(String storageType, String storagePath) {
     this.storageType = storageType;
     this.storagePath = storagePath;
   }
