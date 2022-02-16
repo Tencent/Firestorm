@@ -268,9 +268,6 @@ public class ShuffleTaskManager {
       requireBufferIds.put(requireId,
           new PreAllocatedBufferInfo(requireId, System.currentTimeMillis(), requireSize));
     }
-    if (requireId == -1) {
-      ShuffleServerMetrics.counterTotalRequireBufferFailed.inc();
-    }
     return requireId;
   }
 
