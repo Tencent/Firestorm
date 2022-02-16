@@ -62,15 +62,24 @@ public class AccessCandidatesCheckerHdfsTest extends HdfsTestBase {
     assertTrue(checker.check(new AccessInfo("135")).isSuccess());
     assertFalse(checker.check(new AccessInfo("1")).isSuccess());
     assertFalse(checker.check(new AccessInfo("1_2")).isSuccess());
-    sleep(1100);
 
-    out = fs.create(path);
+    fs.delete(path, true);
+    assertFalse(fs.exists(path));
+    sleep(1200);
+    assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
+    assertTrue(checker.check(new AccessInfo("9527")).isSuccess());
+    assertTrue(checker.check(new AccessInfo("135")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1_2")).isSuccess());
+
+    Path tmpPath = new Path(candidatesFile + ".tmp");
+    out = fs.create(tmpPath);
     printWriter = new PrintWriter(new OutputStreamWriter(out));
     printWriter.println("9527");
     printWriter.println(" 135 ");
     printWriter.flush();
     printWriter.close();
-
+    fs.rename(tmpPath, path);
     sleep(1200);
     assertEquals(Sets.newHashSet("135", "9527"), checker.getCandidates().get());
     assertTrue(checker.check(new AccessInfo("135")).isSuccess());
