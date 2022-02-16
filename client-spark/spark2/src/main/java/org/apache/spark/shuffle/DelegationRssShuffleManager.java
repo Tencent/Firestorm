@@ -66,25 +66,14 @@ public class DelegationRssShuffleManager implements ShuffleManager {
   private ShuffleManager createShuffleManagerInDriver() throws RssException {
     ShuffleManager shuffleManager;
 
-    RssAccessClusterResponse response = tryAccessCluster();
-    boolean canAccess = false;
-    if (response != null && response.getStatusCode() == ResponseStatusCode.SUCCESS) {
-      canAccess = true;
-    }
+    boolean canAccess = tryAccessCluster();
 
     if (canAccess) {
       try {
-        if (!sparkConf.contains(RssClientConfig.RSS_STORAGE_TYPE)) {
-          if (StringUtils.isEmpty(response.getStorageType())) {
-            throw new IllegalArgumentException("Storage type param is empty");
-          }
-          sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, response.getStorageType());
-          sparkConf.set(RssClientConfig.RSS_BASE_PATH, response.getStoragePath());
-        }
         shuffleManager = new RssShuffleManager(sparkConf, true);
         sparkConf.set(RssClientConfig.RSS_ENABLED, "true");
+        sparkConf.set("spark.shuffle.manager", Constants.RSS_SHUFFLE_MANAGER_NAME);
         LOG.info("Use RssShuffleManager");
-
         return shuffleManager;
       } catch (Exception exception) {
         LOG.warn("Fail to create RssShuffleManager {}, fallback to SortShuffleManager", exception.getMessage());
@@ -103,16 +92,13 @@ public class DelegationRssShuffleManager implements ShuffleManager {
     return shuffleManager;
   }
 
-  // Driver's ShuffleManager is initialized during the initialization of the SparkContext,
-  // and its initialization time is limited to less than *spark.yarn.am.waitTime*, so we
-  // reuse the request and payload of the accessCluster interface to fetch client conf.
-  private RssAccessClusterResponse tryAccessCluster() {
+  private boolean tryAccessCluster() {
     String accessId = sparkConf.get(
         RssClientConfig.RSS_ACCESS_ID, "").trim();
     RssAccessClusterResponse response = null;
     if (StringUtils.isEmpty(accessId)) {
       LOG.warn("Access id key is empty.");
-      return null;
+      return false;
     }
 
     for (CoordinatorClient coordinatorClient : coordinatorClients) {
@@ -121,11 +107,11 @@ public class DelegationRssShuffleManager implements ShuffleManager {
                 accessId, Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION), accessTimeoutMs));
         if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
           LOG.warn("Success to access cluster {} using {}", coordinatorClient.getDesc(), accessId);
-          return response;
+          return true;
         } else if (response.getStatusCode() == ResponseStatusCode.ACCESS_DENIED) {
           LOG.warn("Request to access cluster {} is denied using {} for {}",
               coordinatorClient.getDesc(), accessId, response.getMessage());
-          return response;
+          return false;
         } else {
           LOG.warn("Fail to reach cluster {} for {}", coordinatorClient.getDesc(), response.getMessage());
         }
@@ -135,7 +121,7 @@ public class DelegationRssShuffleManager implements ShuffleManager {
       }
     }
 
-    return response;
+    return false;
   }
 
   private ShuffleManager createShuffleManagerInExecutor() throws RssException {

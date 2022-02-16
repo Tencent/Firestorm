@@ -61,7 +61,6 @@ import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
-import com.tencent.rss.common.ShuffleClientConf;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.Constants;
 
@@ -143,16 +142,18 @@ public class RssShuffleManager implements ShuffleManager {
         .getInstance()
         .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum);
     registerCoordinator();
-    if (isDriver) {
-      if (!sparkConf.contains(RssClientConfig.RSS_STORAGE_TYPE)) {
-        ShuffleClientConf shuffleClientConf = shuffleWriteClient.fetchClientConf(
-            sparkConf.getInt(RssClientConfig.RSS_ACCESS_TIMEOUT_MS,
-                RssClientConfig.RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE));
-        sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, shuffleClientConf.getStorageType());
-        sparkConf.set(RssClientConfig.RSS_BASE_PATH,shuffleClientConf.getStoragePath());
-      }
-      sparkConf.set("spark.shuffle.service.enabled", "false");
+
+    // fetch client conf and apply them if necessary and disable ESS
+    if (isDriver && sparkConf.getBoolean(
+        RssClientConfig.RSS_DYNAMIC_CLIENT_CONF_ENABLED,
+        RssClientConfig.RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE)) {
+      Map<String, String> clusterClientConf = shuffleWriteClient.fetchClientConf(
+          sparkConf.getInt(RssClientConfig.RSS_ACCESS_TIMEOUT_MS,
+              RssClientConfig.RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE));
+      RssShuffleUtils.applyDynamicClientConf(sparkConf, clusterClientConf);
     }
+    sparkConf.set("spark.shuffle.service.enabled", "false");
+
     taskToSuccessBlockIds = Maps.newConcurrentMap();
     taskToFailedBlockIds = Maps.newConcurrentMap();
     // for non-driver executor, start a thread for sending shuffle data to shuffle server
@@ -530,6 +531,11 @@ public class RssShuffleManager implements ShuffleManager {
     String coordinators = sparkConf.get(RssClientConfig.RSS_COORDINATOR_QUORUM);
     LOG.info("Start Registering coordinators {}", coordinators);
     shuffleWriteClient.registerCoordinators(coordinators);
+  }
+
+  @VisibleForTesting
+  public SparkConf getSparkConf() {
+    return sparkConf;
   }
 
   private synchronized void startHeartbeat() {

@@ -337,16 +337,15 @@ message AccessClusterRequest {
 message AccessClusterResponse {
   StatusCode status = 1;
   string retMsg = 2;
-  StorageConfItem storageConf = 3;
 }
 
 message FetchClientConfResponse {
   StatusCode status = 1;
   string retMsg = 2;
-  StorageConfItem storageConf = 3;
+  repeated ClientConfItem clientConf = 3;
 }
 
-message StorageConfItem {
-  string storageType = 1;
-  string storageBasePath = 2;
+message ClientConfItem {
+  string key = 1;
+  string value = 2;
 }

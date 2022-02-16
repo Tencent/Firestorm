@@ -28,7 +28,6 @@ import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
-import com.tencent.rss.common.ShuffleClientConf;
 import com.tencent.rss.common.ShuffleServerInfo;
 
 public interface ShuffleWriteClient {
@@ -44,7 +43,7 @@ public interface ShuffleWriteClient {
 
   void registerCoordinators(String coordinators);
 
-  ShuffleClientConf fetchClientConf(int timeoutMs);
+  Map<String, String> fetchClientConf(int timeoutMs);
 
   void reportShuffleResult(
       Map<Integer, List<ShuffleServerInfo>> partitionToServers,

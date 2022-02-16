@@ -66,7 +66,6 @@ import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
-import com.tencent.rss.common.ShuffleClientConf;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 
@@ -227,7 +226,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   }
 
   @Override
-  public ShuffleClientConf fetchClientConf(int timeoutMs) {
+  public Map<String, String> fetchClientConf(int timeoutMs) {
     RssFetchClientConfResponse response =
         new RssFetchClientConfResponse(ResponseStatusCode.INTERNAL_ERROR, "Empty coordinator clients");
     for (CoordinatorClient coordinatorClient : coordinatorClients) {
@@ -240,7 +239,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
       }
     }
     throwExceptionIfNecessary(response, response.getMessage());
-    return new ShuffleClientConf(response.getStorageType(), response.getStorageBasePath());
+    return response.getClientConf();
   }
 
   @Override

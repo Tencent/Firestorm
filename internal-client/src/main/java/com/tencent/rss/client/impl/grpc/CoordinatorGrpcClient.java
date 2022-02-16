@@ -56,6 +56,7 @@ import com.tencent.rss.proto.RssProtos.AccessClusterRequest;
 import com.tencent.rss.proto.RssProtos.AccessClusterResponse;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatRequest;
 import com.tencent.rss.proto.RssProtos.AppHeartBeatResponse;
+import com.tencent.rss.proto.RssProtos.ClientConfItem;
 import com.tencent.rss.proto.RssProtos.FetchClientConfResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleAssignmentsResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleServerListResponse;
@@ -259,9 +260,7 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
       case SUCCESS:
         response = new RssAccessClusterResponse(
             ResponseStatusCode.SUCCESS,
-            rpcResponse.getRetMsg(),
-            rpcResponse.getStorageConf().getStorageType(),
-            rpcResponse.getStorageConf().getStorageBasePath());
+            rpcResponse.getRetMsg());
         break;
       default:
         response = new RssAccessClusterResponse(ResponseStatusCode.ACCESS_DENIED, rpcResponse.getRetMsg());
@@ -277,11 +276,12 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
       rpcResponse = blockingStub
           .withDeadlineAfter(request.getTimeoutMs(), TimeUnit.MILLISECONDS)
           .fetchClientConf(Empty.getDefaultInstance());
+      Map<String, String> clientConf = rpcResponse
+          .getClientConfList().stream().collect(Collectors.toMap(ClientConfItem::getKey, ClientConfItem::getValue));
       return new RssFetchClientConfResponse(
           ResponseStatusCode.SUCCESS,
           rpcResponse.getRetMsg(),
-          rpcResponse.getStorageConf().getStorageType(),
-          rpcResponse.getStorageConf().getStorageBasePath());
+          clientConf);
     } catch (Exception e) {
       return new RssFetchClientConfResponse(ResponseStatusCode.INTERNAL_ERROR, e.getMessage());
     }

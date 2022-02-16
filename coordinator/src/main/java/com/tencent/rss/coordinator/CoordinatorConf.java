@@ -69,10 +69,10 @@ public class CoordinatorConf extends RssBaseConf {
       .defaultValue("com.tencent.rss.coordinator.AccessClusterLoadChecker")
       .withDescription("Access checkers");
   public static final ConfigOption<Integer> COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC = ConfigOptions
-      .key("rss.coordinator.access.candidates.update.interval.sec")
+      .key("rss.coordinator.access.candidates.updateIntervalSec")
       .intType()
       .checkValue(ConfigUtils.positiveIntegerValidator2, "access candidates update interval must be positive")
-      .defaultValue(60)
+      .defaultValue(120)
       .withDescription("Accessed candidates update interval in seconds");
   public static final ConfigOption<String> COORDINATOR_ACCESS_CANDIDATES_PATH = ConfigOptions
       .key("rss.coordinator.access.candidates.path")
@@ -92,16 +92,22 @@ public class CoordinatorConf extends RssBaseConf {
       .checkValue(ConfigUtils.positiveIntegerValidator2, "load checker serverNum threshold must be positive")
       .noDefaultValue()
       .withDescription("Accessed candidates file path");
-  public static final ConfigOption<String> COORDINATOR_CLIENT_CONF_STORAGE_TYPE = ConfigOptions
-      .key("rss.coordinator.client.conf.storageType")
+  public static final ConfigOption<Boolean> COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED = ConfigOptions
+      .key("rss.coordinator.dynamicClientConf.enabled")
+      .booleanType()
+      .defaultValue(false)
+      .withDescription("enable dynamic client conf");
+  public static final ConfigOption<String> COORDINATOR_DYNAMIC_CLIENT_CONF_PATH = ConfigOptions
+      .key("rss.coordinator.dynamicClientConf.path")
       .stringType()
-      .defaultValue("")
-      .withDescription("Storage type of the cluster");
-  public static final ConfigOption<String> COORDINATOR_CLIENT_CONF_STORAGE_PATH = ConfigOptions
-      .key("rss.coordinator.client.conf.storagePath")
-      .stringType()
-      .defaultValue("")
-      .withDescription("Remote storage path of the cluster");
+      .noDefaultValue()
+      .withDescription("dynamic client conf of this cluster");
+  public static final ConfigOption<Integer> COORDINATOR_DYNAMIC_CLIENT_CONF_UPDATE_INTERVAL_SEC = ConfigOptions
+      .key("rss.coordinator.dynamicClientConf.updateIntervalSec")
+      .intType()
+      .checkValue(ConfigUtils.positiveIntegerValidator2, "dynamic client conf update interval in seconds")
+      .defaultValue(120)
+      .withDescription("Accessed candidates update interval in seconds");
 
   public CoordinatorConf() {
   }

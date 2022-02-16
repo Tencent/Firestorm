@@ -36,4 +36,5 @@ public class Constants {
   public static final String KEY_SPLIT_CHAR = "/";
   public static final String COMMON_SUCCESS_MESSAGE = "SUCCESS";
   public static final String SORT_SHUFFLE_MANAGER_NAME = "org.apache.spark.shuffle.sort.SortShuffleManager";
+  public static final String RSS_SHUFFLE_MANAGER_NAME = "org.apache.spark.shuffle.RssShuffleManager";
 }

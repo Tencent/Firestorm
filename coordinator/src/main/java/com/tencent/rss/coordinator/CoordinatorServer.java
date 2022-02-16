@@ -18,8 +18,6 @@
 
 package com.tencent.rss.coordinator;
 
-import java.io.FileNotFoundException;
-
 import io.prometheus.client.CollectorRegistry;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -45,14 +43,14 @@ public class CoordinatorServer {
   private ServerInterface server;
   private ClusterManager clusterManager;
   private AssignmentStrategy assignmentStrategy;
+  private ClientConfManager clientConfManager;
   private AccessManager accessManager;
   private ApplicationManager applicationManager;
   private GRPCMetrics grpcMetrics;
 
-  public CoordinatorServer(CoordinatorConf coordinatorConf) throws FileNotFoundException {
+  public CoordinatorServer(CoordinatorConf coordinatorConf) throws Exception {
     this.coordinatorConf = coordinatorConf;
     initialization();
-
   }
 
   public static void main(String[] args) throws Exception {
@@ -100,10 +98,13 @@ public class CoordinatorServer {
     if (accessManager != null) {
       accessManager.close();
     }
+    if (clientConfManager != null) {
+      clientConfManager.close();
+    }
     server.stop();
   }
 
-  private void initialization() throws FileNotFoundException {
+  private void initialization() throws Exception {
     this.applicationManager = new ApplicationManager(coordinatorConf);
 
     ClusterManagerFactory clusterManagerFactory = new ClusterManagerFactory(coordinatorConf);
@@ -111,6 +112,10 @@ public class CoordinatorServer {
 
     AssignmentStrategyFactory assignmentStrategyFactory =
         new AssignmentStrategyFactory(coordinatorConf, clusterManager);
+    if (coordinatorConf.getBoolean(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, false)) {
+      this.clientConfManager = new ClientConfManager(coordinatorConf, new Configuration());
+    }
+
     this.assignmentStrategy = assignmentStrategyFactory.getAssignmentStrategy();
     this.accessManager = new AccessManager(coordinatorConf, clusterManager, new Configuration());
 
@@ -182,6 +187,10 @@ public class CoordinatorServer {
 
   public ApplicationManager getApplicationManager() {
     return applicationManager;
+  }
+
+  public ClientConfManager getClientConfManager() {
+    return clientConfManager;
   }
 
   public AccessManager getAccessManager() {

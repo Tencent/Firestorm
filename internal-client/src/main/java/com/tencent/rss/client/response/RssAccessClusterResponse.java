@@ -19,25 +19,7 @@
 package com.tencent.rss.client.response;
 
 public class RssAccessClusterResponse extends ClientResponse {
-  private final String storageType;
-  private final String storagePath;
-
   public RssAccessClusterResponse(ResponseStatusCode statusCode, String message) {
-    this(statusCode, message, "", "");
-  }
-
-  public RssAccessClusterResponse(
-      ResponseStatusCode statusCode, String messge, String storageType, String storagePath) {
-    super(statusCode, messge);
-    this.storageType = storageType;
-    this.storagePath = storagePath;
-  }
-
-  public String getStorageType() {
-    return storageType;
-  }
-
-  public String getStoragePath() {
-    return storagePath;
+    super(statusCode, message);
   }
 }

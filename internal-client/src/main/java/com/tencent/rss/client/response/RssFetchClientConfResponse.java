@@ -18,29 +18,26 @@
 
 package com.tencent.rss.client.response;
 
+import java.util.Map;
+
+import com.google.common.collect.Maps;
+
 public class RssFetchClientConfResponse extends ClientResponse {
-  private String storageType;
-  private String storageBasePath;
+  private final Map<String, String> clientConf;
 
   public RssFetchClientConfResponse(ResponseStatusCode statusCode, String message) {
-    super(statusCode, message);
+    this(statusCode, message, Maps.newHashMap());
   }
 
   public RssFetchClientConfResponse(
       ResponseStatusCode statusCode,
       String message,
-      String storageType,
-      String storageBasePath) {
+      Map<String, String> clientConf) {
     super(statusCode, message);
-    this.storageType = storageType;
-    this.storageBasePath = storageBasePath;
+    this.clientConf = clientConf;
   }
 
-  public String getStorageType() {
-    return storageType;
-  }
-
-  public String getStorageBasePath() {
-    return storageBasePath;
+  public Map<String, String> getClientConf() {
+    return clientConf;
   }
 }

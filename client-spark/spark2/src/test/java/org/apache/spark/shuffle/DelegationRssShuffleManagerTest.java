@@ -18,10 +18,16 @@
 
 package org.apache.spark.shuffle;
 
+import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
+import com.tencent.rss.client.response.RssFetchClientConfResponse;
+import com.tencent.rss.common.util.Constants;
 import org.apache.spark.SparkConf;
 import org.apache.spark.shuffle.sort.SortShuffleManager;
 import org.junit.AfterClass;
@@ -72,20 +78,26 @@ public class DelegationRssShuffleManagerTest {
   public void testCreateInDriver() throws Exception {
     CoordinatorClient mockCoordinatorClient = mock(CoordinatorClient.class);
     when(mockCoordinatorClient.accessCluster(any())).thenReturn(
-        new RssAccessClusterResponse(SUCCESS, "", "mockType", "mockPath"));
+        new RssAccessClusterResponse(SUCCESS, ""));
+    Map<String, String> clientConf = Stream.of(
+            new AbstractMap.SimpleImmutableEntry<>("spark.mock.1", "9527"),
+            new AbstractMap.SimpleImmutableEntry<>("spark.mock.2", "true"),
+            new AbstractMap.SimpleImmutableEntry<>("spark.mock.3", "mock"))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    when(mockCoordinatorClient.fetchClientConf(any())).thenReturn(
+        new RssFetchClientConfResponse(SUCCESS, "", clientConf));
     List<CoordinatorClient> coordinatorClients = Lists.newArrayList();
     coordinatorClients.add(mockCoordinatorClient);
     mockedStaticRssShuffleUtils.when(() ->
         RssShuffleUtils.createCoordinatorClients(any())).thenReturn(coordinatorClients);
 
     SparkConf conf = new SparkConf();
+    conf.set("spark.dynamicClientConf.enabled", "false");
     assertCreateSortShuffleManager(conf);
     conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
     assertCreateSortShuffleManager(conf);
     conf.set(RssClientConfig.RSS_COORDINATOR_QUORUM, "m1:8001,m2:8002");
     assertCreateRssShuffleManager(conf);
-    assertEquals("mockType", conf.get(RssClientConfig.RSS_STORAGE_TYPE));
-    assertEquals("mockPath", conf.get(RssClientConfig.RSS_BASE_PATH));
 
     conf = new SparkConf();
     conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
@@ -140,6 +152,7 @@ public class DelegationRssShuffleManagerTest {
     assertFalse(delegationRssShuffleManager.getDelegate() instanceof RssShuffleManager);
     assertFalse(conf.getBoolean(RssClientConfig.RSS_ENABLED, false));
     assertEquals("sort", conf.get("spark.shuffle.manager"));
+
     return delegationRssShuffleManager;
   }
 
@@ -148,6 +161,8 @@ public class DelegationRssShuffleManagerTest {
     assertFalse(delegationRssShuffleManager.getDelegate() instanceof SortShuffleManager);
     assertTrue(delegationRssShuffleManager.getDelegate() instanceof RssShuffleManager);
     assertTrue(Boolean.parseBoolean(conf.get(RssClientConfig.RSS_ENABLED)));
+    assertFalse(conf.getBoolean("spark.shuffle.service.enabled", true));
+    assertEquals(Constants.RSS_SHUFFLE_MANAGER_NAME, conf.get("spark.shuffle.manager"));
     return delegationRssShuffleManager;
   }
 }

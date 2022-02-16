@@ -18,6 +18,10 @@
 
 package org.apache.spark.shuffle;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 public class RssClientConfig {
 
   public static String RSS_PARTITION_NUM_PER_RANGE = "spark.rss.partitionNum.per.range";
@@ -84,4 +88,8 @@ public class RssClientConfig {
   public static int RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE = 10000;
   public static String RSS_ENABLED = "spark.rss.enabled";
   public static boolean RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE = false;
+  public static String RSS_DYNAMIC_CLIENT_CONF_ENABLED = "spark.dynamicClientConf.enabled";
+  public static boolean RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE = true;
+
+  public static Set<String> RSS_MANDATORY_CLUSTER_CONF = new HashSet<>(Arrays.asList(RSS_STORAGE_TYPE, RSS_BASE_PATH));
 }
