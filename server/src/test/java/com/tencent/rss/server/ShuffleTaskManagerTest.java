@@ -213,23 +213,6 @@ public class ShuffleTaskManagerTest extends HdfsTestBase {
   }
 
   @Test
-  public void requireBufferFailedMetricsTest() throws Exception {
-    String confFile = ClassLoader.getSystemResource("server.conf").getFile();
-    ShuffleServerConf conf = new ShuffleServerConf(confFile);
-    conf.set(ShuffleServerConf.SERVER_BUFFER_CAPACITY, 128L);
-    conf.set(ShuffleServerConf.HEALTH_CHECK_ENABLE, false);
-    ShuffleServer shuffleServer = new ShuffleServer(conf);
-    ShuffleTaskManager shuffleTaskManager = new ShuffleTaskManager(conf,
-      shuffleServer.getShuffleFlushManager(), shuffleServer.getShuffleBufferManager(), null);
-
-    assertEquals((int)ShuffleServerMetrics.counterTotalRequireBufferFailed.get(), 0);
-    // 1000/10000 > 128, so requireBuffer will fail
-    assertEquals(shuffleTaskManager.requireBuffer(1000), -1);
-    assertEquals(shuffleTaskManager.requireBuffer(10000), -1);
-    assertEquals((int)ShuffleServerMetrics.counterTotalRequireBufferFailed.get(), 2);
-  }
-
-  @Test
   public void clearTest() throws Exception {
     ShuffleServerConf conf = new ShuffleServerConf();
     String storageBasePath = HDFS_URI + "rss/clearTest";
