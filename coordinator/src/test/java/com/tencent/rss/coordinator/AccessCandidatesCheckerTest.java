@@ -34,6 +34,7 @@ import org.junit.rules.TemporaryFolder;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class AccessCandidatesCheckerTest {
@@ -49,6 +50,25 @@ public class AccessCandidatesCheckerTest {
   public void test() throws Exception {
     File cfgFile = tmpDir.newFile();
     String cfgFileName = cfgFile.getAbsolutePath();
+    final String filePath = Objects.requireNonNull(
+        getClass().getClassLoader().getResource("coordinator.conf")).getFile();
+    CoordinatorConf conf = new CoordinatorConf(filePath);
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.toURI().toString());
+    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
+        "com.tencent.rss.coordinator.AccessCandidatesChecker");
+
+    // file load checking at startup
+    Exception expectedException = null;
+    try {
+      new AccessManager(conf, null, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertTrue(expectedException.getMessage().contains(
+        "NoSuchMethodException: com.tencent.rss.coordinator.AccessCandidatesChecker.<init>()"));
+
+    // load the config at the beginning
     FileWriter fileWriter = new FileWriter(cfgFile);
     PrintWriter printWriter = new PrintWriter(fileWriter);
     printWriter.println("9527");
@@ -56,16 +76,21 @@ public class AccessCandidatesCheckerTest {
     printWriter.println("2 ");
     printWriter.flush();
     printWriter.close();
-    final String filePath = Objects.requireNonNull(
-        getClass().getClassLoader().getResource("coordinator.conf")).getFile();
-    CoordinatorConf conf = new CoordinatorConf(filePath);
-    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.toURI().toString());
-    conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
-        "com.tencent.rss.coordinator.AccessCandidatesChecker");
     AccessManager accessManager = new AccessManager(conf, null, new Configuration());
     AccessCandidatesChecker checker = (AccessCandidatesChecker) accessManager.getAccessCheckers().get(0);
-    // load the config at the beginning
     sleep(1200);
+    assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
+    assertTrue(checker.check(new AccessInfo("9527")).isSuccess());
+    assertTrue(checker.check(new AccessInfo("135")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1")).isSuccess());
+    assertFalse(checker.check(new AccessInfo("1_2")).isSuccess());
+
+    // ignore empty or wrong content
+    printWriter.println("");
+    printWriter.flush();
+    printWriter.close();
+    sleep(1300);
+    assertTrue(cfgFile.exists());
     assertEquals(Sets.newHashSet("2", "9527", "135"), checker.getCandidates().get());
     assertTrue(checker.check(new AccessInfo("9527")).isSuccess());
     assertTrue(checker.check(new AccessInfo("135")).isSuccess());

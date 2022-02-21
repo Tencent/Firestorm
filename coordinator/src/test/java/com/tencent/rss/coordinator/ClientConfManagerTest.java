@@ -34,6 +34,7 @@ import org.junit.rules.TemporaryFolder;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ClientConfManagerTest {
@@ -49,6 +50,24 @@ public class ClientConfManagerTest {
   public void test() throws Exception {
     File cfgFile = tmpDir.newFile();
     String cfgFileName = cfgFile.getAbsolutePath();
+    final String filePath = Objects.requireNonNull(
+        getClass().getClassLoader().getResource("coordinator.conf")).getFile();
+    CoordinatorConf conf = new CoordinatorConf(filePath);
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile.toURI().toString());
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, true);
+
+    // file load checking at startup
+    Exception expectedException = null;
+    try {
+      new ClientConfManager(conf, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertEquals(
+        "Client conf file must be non-empty and can be loaded successfully at coordinator startup.",
+        expectedException.getMessage());
+
     FileWriter fileWriter = new FileWriter(cfgFile);
     PrintWriter printWriter = new PrintWriter(fileWriter);
     printWriter.println("spark.mock.1 abc");
@@ -56,15 +75,22 @@ public class ClientConfManagerTest {
     printWriter.println("spark.mock.3 true  ");
     printWriter.flush();
     printWriter.close();
-    final String filePath = Objects.requireNonNull(
-        getClass().getClassLoader().getResource("coordinator.conf")).getFile();
-    CoordinatorConf conf = new CoordinatorConf(filePath);
-    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile.toURI().toString());
-    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, true);
-    ClientConfManager clientConfManager = new ClientConfManager(conf, new Configuration());
     // load config at the beginning
+    ClientConfManager clientConfManager = new ClientConfManager(conf, new Configuration());
     sleep(1200);
     Map<String, String> clientConf = clientConfManager.getClientConf();
+    assertEquals("abc", clientConf.get("spark.mock.1"));
+    assertEquals("123", clientConf.get("spark.mock.2"));
+    assertEquals("true", clientConf.get("spark.mock.3"));
+    assertEquals(3, clientConf.size());
+
+    // ignore empty or wrong content
+    printWriter.println("");
+    printWriter.flush();
+    printWriter.close();
+    sleep(1300);
+    assertTrue(cfgFile.exists());
+    clientConf = clientConfManager.getClientConf();
     assertEquals("abc", clientConf.get("spark.mock.1"));
     assertEquals("123", clientConf.get("spark.mock.2"));
     assertEquals("true", clientConf.get("spark.mock.3"));
@@ -86,6 +112,8 @@ public class ClientConfManagerTest {
     printWriter = new PrintWriter(fileWriter);
     printWriter.println("spark.mock.4 deadbeaf");
     printWriter.println("spark.mock.5 9527");
+    printWriter.println("spark.mock.6 9527 3423");
+    printWriter.println("spark.mock.7");
     printWriter.close();
     FileUtils.moveFile(cfgFileTmp, cfgFile);
     sleep(1200);
@@ -93,6 +121,8 @@ public class ClientConfManagerTest {
     assertEquals("deadbeaf", clientConf.get("spark.mock.4"));
     assertEquals("9527", clientConf.get("spark.mock.5"));
     assertEquals(2, clientConf.size());
+    assertFalse(clientConf.containsKey("spark.mock.6"));
+    assertFalse(clientConf.containsKey("spark.mock.7"));
     clientConfManager.close();
   }
 }

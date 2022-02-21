@@ -60,11 +60,15 @@ public class AccessCandidatesChecker implements AccessChecker {
     this.path = new Path(pathStr);
     Configuration hadoopConf = accessManager.getHadoopConf();
     this.fileSystem = CoordinatorUtils.getFileSystemForPath(path, hadoopConf);
-    if (!fileSystem.isFile(path)) {
-      String msg = String.format("Fail to init AccessCandidatesChecker, %s is not a file", path.toUri());
+
+    updateAccessCandidatesInternal();
+    if (candidates.get() == null || candidates.get().isEmpty()) {
+      String msg = "Candidates must be non-empty and can be loaded successfully at coordinator startup.";
       LOG.error(msg);
-      throw new IllegalStateException(msg);
+      throw new RuntimeException(msg);
     }
+    LOG.debug("Load candidates: {}", String.join(";", candidates.get()));
+
     int updateIntervalS = conf.getInteger(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC);
     updateAccessCandidatesSES = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("UpdateAccessCandidates-%d").build());
@@ -99,11 +103,11 @@ public class AccessCandidatesChecker implements AccessChecker {
           lastCandidatesUpdateMS.set(lastModifiedMS);
         }
       } else {
-        candidates.set(Sets.newConcurrentHashSet());
+        LOG.warn("Candidates file not found.");
       }
       // TODO: add access num metrics
     } catch (Exception e) {
-      LOG.warn("Error when update access candidates", e);
+      LOG.warn("Error when update access candidates, ignore this updating.", e);
     }
   }
 
@@ -111,8 +115,7 @@ public class AccessCandidatesChecker implements AccessChecker {
     Set<String> newCandidates = Sets.newHashSet();
     String content = loadFileContent();
     if (StringUtils.isEmpty(content)) {
-      LOG.warn("Load empty content from {}", path.toUri().toString());
-      candidates.set(newCandidates);
+      LOG.warn("Load empty content from {}, ignore this updating", path.toUri().toString());
       return;
     }
 
@@ -124,7 +127,8 @@ public class AccessCandidatesChecker implements AccessChecker {
     }
 
     if (newCandidates.isEmpty()) {
-      LOG.warn("Empty content in {}", path.toUri().toString());
+      LOG.warn("Empty content in {}, ignore this updating.", path.toUri().toString());
+      return;
     }
 
     candidates.set(newCandidates);

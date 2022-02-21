@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.tencent.rss.coordinator.ClientConfManager;
 import com.tencent.rss.coordinator.CoordinatorConf;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
@@ -33,6 +34,8 @@ import com.tencent.rss.storage.HdfsTestBase;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class ClientConfManagerHdfsTest extends HdfsTestBase {
 
@@ -41,18 +44,30 @@ public class ClientConfManagerHdfsTest extends HdfsTestBase {
     String cfgFile = HDFS_URI + "/test/client_conf";
     Path path = new Path(cfgFile);
     FSDataOutputStream out = fs.create(path);
-    PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(out));
-    printWriter.println("spark.mock.1 abc");
-    printWriter.println(" spark.mock.2   123 ");
-    printWriter.println("spark.mock.3 true  ");
-    printWriter.flush();
-    printWriter.close();
 
     CoordinatorConf conf = new CoordinatorConf();
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile);
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_UPDATE_INTERVAL_SEC, 1);
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, true);
 
+    // file load checking at startup
+    Exception expectedException = null;
+    try {
+      new ClientConfManager(conf, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertEquals(
+        "Client conf file must be non-empty and can be loaded successfully at coordinator startup.",
+        expectedException.getMessage());
+
+    PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(out));
+    printWriter.println("spark.mock.1 abc");
+    printWriter.println(" spark.mock.2   123 ");
+    printWriter.println("spark.mock.3 true  ");
+    printWriter.flush();
+    printWriter.close();
     ClientConfManager clientConfManager = new ClientConfManager(conf, HdfsTestBase.conf);
     sleep(1200);
     Map<String, String> clientConf = clientConfManager.getClientConf();
@@ -61,6 +76,19 @@ public class ClientConfManagerHdfsTest extends HdfsTestBase {
     assertEquals("true", clientConf.get("spark.mock.3"));
     assertEquals(3, clientConf.size());
 
+    // ignore empty or wrong content
+    printWriter.println("");
+    printWriter.flush();
+    printWriter.close();
+    sleep(1300);
+    assertTrue(fs.exists(path));
+    clientConf = clientConfManager.getClientConf();
+    assertEquals("abc", clientConf.get("spark.mock.1"));
+    assertEquals("123", clientConf.get("spark.mock.2"));
+    assertEquals("true", clientConf.get("spark.mock.3"));
+    assertEquals(3, clientConf.size());
+
+    // the config will not be changed when the conf file is deleted
     fs.delete(path, true);
     assertFalse(fs.exists(path));
     sleep(1200);
@@ -70,11 +98,14 @@ public class ClientConfManagerHdfsTest extends HdfsTestBase {
     assertEquals("true", clientConf.get("spark.mock.3"));
     assertEquals(3, clientConf.size());
 
+    // the normal update config process, move the new conf file to the old one
     Path tmpPath = new Path(cfgFile + ".tmp");
     out = fs.create(tmpPath);
     printWriter = new PrintWriter(new OutputStreamWriter(out));
     printWriter.println("spark.mock.4 deadbeaf");
     printWriter.println("spark.mock.5 9527");
+    printWriter.println("spark.mock.6 9527 3423");
+    printWriter.println("spark.mock.7");
     printWriter.close();
     fs.rename(tmpPath, path);
     sleep(1200);
@@ -82,6 +113,8 @@ public class ClientConfManagerHdfsTest extends HdfsTestBase {
     assertEquals("deadbeaf", clientConf.get("spark.mock.4"));
     assertEquals("9527", clientConf.get("spark.mock.5"));
     assertEquals(2, clientConf.size());
+    assertFalse(clientConf.containsKey("spark.mock.6"));
+    assertFalse(clientConf.containsKey("spark.mock.7"));
     clientConfManager.close();
   }
 }
