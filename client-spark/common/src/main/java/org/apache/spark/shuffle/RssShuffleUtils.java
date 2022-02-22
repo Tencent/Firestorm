@@ -201,8 +201,9 @@ public class RssShuffleUtils {
     }
   }
 
-  public static final Set<StorageType> STORAGE_TYPE_NEED_NO_PATH =
-      Sets.newHashSet(StorageType.LOCALFILE, StorageType.MEMORY_LOCALFILE);
+  public static final Set<StorageType> getStorageTypeWithoutPath() {
+    return Sets.newHashSet(StorageType.LOCALFILE, StorageType.MEMORY_LOCALFILE);
+  }
 
   public static void validateRssClientConf(SparkConf sparkConf) {
     String msgFormat = "%s must be set by the client or fetched from coordinators.";
@@ -213,7 +214,7 @@ public class RssShuffleUtils {
     }
 
     StorageType storageType = StorageType.valueOf(sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE));
-    if (!sparkConf.contains(RssClientConfig.RSS_BASE_PATH) && !STORAGE_TYPE_NEED_NO_PATH.contains(storageType)) {
+    if (!sparkConf.contains(RssClientConfig.RSS_BASE_PATH) && !getStorageTypeWithoutPath().contains(storageType)) {
       String msg = String.format(msgFormat, "Storage path");
       LOG.error(msg);
       throw new IllegalArgumentException(msg);

@@ -46,12 +46,22 @@ public class ClientConfManagerHdfsTest extends HdfsTestBase {
     FSDataOutputStream out = fs.create(path);
 
     CoordinatorConf conf = new CoordinatorConf();
-    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile);
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, HDFS_URI);
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_UPDATE_INTERVAL_SEC, 1);
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, true);
 
     // file load checking at startup
     Exception expectedException = null;
+    try {
+      new ClientConfManager(conf, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertTrue(expectedException.getMessage().endsWith("is not a file."));
+
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile);
+    expectedException = null;
     try {
       new ClientConfManager(conf, new Configuration());
     } catch (RuntimeException e) {

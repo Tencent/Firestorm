@@ -53,12 +53,22 @@ public class AccessCandidatesCheckerTest {
     final String filePath = Objects.requireNonNull(
         getClass().getClassLoader().getResource("coordinator.conf")).getFile();
     CoordinatorConf conf = new CoordinatorConf(filePath);
-    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.toURI().toString());
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, tmpDir.getRoot().toURI().toString());
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessCandidatesChecker");
 
     // file load checking at startup
     Exception expectedException = null;
+    try {
+      new AccessManager(conf, null, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertTrue(expectedException.getMessage().contains(
+        "NoSuchMethodException: com.tencent.rss.coordinator.AccessCandidatesChecker.<init>()"));
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, cfgFile.toURI().toString());
+    expectedException = null;
     try {
       new AccessManager(conf, null, new Configuration());
     } catch (RuntimeException e) {

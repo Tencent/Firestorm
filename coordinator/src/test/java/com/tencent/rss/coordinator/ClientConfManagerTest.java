@@ -53,11 +53,21 @@ public class ClientConfManagerTest {
     final String filePath = Objects.requireNonNull(
         getClass().getClassLoader().getResource("coordinator.conf")).getFile();
     CoordinatorConf conf = new CoordinatorConf(filePath);
-    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile.toURI().toString());
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, tmpDir.getRoot().toURI().toString());
     conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_ENABLED, true);
 
     // file load checking at startup
     Exception expectedException = null;
+    try {
+      new ClientConfManager(conf, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertTrue(expectedException.getMessage().endsWith("is not a file."));
+
+    conf.set(CoordinatorConf.COORDINATOR_DYNAMIC_CLIENT_CONF_PATH, cfgFile.toURI().toString());
+    expectedException = null;
     try {
       new ClientConfManager(conf, new Configuration());
     } catch (RuntimeException e) {

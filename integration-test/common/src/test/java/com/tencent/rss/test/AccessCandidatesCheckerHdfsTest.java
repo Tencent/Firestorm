@@ -47,12 +47,22 @@ public class AccessCandidatesCheckerHdfsTest extends HdfsTestBase {
 
     CoordinatorConf conf = new CoordinatorConf();
     conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_UPDATE_INTERVAL_SEC, 1);
-    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, candidatesFile);
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, HDFS_URI);
     conf.setString(CoordinatorConf.COORDINATOR_ACCESS_CHECKERS,
         "com.tencent.rss.coordinator.AccessCandidatesChecker");
 
     // file load checking at startup
     Exception expectedException = null;
+    try {
+      new AccessManager(conf, null, new Configuration());
+    } catch (RuntimeException e) {
+      expectedException = e;
+    }
+    assertNotNull(expectedException);
+    assertTrue(expectedException.getMessage().contains(
+        "NoSuchMethodException: com.tencent.rss.coordinator.AccessCandidatesChecker.<init>()"));
+    conf.set(CoordinatorConf.COORDINATOR_ACCESS_CANDIDATES_PATH, candidatesFile);
+    expectedException = null;
     try {
       new AccessManager(conf, null, new Configuration());
     } catch (RuntimeException e) {
@@ -105,13 +115,13 @@ public class AccessCandidatesCheckerHdfsTest extends HdfsTestBase {
     out = fs.create(tmpPath);
     printWriter = new PrintWriter(new OutputStreamWriter(out));
     printWriter.println("9527");
-    printWriter.println(" 135 ");
+    printWriter.println(" 1357 ");
     printWriter.flush();
     printWriter.close();
     fs.rename(tmpPath, path);
     sleep(1200);
-    assertEquals(Sets.newHashSet("135", "9527"), checker.getCandidates().get());
-    assertTrue(checker.check(new AccessInfo("135")).isSuccess());
+    assertEquals(Sets.newHashSet("1357", "9527"), checker.getCandidates().get());
+    assertTrue(checker.check(new AccessInfo("1357")).isSuccess());
     assertTrue(checker.check(new AccessInfo("9527")).isSuccess());
     checker.close();
   }

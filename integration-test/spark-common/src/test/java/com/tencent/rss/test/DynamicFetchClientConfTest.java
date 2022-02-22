@@ -126,7 +126,7 @@ public class DynamicFetchClientConfTest extends IntegrationTestBase {
         expectException.getMessage());
 
     for (StorageType storageType : StorageType.values()) {
-      if (RssShuffleUtils.STORAGE_TYPE_NEED_NO_PATH.contains(storageType)) {
+      if (RssShuffleUtils.getStorageTypeWithoutPath().contains(storageType)) {
         sparkConf.set("spark.rss.storage.type", storageType.name());
         RssShuffleManager rsm = new RssShuffleManager(sparkConf, true);
         assertFalse(rsm.getSparkConf().contains("spark.rss.base.path"));

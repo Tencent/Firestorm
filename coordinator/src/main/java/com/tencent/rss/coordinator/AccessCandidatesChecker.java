@@ -61,6 +61,11 @@ public class AccessCandidatesChecker implements AccessChecker {
     Configuration hadoopConf = accessManager.getHadoopConf();
     this.fileSystem = CoordinatorUtils.getFileSystemForPath(path, hadoopConf);
 
+    if (!fileSystem.isFile(path)) {
+      String msg = String.format("Fail to init AccessCandidatesChecker, %s is not a file.", path.toUri());
+      LOG.error(msg);
+      throw new RuntimeException(msg);
+    }
     updateAccessCandidatesInternal();
     if (candidates.get() == null || candidates.get().isEmpty()) {
       String msg = "Candidates must be non-empty and can be loaded successfully at coordinator startup.";
@@ -101,6 +106,7 @@ public class AccessCandidatesChecker implements AccessChecker {
         if (lastCandidatesUpdateMS.get() != lastModifiedMS) {
           updateAccessCandidatesInternal();
           lastCandidatesUpdateMS.set(lastModifiedMS);
+          LOG.debug("Load candidates: {}", String.join(";", candidates.get()));
         }
       } else {
         LOG.warn("Candidates file not found.");

@@ -63,6 +63,11 @@ public class ClientConfManager implements Closeable {
 
     this.fileSystem = CoordinatorUtils.getFileSystemForPath(path, hadoopConf);
 
+    if (!fileSystem.isFile(path)) {
+      String msg = String.format("Fail to init ClientConfManager, %s is not a file.", path.toUri());
+      LOG.error(msg);
+      throw new IllegalStateException(msg);
+    }
     updateClientConfInternal();
     if (clientConf.get() == null || clientConf.get().isEmpty()) {
       String msg = "Client conf file must be non-empty and can be loaded successfully at coordinator startup.";
