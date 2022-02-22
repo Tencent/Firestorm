@@ -18,6 +18,8 @@
 package com.tencent.rss.server;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -26,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.util.ShuffleStorageUtils;
 
 public class LocalStorageChecker extends Checker {
@@ -38,7 +41,7 @@ public class LocalStorageChecker extends Checker {
   private final List<StorageInfo> storageInfos  = Lists.newArrayList();
   private boolean isHealthy = true;
 
-  public LocalStorageChecker(ShuffleServerConf conf) {
+  public LocalStorageChecker(ShuffleServerConf conf, List<LocalStorage> storages) {
     super(conf);
     String basePathStr = conf.get(ShuffleServerConf.RSS_STORAGE_BASE_PATH);
     if (StringUtils.isEmpty(basePathStr)) {
@@ -48,11 +51,10 @@ public class LocalStorageChecker extends Checker {
     if (!ShuffleStorageUtils.containsLocalFile(storageType)) {
       throw new IllegalArgumentException("Only StorageType contains LOCALFILE support storageChecker");
     }
-    String[] storagePaths = basePathStr.split(",");
-
-    for (String path : storagePaths) {
-      storageInfos.add(new StorageInfo(path));
+    for (LocalStorage storage : storages) {
+      storageInfos.add(new StorageInfo(storage));
     }
+
     this.diskMaxUsagePercentage = conf.getDouble(ShuffleServerConf.HEALTH_STORAGE_MAX_USAGE_PERCENTAGE);
     this.diskRecoveryUsagePercentage = conf.getDouble(ShuffleServerConf.HEALTH_STORAGE_RECOVERY_USAGE_PERCENTAGE);
     this.minStorageHealthyPercentage = conf.getDouble(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE);
@@ -62,7 +64,11 @@ public class LocalStorageChecker extends Checker {
   public boolean checkIsHealthy() {
     int num = 0;
     for (StorageInfo storageInfo : storageInfos) {
-      if (storageInfo.checkIsHealthy()) {
+      if (!storageInfo.checkStorageReadAndWrite()) {
+        storageInfo.markCorrupted();
+        continue;
+      }
+      if (storageInfo.checkIsSpaceEnough()) {
         num++;
       }
     }
@@ -102,18 +108,23 @@ public class LocalStorageChecker extends Checker {
     return file.getTotalSpace() - file.getUsableSpace();
   }
 
+
+
   // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
   class StorageInfo {
 
     private final File storageDir;
+    private final LocalStorage storage;
     private boolean isHealthy;
 
-    StorageInfo(String path) {
-      this.storageDir = new File(path);
+    StorageInfo(LocalStorage storage) {
+      this.storageDir = new File(storage.getBasePath());
       this.isHealthy = true;
+      this.storage = storage;
     }
 
-    boolean checkIsHealthy() {
+    boolean checkIsSpaceEnough() {
+
       if (Double.compare(0.0, getTotalSpace(storageDir)) == 0) {
         this.isHealthy = false;
         return false;
@@ -131,6 +142,56 @@ public class LocalStorageChecker extends Checker {
         }
       }
       return isHealthy;
+    }
+
+    boolean checkStorageReadAndWrite() {
+      File checkDir = new File(storageDir, "check");
+      try {
+        checkDir.mkdirs();
+        File writeFile = new File(checkDir, "test");
+        if (!writeFile.createNewFile()) {
+          return false;
+        }
+        try (FileOutputStream fos = new FileOutputStream(writeFile)) {
+          for (int i = 0; i < 5; i++) {
+            fos.write(0xa);
+            fos.write(0x5);
+          }
+        }
+        char[] readData = new char[10];
+        try (FileInputStream fis = new FileInputStream(writeFile)) {
+          for (int i = 0; i < 10; i++) {
+            int readValue = fis.read();
+            if (readValue == -1) {
+              return false;
+            }
+            readData[i] = (char) readValue;
+          }
+          if (fis.read() != -1) {
+            return false;
+          }
+          for (int i = 0; i < 10; i++) {
+            if (i % 2 == 0) {
+              if (readData[i] != 0xa) {
+                return false;
+              }
+            } else {
+              if (readData[i] != 0x5) {
+                return false;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+        return false;
+      } finally {
+        checkDir.delete();
+      }
+      return true;
+    }
+
+    public void markCorrupted() {
+      storage.markCorrupted();
     }
   }
 }

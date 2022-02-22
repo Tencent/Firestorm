@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 
@@ -42,6 +43,8 @@ public class LocalStorageManager extends SingleStorageManager {
 
   private final List<LocalStorage> localStorages = Lists.newArrayList();
   private final String[] storageBasePaths;
+  private List<LocalStorage> unCorruptedStorages = Lists.newArrayList();
+  private final Set<String> corruptedStorages = Sets.newConcurrentHashSet();
 
   LocalStorageManager(ShuffleServerConf conf) {
     super(conf);
@@ -70,20 +73,34 @@ public class LocalStorageManager extends SingleStorageManager {
 
   @Override
   public Storage selectStorage(ShuffleDataFlushEvent event) {
-    return localStorages.get(ShuffleStorageUtils.getStorageIndex(
+    LocalStorage storage = localStorages.get(ShuffleStorageUtils.getStorageIndex(
         localStorages.size(),
         event.getAppId(),
         event.getShuffleId(),
         event.getStartPartition()));
+    if (storage.containsWriteHandler(event.getAppId(), event.getShuffleId(), event.getStartPartition())
+        && storage.isCorrupted()) {
+      throw new RuntimeException("");
+    }
+    if (storage.isCorrupted()) {
+      storage = getRepairedStorage(event.getAppId(), event.getShuffleId(), event.getStartPartition());
+    }
+    return storage;
   }
+
 
   @Override
   public Storage selectStorage(ShuffleDataReadEvent event) {
-    return localStorages.get(ShuffleStorageUtils.getStorageIndex(
+
+    LocalStorage storage = localStorages.get(ShuffleStorageUtils.getStorageIndex(
         localStorages.size(),
         event.getAppId(),
         event.getShuffleId(),
         event.getStartPartition()));
+    if (storage.isCorrupted()) {
+      storage = getRepairedStorage(event.getAppId(), event.getShuffleId(), event.getStartPartition());
+    }
+    return storage;
   }
 
   @Override
@@ -105,6 +122,34 @@ public class LocalStorageManager extends SingleStorageManager {
         .createShuffleDeleteHandler(
             new CreateShuffleDeleteHandlerRequest(StorageType.LOCALFILE.name(), new Configuration()));
     deleteHandler.delete(storageBasePaths, appId);
+  }
+
+  void repair() {
+    boolean hasNewCorruptedStorage = false;
+    for (LocalStorage storage : localStorages) {
+      if (storage.isCorrupted() && corruptedStorages.contains(storage.getBasePath())) {
+        hasNewCorruptedStorage = true;
+        corruptedStorages.add(storage.getBasePath());
+      }
+    }
+    if (hasNewCorruptedStorage) {
+      List<LocalStorage> healthyStorages = Lists.newArrayList();
+      for (LocalStorage storage : localStorages) {
+        if (!storage.isCorrupted()) {
+          healthyStorages.add(storage);
+        }
+      }
+      unCorruptedStorages = healthyStorages;
+    }
+  }
+
+  private synchronized LocalStorage getRepairedStorage(String appId, int shuffleId, int partitionId) {
+    repair();
+    return  unCorruptedStorages.get(ShuffleStorageUtils.getStorageIndex(
+        unCorruptedStorages.size(),
+        appId,
+        shuffleId,
+        partitionId));
   }
 
   public List<LocalStorage> getStorages() {

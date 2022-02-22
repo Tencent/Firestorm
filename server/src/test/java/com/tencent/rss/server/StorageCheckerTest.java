@@ -58,7 +58,7 @@ public class StorageCheckerTest {
 
   private class MockStorageChecker extends LocalStorageChecker {
     public MockStorageChecker(ShuffleServerConf conf) {
-      super(conf);
+      super(conf, null);
     }
 
     @Override
