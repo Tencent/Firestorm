@@ -22,12 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,9 +90,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleServerGrpcClient.class);
   private static final long FAILED_REQUIRE_ID = -1;
   private static final long RPC_TIMEOUT_DEFAULT_MS = 60000;
-  private ShuffleServerBlockingStub[] blockingStubs = new ShuffleServerBlockingStub[5];
-  private AtomicInteger atomicInteger = new AtomicInteger(0);
-  protected ManagedChannel[] channels = new ManagedChannel[5];
+  private ShuffleServerBlockingStub blockingStub;
 
   public ShuffleServerGrpcClient(String host, int port) {
     this(host, port, 3);
@@ -107,24 +102,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
 
   public ShuffleServerGrpcClient(String host, int port, int maxRetryAttempts, boolean usePlaintext) {
     super(host, port, maxRetryAttempts, usePlaintext);
-
-    ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress(host, port);
-
-    if (usePlaintext) {
-      channelBuilder.usePlaintext();
-    }
-
-    if (maxRetryAttempts > 0) {
-      channelBuilder.enableRetry().maxRetryAttempts(maxRetryAttempts);
-    }
-    channelBuilder.maxInboundMessageSize(Integer.MAX_VALUE);
-
-    for (int i = 0; i < 5; i++) {
-      channels[i] = channelBuilder.build();
-    }
-    for (int i = 0; i < 5; i++) {
-      blockingStubs[i] = ShuffleServerGrpc.newBlockingStub(channels[i]);
-    }
+    blockingStub = ShuffleServerGrpc.newBlockingStub(channel);
   }
 
   @Override
@@ -135,15 +113,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
   private ShuffleRegisterResponse doRegisterShuffle(String appId, int shuffleId, List<PartitionRange> partitionRanges) {
     ShuffleRegisterRequest request = ShuffleRegisterRequest.newBuilder().setAppId(appId)
         .setShuffleId(shuffleId).addAllPartitionRanges(toShufflePartitionRanges(partitionRanges)).build();
-    return blockingStubs[getStubIndex()].registerShuffle(request);
-  }
-
-  private int getStubIndex() {
-    int index = atomicInteger.incrementAndGet();
-    if (index < 0) {
-      index = - index;
-    }
-    return index % 5;
+    return blockingStub.registerShuffle(request);
   }
 
   private ShuffleCommitResponse doSendCommit(String appId, int shuffleId) {
@@ -152,7 +122,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     int retryNum = 0;
     while (retryNum <= maxRetryAttempts) {
       try {
-        ShuffleCommitResponse response = blockingStubs[getStubIndex()].withDeadlineAfter(
+        ShuffleCommitResponse response = blockingStub.withDeadlineAfter(
             RPC_TIMEOUT_DEFAULT_MS, TimeUnit.MILLISECONDS).commitShuffleTask(request);
         return response;
       } catch (Exception e) {
@@ -166,12 +136,12 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
 
   private AppHeartBeatResponse doSendHeartBeat(String appId, long timeout) {
     AppHeartBeatRequest request = AppHeartBeatRequest.newBuilder().setAppId(appId).build();
-    return blockingStubs[getStubIndex()].withDeadlineAfter(timeout, TimeUnit.MILLISECONDS).appHeartbeat(request);
+    return blockingStub.withDeadlineAfter(timeout, TimeUnit.MILLISECONDS).appHeartbeat(request);
   }
 
   public long requirePreAllocation(int requireSize, int retryMax, long retryIntervalMax) {
     RequireBufferRequest rpcRequest = RequireBufferRequest.newBuilder().setRequireSize(requireSize).build();
-    RequireBufferResponse rpcResponse = blockingStubs[getStubIndex()].requireBuffer(rpcRequest);
+    RequireBufferResponse rpcResponse = blockingStub.requireBuffer(rpcRequest);
     int retry = 0;
     long result = FAILED_REQUIRE_ID;
     Random random = new Random();
@@ -191,7 +161,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
       } catch (Exception e) {
         LOG.warn("Exception happened when require pre allocation", e);
       }
-      rpcResponse = blockingStubs[getStubIndex()].requireBuffer(rpcRequest);
+      rpcResponse = blockingStub.requireBuffer(rpcRequest);
       retry++;
     }
     if (rpcResponse.getStatus() == StatusCode.SUCCESS) {
@@ -296,7 +266,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     int retryNum = 0;
     while (retryNum < maxRetryAttempts) {
       try {
-        SendShuffleDataResponse response = blockingStubs[getStubIndex()].withDeadlineAfter(
+        SendShuffleDataResponse response = blockingStub.withDeadlineAfter(
             RPC_TIMEOUT_DEFAULT_MS, TimeUnit.MILLISECONDS).sendShuffleData(rpcRequest);
         return response;
       } catch (Exception e) {
@@ -344,7 +314,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
   public RssFinishShuffleResponse finishShuffle(RssFinishShuffleRequest request) {
     FinishShuffleRequest rpcRequest = FinishShuffleRequest.newBuilder()
         .setAppId(request.getAppId()).setShuffleId(request.getShuffleId()).build();
-    FinishShuffleResponse rpcResponse = blockingStubs[getStubIndex()].finishShuffle(rpcRequest);
+    FinishShuffleResponse rpcResponse = blockingStub.finishShuffle(rpcRequest);
 
     RssFinishShuffleResponse response;
     if (rpcResponse.getStatus() != StatusCode.SUCCESS) {
@@ -402,7 +372,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
     int retryNum = 0;
     while (retryNum < maxRetryAttempts) {
       try {
-        ReportShuffleResultResponse response = blockingStubs[getStubIndex()].withDeadlineAfter(
+        ReportShuffleResultResponse response = blockingStub.withDeadlineAfter(
             RPC_TIMEOUT_DEFAULT_MS, TimeUnit.MILLISECONDS).reportShuffleResult(rpcRequest);
         return response;
       } catch (Exception e) {
@@ -422,7 +392,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setShuffleId(request.getShuffleId())
         .setPartitionId(request.getPartitionId())
         .build();
-    GetShuffleResultResponse rpcResponse = blockingStubs[getStubIndex()].getShuffleResult(rpcRequest);
+    GetShuffleResultResponse rpcResponse = blockingStub.getShuffleResult(rpcRequest);
     StatusCode statusCode = rpcResponse.getStatus();
 
     RssGetShuffleResultResponse response;
@@ -459,7 +429,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setLength(request.getLength())
         .build();
     long start = System.currentTimeMillis();
-    GetLocalShuffleDataResponse rpcResponse = blockingStubs[getStubIndex()].getLocalShuffleData(rpcRequest);
+    GetLocalShuffleDataResponse rpcResponse = blockingStub.getLocalShuffleData(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetShuffleData for " + requestInfo + " cost " + (System.currentTimeMillis() - start) + " ms");
@@ -493,7 +463,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .setPartitionNum(request.getPartitionNum())
         .build();
     long start = System.currentTimeMillis();
-    GetLocalShuffleIndexResponse rpcResponse = blockingStubs[getStubIndex()].getLocalShuffleIndex(rpcRequest);
+    GetLocalShuffleIndexResponse rpcResponse = blockingStub.getLocalShuffleIndex(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetShuffleIndex for " + requestInfo + " cost " + (System.currentTimeMillis() - start) + " ms");
@@ -529,7 +499,7 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         .build();
 
     long start = System.currentTimeMillis();
-    GetMemoryShuffleDataResponse rpcResponse = blockingStubs[getStubIndex()].getMemoryShuffleData(rpcRequest);
+    GetMemoryShuffleDataResponse rpcResponse = blockingStub.getMemoryShuffleData(rpcRequest);
     String requestInfo = "appId[" + request.getAppId() + "], shuffleId["
         + request.getShuffleId() + "], partitionId[" + request.getPartitionId() + "]";
     LOG.info("GetInMemoryShuffleData for " + requestInfo + " cost "
