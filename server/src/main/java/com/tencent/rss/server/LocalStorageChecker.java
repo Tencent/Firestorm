@@ -20,10 +20,12 @@ package com.tencent.rss.server;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,9 +185,15 @@ public class LocalStorageChecker extends Checker {
           }
         }
       } catch (Exception e) {
+        LOG.error("Storage read and write error ", e);
         return false;
       } finally {
-        checkDir.delete();
+        try {
+          FileUtils.deleteDirectory(checkDir);
+        } catch (IOException ioe) {
+          LOG.error("delete directory fail", ioe);
+          return false;
+        }
       }
       return true;
     }

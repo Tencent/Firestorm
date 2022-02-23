@@ -154,7 +154,7 @@ public class LocalStorage extends AbstractStorage {
         request.getPartitionId(),
         request.getPartitionNumPerRange(),
         request.getPartitionNum(),
-        request.getPath());
+        basePath);
   }
 
   @Override

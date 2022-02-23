@@ -68,7 +68,7 @@ public abstract class AbstractStorage implements Storage {
         range[0]
     );
     map.computeIfAbsent(partitionKey, key -> newReadHandler(request));
-    return null;
+    return map.get(partitionKey);
   }
 
   protected abstract ServerReadHandler newReadHandler(CreateShuffleReadHandlerRequest request);

@@ -53,7 +53,6 @@ import com.tencent.rss.server.buffer.ShuffleBufferManager;
 import com.tencent.rss.server.storage.StorageManager;
 import com.tencent.rss.storage.common.Storage;
 import com.tencent.rss.storage.common.StorageReadMetrics;
-import com.tencent.rss.storage.handler.api.ServerReadHandler;
 import com.tencent.rss.storage.request.CreateShuffleReadHandlerRequest;
 
 public class ShuffleTaskManager {
@@ -85,7 +84,6 @@ public class ShuffleTaskManager {
   private Runnable clearResourceThread;
   private BlockingQueue<String> expiredAppIdQueue = Queues.newLinkedBlockingQueue();
   // appId -> shuffleId -> serverReadHandler
-  private Map<String, Map<String, ServerReadHandler>> serverReadHandlers = Maps.newConcurrentMap();
 
   public ShuffleTaskManager(
       ShuffleServerConf conf,
@@ -386,7 +384,6 @@ public class ShuffleTaskManager {
     final long start = System.currentTimeMillis();
     final Map<Integer, Roaring64NavigableMap> shuffleToCachedBlockIds = cachedBlockIds.get(appId);
     appIds.remove(appId);
-    serverReadHandlers.remove(appId);
     partitionsToBlockIds.remove(appId);
     cachedBlockIds.remove(appId);
     commitCounts.remove(appId);
@@ -439,11 +436,6 @@ public class ShuffleTaskManager {
   @VisibleForTesting
   Map<Long, PreAllocatedBufferInfo> getRequireBufferIds() {
     return requireBufferIds;
-  }
-
-  @VisibleForTesting
-  public Map<String, Map<String, ServerReadHandler>> getServerReadHandlers() {
-    return serverReadHandlers;
   }
 
   @VisibleForTesting

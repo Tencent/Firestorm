@@ -27,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 
 import com.tencent.rss.common.util.RssUtils;
+import com.tencent.rss.server.Checker;
+import com.tencent.rss.server.LocalStorageChecker;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleDataReadEvent;
 import com.tencent.rss.server.ShuffleServerConf;
@@ -43,6 +45,7 @@ public class LocalStorageManager extends SingleStorageManager {
 
   private final List<LocalStorage> localStorages = Lists.newArrayList();
   private final String[] storageBasePaths;
+  private final LocalStorageChecker checker;
   private List<LocalStorage> unCorruptedStorages = Lists.newArrayList();
   private final Set<String> corruptedStorages = Sets.newConcurrentHashSet();
 
@@ -68,6 +71,12 @@ public class LocalStorageManager extends SingleStorageManager {
           .highWaterMarkOfWrite(highWaterMarkOfWrite)
           .shuffleExpiredTimeoutMs(shuffleExpiredTimeoutMs)
           .build());
+    }
+    boolean healthCheckEnable = conf.getBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE);
+    if (healthCheckEnable) {
+      this.checker = new LocalStorageChecker(conf, localStorages);
+    } else {
+      this.checker = null;
     }
   }
 
@@ -110,6 +119,11 @@ public class LocalStorageManager extends SingleStorageManager {
   }
 
   @Override
+  public Checker getStorageChecker() {
+    return checker;
+  }
+
+  @Override
   public void removeResources(String appId, Set<Integer> shuffleSet) {
     for (LocalStorage storage : localStorages) {
       for (Integer shuffleId : shuffleSet) {
@@ -123,6 +137,7 @@ public class LocalStorageManager extends SingleStorageManager {
             new CreateShuffleDeleteHandlerRequest(StorageType.LOCALFILE.name(), new Configuration()));
     deleteHandler.delete(storageBasePaths, appId);
   }
+
 
   void repair() {
     boolean hasNewCorruptedStorage = false;

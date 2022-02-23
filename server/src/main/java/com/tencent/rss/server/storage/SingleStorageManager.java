@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.common.ShufflePartitionedBlock;
 import com.tencent.rss.common.util.RssUtils;
+import com.tencent.rss.server.Checker;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.server.ShuffleServerMetrics;
@@ -136,5 +137,10 @@ public abstract class SingleStorageManager implements StorageManager {
   @Override
   public void stop() {
     // do nothing
+  }
+
+  @Override
+  public Checker getStorageChecker() {
+    throw new RuntimeException("Not support storage checker");
   }
 }

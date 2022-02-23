@@ -88,7 +88,7 @@ public class LocalFileHandlerTest {
     LocalFileServerReadHandler readHandler1 = new LocalFileServerReadHandler(
         "appId", 0, 1, 1, 10, dataDir1.getAbsolutePath());
     LocalFileServerReadHandler readHandler2 = new LocalFileServerReadHandler(
-        "appId", 0, 2, 1, 10, dataDir2.getAbsolutePath());
+        "appId", 0, 2, 1, 10, dataDir1.getAbsolutePath());
 
     validateResult(readHandler1, expectedBlockIds1, expectedData);
     validateResult(readHandler2, expectedBlockIds2, expectedData);

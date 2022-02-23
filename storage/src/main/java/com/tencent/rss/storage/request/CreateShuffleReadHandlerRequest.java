@@ -42,7 +42,6 @@ public class CreateShuffleReadHandlerRequest {
   private List<ShuffleServerInfo> shuffleServerInfoList;
   private Roaring64NavigableMap expectBlockIds;
   private Roaring64NavigableMap processBlockIds;
-  private String path;
 
   public CreateShuffleReadHandlerRequest() {
   }
@@ -157,13 +156,5 @@ public class CreateShuffleReadHandlerRequest {
 
   public Roaring64NavigableMap getProcessBlockIds() {
     return processBlockIds;
-  }
-
-  public String getPath() {
-    return path;
-  }
-
-  public void setPath(String path) {
-    this.path = path;
   }
 }
