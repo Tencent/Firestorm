@@ -110,8 +110,6 @@ public class LocalStorageChecker extends Checker {
     return file.getTotalSpace() - file.getUsableSpace();
   }
 
-
-
   // todo: This function will be integrated to MultiStorageManager, currently we only support disk check.
   class StorageInfo {
 
@@ -147,6 +145,9 @@ public class LocalStorageChecker extends Checker {
     }
 
     boolean checkStorageReadAndWrite() {
+      if (storage.isCorrupted()) {
+        return false;
+      }
       File checkDir = new File(storageDir, "check");
       try {
         checkDir.mkdirs();

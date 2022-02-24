@@ -160,6 +160,9 @@ public class LocalStorageManager extends SingleStorageManager {
 
   private synchronized LocalStorage getRepairedStorage(String appId, int shuffleId, int partitionId) {
     repair();
+    if (unCorruptedStorages.isEmpty()) {
+      throw new RuntimeException("No enough storages");
+    }
     return  unCorruptedStorages.get(ShuffleStorageUtils.getStorageIndex(
         unCorruptedStorages.size(),
         appId,
