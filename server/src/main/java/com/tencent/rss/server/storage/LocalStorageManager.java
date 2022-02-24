@@ -89,7 +89,7 @@ public class LocalStorageManager extends SingleStorageManager {
         event.getStartPartition()));
     if (storage.containsWriteHandler(event.getAppId(), event.getShuffleId(), event.getStartPartition())
         && storage.isCorrupted()) {
-      throw new RuntimeException("");
+      throw new RuntimeException("storage " + storage.getBasePath() + " is corrupted");
     }
     if (storage.isCorrupted()) {
       storage = getRepairedStorage(event.getAppId(), event.getShuffleId(), event.getStartPartition());
@@ -142,7 +142,7 @@ public class LocalStorageManager extends SingleStorageManager {
   void repair() {
     boolean hasNewCorruptedStorage = false;
     for (LocalStorage storage : localStorages) {
-      if (storage.isCorrupted() && corruptedStorages.contains(storage.getBasePath())) {
+      if (storage.isCorrupted() && !corruptedStorages.contains(storage.getBasePath())) {
         hasNewCorruptedStorage = true;
         corruptedStorages.add(storage.getBasePath());
       }
