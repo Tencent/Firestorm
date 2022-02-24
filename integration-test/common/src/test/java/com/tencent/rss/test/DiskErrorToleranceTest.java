@@ -27,11 +27,11 @@ import com.tencent.rss.client.impl.ShuffleReadClientImpl;
 import com.tencent.rss.client.impl.grpc.ShuffleServerGrpcClient;
 import com.tencent.rss.client.request.RssFinishShuffleRequest;
 import com.tencent.rss.client.request.RssRegisterShuffleRequest;
-import com.tencent.rss.client.request.RssReportShuffleResultRequest;
 import com.tencent.rss.client.request.RssSendCommitRequest;
 import com.tencent.rss.client.request.RssSendShuffleDataRequest;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
+import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.storage.util.StorageType;
@@ -57,6 +57,8 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
   private static File serverTmpDir = Files.createTempDir();
   private static File data1 = new File(serverTmpDir, "data1");
   private static File data2 = new File(serverTmpDir, "data2");
+  private List<ShuffleServerInfo> shuffleServerInfo =
+      Lists.newArrayList(new ShuffleServerInfo("127.0.0.1-20001", LOCALHOST, SHUFFLE_SERVER_PORT));
 
   @BeforeClass
   public static void setupServers() throws Exception {
@@ -105,13 +107,20 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
     shuffleServerClient.sendCommit(rc1);
     RssFinishShuffleRequest rf1 = new RssFinishShuffleRequest(appId, 0);
     shuffleServerClient.finishShuffle(rf1);
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
+        appId, 0, 0, 100, 1, 10, 1000, null,
+        blockIdBitmap1, Roaring64NavigableMap.bitmapOf(1), shuffleServerInfo, conf);
+    validateResult(readClient, expectedData);
 
+    File shuffleData = new File(data2, appId);
+    assertTrue(shuffleData.exists());
     FileUtils.deleteDirectory(data2);
     assertFalse(data2.exists());
     boolean suc = data2.createNewFile();
     assertTrue(suc);
     Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
 
+    expectedData.clear();
     partitionToBlocks.clear();
     shuffleToBlocks.clear();
     Roaring64NavigableMap blockIdBitmap2 = Roaring64NavigableMap.bitmapOf();
@@ -126,10 +135,11 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
     shuffleServerClient.sendCommit(rc1);
     shuffleServerClient.finishShuffle(rf1);
 
-    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
-        appId, 0, 0, 100, 1, 10, 1000, HDFS_URI + "xxxx",
-        blockIdBitmap2, Roaring64NavigableMap.bitmapOf(2), Lists.newArrayList(), conf);
+    readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
+        appId, 0, 0, 100, 1, 10, 1000, null,
+        blockIdBitmap2, Roaring64NavigableMap.bitmapOf(2), shuffleServerInfo, conf);
     validateResult(readClient, expectedData);
-
+    shuffleData = new File(data1, appId);
+    assertTrue(shuffleData.exists());
   }
 }
