@@ -62,8 +62,6 @@ public class LocalFileServerReadHandler implements ServerReadHandler {
       String path) {
 
     long start = System.currentTimeMillis();
-    // int[] range = ShuffleStorageUtils.getPartitionRange(partitionId, partitionNumPerRange, partitionNum);
-    // int index = ShuffleStorageUtils.getStorageIndex(storageBasePaths.length, appId, shuffleId, range[0]);
     prepareFilePath(appId, shuffleId, partitionId, partitionNumPerRange, partitionNum, path);
     LOG.debug("Prepare for appId[" + appId + "], shuffleId[" + shuffleId + "], partitionId[" + partitionId
         + "] cost " + (System.currentTimeMillis() - start) + " ms");
