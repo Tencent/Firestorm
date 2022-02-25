@@ -72,12 +72,7 @@ public class LocalStorageManager extends SingleStorageManager {
           .shuffleExpiredTimeoutMs(shuffleExpiredTimeoutMs)
           .build());
     }
-    boolean healthCheckEnable = conf.getBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE);
-    if (healthCheckEnable) {
-      this.checker = new LocalStorageChecker(conf, localStorages);
-    } else {
-      this.checker = null;
-    }
+    this.checker = new LocalStorageChecker(conf, localStorages);
   }
 
   @Override

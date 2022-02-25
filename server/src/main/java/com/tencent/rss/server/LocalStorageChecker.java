@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -155,35 +156,27 @@ public class LocalStorageChecker extends Checker {
         if (!writeFile.createNewFile()) {
           return false;
         }
+        byte[] data = new byte[1024];
+        new Random().nextBytes(data);
         try (FileOutputStream fos = new FileOutputStream(writeFile)) {
-          for (int i = 0; i < 5; i++) {
-            fos.write(0xa);
-            fos.write(0x5);
-          }
+          fos.write(data);
+          fos.flush();
         }
-        char[] readData = new char[10];
+        byte[] readData = new byte[1024];
+        int readBytes = -1;
         try (FileInputStream fis = new FileInputStream(writeFile)) {
-          for (int i = 0; i < 10; i++) {
-            int readValue = fis.read();
-            if (readValue == -1) {
-              return false;
-            }
-            readData[i] = (char) readValue;
-          }
-          if (fis.read() != -1) {
-            return false;
-          }
-          for (int i = 0; i < 10; i++) {
-            if (i % 2 == 0) {
-              if (readData[i] != 0xa) {
-                return false;
+            int hasReadBytes = 0;
+            do {
+              readBytes = fis.read(readData);
+              if (hasReadBytes < 1024) {
+                for (int i = 0; i < readBytes; i++) {
+                  if (data[hasReadBytes + i] != readData[i]) {
+                    return false;
+                  }
+                }
               }
-            } else {
-              if (readData[i] != 0x5) {
-                return false;
-              }
-            }
-          }
+              hasReadBytes += readBytes;
+            } while (readBytes != -1);
         }
       } catch (Exception e) {
         LOG.error("Storage read and write error ", e);
