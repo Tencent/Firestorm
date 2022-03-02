@@ -138,9 +138,4 @@ public abstract class SingleStorageManager implements StorageManager {
   public void stop() {
     // do nothing
   }
-
-  @Override
-  public Checker getStorageChecker() {
-    throw new RuntimeException("Not support storage checker");
-  }
 }

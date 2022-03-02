@@ -161,6 +161,7 @@ public class LocalStorageChecker extends Checker {
         try (FileOutputStream fos = new FileOutputStream(writeFile)) {
           fos.write(data);
           fos.flush();
+          fos.getFD().sync();
         }
         byte[] readData = new byte[1024];
         int readBytes = -1;
