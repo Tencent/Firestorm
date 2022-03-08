@@ -85,7 +85,8 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
 
   @Before
   public void createClient() {
-    shuffleWriteClientImpl = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1);
+    shuffleWriteClientImpl = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1,
+      2, 1, 1);
   }
 
   @After
@@ -116,7 +117,8 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
     for (Long blockId : result.getSuccessBlockIds()) {
       succBlockIdBitmap.addLong(blockId);
     }
-    assertEquals(blockIdBitmap, failedBlockIdBitmap);
+    // There will no failed blocks when replica=2
+    assertEquals(failedBlockIdBitmap.getLongCardinality(), 0);
     assertEquals(blockIdBitmap, succBlockIdBitmap);
 
     boolean commitResult = shuffleWriteClientImpl.sendCommit(Sets.newHashSet(
