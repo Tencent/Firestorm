@@ -85,7 +85,8 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
 
   @Before
   public void createClient() {
-    shuffleWriteClientImpl = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1);
+    shuffleWriteClientImpl = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1,
+      2, 1, 1);
   }
 
   @After
@@ -110,13 +111,11 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
     SendShuffleDataResult result = shuffleWriteClientImpl.sendShuffleData(testAppId, blocks);
     Roaring64NavigableMap failedBlockIdBitmap = Roaring64NavigableMap.bitmapOf();
     Roaring64NavigableMap succBlockIdBitmap = Roaring64NavigableMap.bitmapOf();
-    for (Long blockId : result.getFailedBlockIds()) {
-      failedBlockIdBitmap.addLong(blockId);
-    }
     for (Long blockId : result.getSuccessBlockIds()) {
       succBlockIdBitmap.addLong(blockId);
     }
-    assertEquals(blockIdBitmap, failedBlockIdBitmap);
+    // There will no failed blocks when replica=2
+    assertEquals(failedBlockIdBitmap.getLongCardinality(), 0);
     assertEquals(blockIdBitmap, succBlockIdBitmap);
 
     boolean commitResult = shuffleWriteClientImpl.sendCommit(Sets.newHashSet(

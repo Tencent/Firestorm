@@ -18,12 +18,15 @@
 
 package com.tencent.rss.client.response;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SendShuffleDataResult {
 
   private Set<Long> successBlockIds;
   private Set<Long> failedBlockIds;
+  private Map<Long, AtomicLong> blockIdsTracker;
 
   public SendShuffleDataResult(Set<Long> successBlockIds, Set<Long> failedBlockIds) {
     this.successBlockIds = successBlockIds;
@@ -36,5 +39,9 @@ public class SendShuffleDataResult {
 
   public Set<Long> getFailedBlockIds() {
     return failedBlockIds;
+  }
+
+  public Map<Long, AtomicLong> getBlockIdsTracker() {
+    return blockIdsTracker;
   }
 }
