@@ -311,6 +311,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
         groupedPartitions.get(ssi).add(entry.getKey());
       }
     }
+    int successCnt = 0;
     for (Map.Entry<ShuffleServerInfo, List<Integer>> entry : groupedPartitions.entrySet()) {
       Map<Integer, List<Long>> requestBlockIds = Maps.newHashMap();
       for (Integer partitionId : entry.getValue()) {
@@ -324,20 +325,17 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
         if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
           LOG.info("Report shuffle result to " + ssi + " for appId[" + appId
               + "], shuffleId[" + shuffleId + "] successfully");
+          successCnt++;
         } else {
-          isSuccessful = false;
           LOG.warn("Report shuffle result to " + ssi + " for appId[" + appId
               + "], shuffleId[" + shuffleId + "] failed with " + response.getStatusCode());
-          break;
         }
       } catch (Exception e) {
-        isSuccessful = false;
         LOG.warn("Report shuffle result is failed to " + ssi
             + " for appId[" + appId + "], shuffleId[" + shuffleId + "]");
-        break;
       }
     }
-    if (!isSuccessful) {
+    if (successCnt < replicaWrite) {
       throw new RssException("Report shuffle result is failed for appId["
           + appId + "], shuffleId[" + shuffleId + "]");
     }
@@ -439,7 +437,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   }
 
   @VisibleForTesting
-  protected ShuffleServerClient getShuffleServerClient(ShuffleServerInfo shuffleServerInfo) {
+  public ShuffleServerClient getShuffleServerClient(ShuffleServerInfo shuffleServerInfo) {
     return ShuffleServerClientFactory.getInstance().getShuffleServerClient(clientType, shuffleServerInfo);
   }
 }

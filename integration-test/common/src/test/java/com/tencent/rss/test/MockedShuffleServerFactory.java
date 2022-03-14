@@ -1,8 +1,8 @@
 /*
  * Tencent is pleased to support the open source community by making
- * Firestorm-Spark remote shuffle server available. 
+ * Firestorm-Spark remote shuffle server available.
  *
- * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved. 
+ * Copyright (C) 2021 THL A29 Limited, a Tencent company.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -16,32 +16,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.server;
+package com.tencent.rss.test;
 
-import com.tencent.rss.common.rpc.GrpcServer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.tencent.rss.common.rpc.ServerInterface;
+import com.tencent.rss.server.ShuffleServerConf;
+import com.tencent.rss.server.ShuffleServerFactory;
 
-public class ShuffleServerFactory {
-
-  protected final ShuffleServer shuffleServer;
-  protected final ShuffleServerConf conf;
-
-  public ShuffleServerFactory(ShuffleServer shuffleServer) {
-    this.shuffleServer = shuffleServer;
-    this.conf = shuffleServer.getShuffleServerConf();
+public class MockedShuffleServerFactory extends ShuffleServerFactory {
+  private static final Logger LOG = LoggerFactory.getLogger(MockedShuffleServerFactory.class);
+  public MockedShuffleServerFactory(MockedShuffleServer shuffleServer) {
+    super(shuffleServer);
   }
 
+  @Override
   public ServerInterface getServer() {
     String type = conf.getString(ShuffleServerConf.RPC_SERVER_TYPE);
     if (type.equals(ServerType.GRPC.name())) {
-      return new GrpcServer(conf, new ShuffleServerGrpcService(shuffleServer),
-          shuffleServer.getGrpcMetrics());
+      return new MockedGrpcServer(conf, new MockedShuffleServerGrpcService(shuffleServer),
+        shuffleServer.getGrpcMetrics());
     } else {
       throw new UnsupportedOperationException("Unsupported server type " + type);
     }
   }
 
-  protected enum ServerType {
-    GRPC
-  }
 }

@@ -139,11 +139,11 @@ public class RssShuffleManager implements ShuffleManager {
       + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + "]");
     if (dataReplica == 1) {
       if (dataReplicaWrite != 1 || dataReplicaRead != 1) {
-        throw new RuntimeException("Replica config is invalid");
+        throw new RuntimeException("Replica config is invalid, recommend replica.write + replica.read > replica");
       }
-    } else if (1 < dataReplica) {
+    } else if (dataReplica > 1) {
       if (dataReplica <= dataReplicaWrite + dataReplicaRead) {
-        LOG.warn("Replica config is unsafe, recommend replica.write + replica.read > replica");
+        throw new RuntimeException("Replica config is unsafe, recommend replica.write + replica.read > replica");
       }
     }
 

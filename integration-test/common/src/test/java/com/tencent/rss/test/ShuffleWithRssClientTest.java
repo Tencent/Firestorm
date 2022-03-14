@@ -125,17 +125,17 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
         shuffleServerInfo1, fakeShuffleServerInfo), testAppId, 0, 2);
     assertFalse(commitResult);
 
+    // Report will success when replica=2
     Map<Integer, List<Long>> ptb = Maps.newHashMap();
-    ptb.put(1, Lists.newArrayList(1L));
-    try {
-      Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
-      partitionToServers.put(1, Lists.newArrayList(
-          shuffleServerInfo1, fakeShuffleServerInfo));
-      shuffleWriteClientImpl.reportShuffleResult(partitionToServers, testAppId, 0, 0, ptb, 2);
-      fail(EXPECTED_EXCEPTION_MESSAGE);
-    } catch (Exception e) {
-      assertTrue(e.getMessage().contains("Report shuffle result is failed for"));
-    }
+    ptb.put(0, Lists.newArrayList(blockIdBitmap.stream().iterator()));
+    Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
+    partitionToServers.put(0, Lists.newArrayList(
+        shuffleServerInfo1, fakeShuffleServerInfo));
+    shuffleWriteClientImpl.reportShuffleResult(partitionToServers, testAppId, 0, 0, ptb, 2);
+    Roaring64NavigableMap report = shuffleWriteClientImpl.getShuffleResult("GRPC",
+      Sets.newHashSet(shuffleServerInfo1, fakeShuffleServerInfo),
+      testAppId, 0, 0);
+    assertEquals(blockIdBitmap, report);
   }
 
   @Test
