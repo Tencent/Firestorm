@@ -303,7 +303,7 @@ public class RssShuffleManager implements ShuffleManager {
       endMapIndex);
     LOG.info("Get taskId cost " + (System.currentTimeMillis() - start) + " ms, and request expected blockIds from "
       + taskIdBitmap.getLongCardinality() + " tasks for shuffleId[" + handle.shuffleId() + "], partitionId["
-      + startPartition + ", " + endPartition +"]");
+      + startPartition + ", " + endPartition + "]");
     return getReaderImpl(handle, startMapIndex, endMapIndex, startPartition, endPartition,
         context, metrics, taskIdBitmap);
   }
