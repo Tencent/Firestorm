@@ -72,7 +72,7 @@ public class QuorumTest extends ShuffleReadWriteBase {
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
     shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
-    createShuffleServer(shuffleServerConf);
+    createMockedShuffleServer(shuffleServerConf);
 
     File dataDir3 = new File(tmpDir, "data3");
     File dataDir4 = new File(tmpDir, "data4");
@@ -80,7 +80,7 @@ public class QuorumTest extends ShuffleReadWriteBase {
     shuffleServerConf.setString("rss.storage.basePath", basePath);
     shuffleServerConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT + 1);
     shuffleServerConf.setInteger("rss.jetty.http.port", 18081);
-    createShuffleServer(shuffleServerConf);
+    createMockedShuffleServer(shuffleServerConf);
 
     File dataDir5 = new File(tmpDir, "data5");
     File dataDir6 = new File(tmpDir, "data6");
@@ -88,7 +88,7 @@ public class QuorumTest extends ShuffleReadWriteBase {
     shuffleServerConf.setString("rss.storage.basePath", basePath);
     shuffleServerConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT + 2);
     shuffleServerConf.setInteger("rss.jetty.http.port", 17081);
-    createShuffleServer(shuffleServerConf);
+    createMockedShuffleServer(shuffleServerConf);
 
     startServers();
     shuffleServerInfo1 =

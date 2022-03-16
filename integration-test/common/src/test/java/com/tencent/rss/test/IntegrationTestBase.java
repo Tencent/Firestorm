@@ -97,6 +97,10 @@ abstract public class IntegrationTestBase extends HdfsTestBase {
   }
 
   protected static void createShuffleServer(ShuffleServerConf serverConf) throws Exception {
+    shuffleServers.add(new ShuffleServer(serverConf));
+  }
+
+  protected static void createMockedShuffleServer(ShuffleServerConf serverConf) throws Exception {
     shuffleServers.add(new MockedShuffleServer(serverConf));
   }
 
