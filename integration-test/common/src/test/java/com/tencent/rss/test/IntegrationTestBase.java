@@ -21,6 +21,7 @@ package com.tencent.rss.test;
 import com.google.common.collect.Lists;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.coordinator.CoordinatorServer;
+import com.tencent.rss.server.MockedShuffleServer;
 import com.tencent.rss.server.ShuffleServer;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.storage.HdfsTestBase;

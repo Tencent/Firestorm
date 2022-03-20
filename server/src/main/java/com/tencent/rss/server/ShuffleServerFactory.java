@@ -23,8 +23,8 @@ import com.tencent.rss.common.rpc.ServerInterface;
 
 public class ShuffleServerFactory {
 
-  protected final ShuffleServer shuffleServer;
-  protected final ShuffleServerConf conf;
+  private final ShuffleServer shuffleServer;
+  private final ShuffleServerConf conf;
 
   public ShuffleServerFactory(ShuffleServer shuffleServer) {
     this.shuffleServer = shuffleServer;
@@ -41,7 +41,15 @@ public class ShuffleServerFactory {
     }
   }
 
-  protected enum ServerType {
+  public ShuffleServer getShuffleServer() {
+    return shuffleServer;
+  }
+
+  public ShuffleServerConf getConf() {
+    return conf;
+  }
+
+  enum ServerType {
     GRPC
   }
 }

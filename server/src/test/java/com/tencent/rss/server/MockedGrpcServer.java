@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.test;
+package com.tencent.rss.server;
 
 import com.tencent.rss.common.config.RssBaseConf;
 import com.tencent.rss.common.metrics.GRPCMetrics;

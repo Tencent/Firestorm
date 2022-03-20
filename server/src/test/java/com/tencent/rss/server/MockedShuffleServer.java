@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.test;
-
-import com.tencent.rss.server.ShuffleServer;
-import com.tencent.rss.server.ShuffleServerConf;
+package com.tencent.rss.server;
 
 public class MockedShuffleServer extends ShuffleServer {
   public MockedShuffleServer(ShuffleServerConf shuffleServerConf) throws Exception {
@@ -28,7 +25,6 @@ public class MockedShuffleServer extends ShuffleServer {
 
   @Override
   public void setServer() {
-    MockedShuffleServerFactory shuffleServerFactory = new MockedShuffleServerFactory(this);
-    setServer(shuffleServerFactory.getServer());
+    setServer(new MockedShuffleServerFactory(this).getServer());
   }
 }

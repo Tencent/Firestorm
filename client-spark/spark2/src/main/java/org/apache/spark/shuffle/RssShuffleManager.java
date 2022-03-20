@@ -128,23 +128,12 @@ public class RssShuffleManager implements ShuffleManager {
     this.sparkConf = sparkConf;
 
     // set & check replica config
-    dataReplica = sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA,
+    this.dataReplica = sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA,
       RssClientConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
-    dataReplicaWrite =  sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA_WRITE,
+    this.dataReplicaWrite =  sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA_WRITE,
       RssClientConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
-    dataReplicaRead =  sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA_READ,
+    this.dataReplicaRead =  sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA_READ,
       RssClientConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
-    LOG.info("Create RssShuffleManager with replica config ["
-      + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + "]");
-    if (dataReplica == 1) {
-      if (dataReplicaWrite != 1 || dataReplicaRead != 1) {
-        throw new RuntimeException("Replica config is invalid, recommend replica.write + replica.read > replica");
-      }
-    } else if (dataReplica > 1) {
-      if (dataReplica <= dataReplicaWrite + dataReplicaRead) {
-        throw new RuntimeException("Replica config is unsafe, recommend replica.write + replica.read > replica");
-      }
-    }
 
     this.clientType = sparkConf.get(RssClientConfig.RSS_CLIENT_TYPE,
         RssClientConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);

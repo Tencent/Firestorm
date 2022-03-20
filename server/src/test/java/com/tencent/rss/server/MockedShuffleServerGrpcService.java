@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.test;
+package com.tencent.rss.server;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import io.grpc.stub.StreamObserver;
@@ -24,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.proto.RssProtos;
-import com.tencent.rss.server.ShuffleServer;
-import com.tencent.rss.server.ShuffleServerGrpcService;
 
 import java.util.concurrent.TimeUnit;
 

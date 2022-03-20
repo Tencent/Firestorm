@@ -94,6 +94,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
     this.replica = replica;
     this.replicaWrite = replicaWrite;
     this.replicaRead = replicaRead;
+    checkQuorumConf();
   }
 
   private void sendShuffleDataAsync(
@@ -439,5 +440,17 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   @VisibleForTesting
   public ShuffleServerClient getShuffleServerClient(ShuffleServerInfo shuffleServerInfo) {
     return ShuffleServerClientFactory.getInstance().getShuffleServerClient(clientType, shuffleServerInfo);
+  }
+
+  @VisibleForTesting
+  public void checkQuorumConf() {
+    LOG.info("Create ShuffleWriteClient with replica config ["
+      + replica + ":" + replicaWrite + ":" + replicaRead + "]");
+    if (replicaWrite > replica || replicaRead > replica) {
+      throw new RuntimeException("Replica config is invalid, recommend replica.write + replica.read > replica");
+    }
+    if (replicaWrite + replicaRead <= replica) {
+      throw new RuntimeException("Replica config is unsafe, recommend replica.write + replica.read > replica");
+    }
   }
 }

@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.tencent.rss.test;
+package com.tencent.rss.server;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.common.rpc.ServerInterface;
-import com.tencent.rss.server.ShuffleServerConf;
-import com.tencent.rss.server.ShuffleServerFactory;
 
 public class MockedShuffleServerFactory extends ShuffleServerFactory {
   private static final Logger LOG = LoggerFactory.getLogger(MockedShuffleServerFactory.class);
@@ -33,6 +31,8 @@ public class MockedShuffleServerFactory extends ShuffleServerFactory {
 
   @Override
   public ServerInterface getServer() {
+    ShuffleServerConf conf = getConf();
+    ShuffleServer shuffleServer = getShuffleServer();
     String type = conf.getString(ShuffleServerConf.RPC_SERVER_TYPE);
     if (type.equals(ServerType.GRPC.name())) {
       return new MockedGrpcServer(conf, new MockedShuffleServerGrpcService(shuffleServer),
