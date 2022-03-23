@@ -62,39 +62,37 @@ public class QuorumTest extends ShuffleReadWriteBase {
   private static ShuffleServerInfo fakedShuffleServerInfo2;
   private ShuffleWriteClientImpl shuffleWriteClientImpl;
 
+
+  public static MockedShuffleServer createServer(int id) throws Exception {
+    ShuffleServerConf shuffleServerConf = getShuffleServerConf();
+    shuffleServerConf.setLong("rss.server.app.expired.withoutHeartbeat", 4000);
+    shuffleServerConf.setLong("rss.server.heartbeat.interval", 5000);
+    File tmpDir = Files.createTempDir();
+    tmpDir.deleteOnExit();
+    File dataDir1 = new File(tmpDir, id + "_1");
+    File dataDir2 = new File(tmpDir, id + "_2");
+    String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
+    shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
+    shuffleServerConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT + id);
+    shuffleServerConf.setInteger("rss.jetty.http.port", 19081 + id * 100);
+    shuffleServerConf.setString("rss.storage.basePath", basePath);
+    return new MockedShuffleServer(shuffleServerConf);
+  }
+
   @BeforeClass
   public static void initCluster() throws Exception {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
     createCoordinatorServer(coordinatorConf);
 
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
-    shuffleServerConf.setLong("rss.server.app.expired.withoutHeartbeat", 4000);
-    shuffleServerConf.setLong("rss.server.app.expired.withoutHeartbeat", 4000);
+    shuffleServerConf.setLong("rss.server.app.expired.withoutHeartbeat", 1000);
+    shuffleServerConf.setLong("rss.server.app.expired.withoutHeartbeat", 1000);
     File tmpDir = Files.createTempDir();
     tmpDir.deleteOnExit();
 
-    File dataDir1 = new File(tmpDir, "data1");
-    File dataDir2 = new File(tmpDir, "data2");
-    String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
-    shuffleServerConf.setString("rss.storage.basePath", basePath);
-    createMockedShuffleServer(shuffleServerConf);
-
-    File dataDir3 = new File(tmpDir, "data3");
-    File dataDir4 = new File(tmpDir, "data4");
-    basePath = dataDir3.getAbsolutePath() + "," + dataDir4.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.basePath", basePath);
-    shuffleServerConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT + 1);
-    shuffleServerConf.setInteger("rss.jetty.http.port", 18081);
-    createMockedShuffleServer(shuffleServerConf);
-
-    File dataDir5 = new File(tmpDir, "data5");
-    File dataDir6 = new File(tmpDir, "data6");
-    basePath = dataDir5.getAbsolutePath() + "," + dataDir6.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.basePath", basePath);
-    shuffleServerConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT + 2);
-    shuffleServerConf.setInteger("rss.jetty.http.port", 17081);
-    createMockedShuffleServer(shuffleServerConf);
+    shuffleServers.add(createServer(0));
+    shuffleServers.add(createServer(1));
+    shuffleServers.add(createServer(2));
 
     shuffleServerInfo0 =
       new ShuffleServerInfo("127.0.0.1-20001", shuffleServers.get(0).getIp(), SHUFFLE_SERVER_PORT);
@@ -108,7 +106,7 @@ public class QuorumTest extends ShuffleReadWriteBase {
     for (ShuffleServer shuffleServer : shuffleServers) {
       shuffleServer.start();
     }
-    Thread.sleep(1000);
+    Thread.sleep(2000);
   }
 
   public static void cleanCluster() throws Exception {
@@ -335,7 +333,6 @@ public class QuorumTest extends ShuffleReadWriteBase {
     }
   }
 
-
   @Test
   public void case3() throws Exception {
     String testAppId = "case3";
@@ -395,7 +392,6 @@ public class QuorumTest extends ShuffleReadWriteBase {
     assertEquals(report, blockIdBitmap);
   }
 
-
   @Test
   public void case4() throws Exception {
     String testAppId = "case4";
@@ -421,6 +417,63 @@ public class QuorumTest extends ShuffleReadWriteBase {
       Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2), null);
     validateResult(readClient, expectedData);
   }
+
+  @Test
+  public void case5() throws Exception {
+    // this case is to simulate server restarting.
+    String testAppId = "case5";
+    registerShuffleServer(testAppId);
+
+    Map<Long, byte[]> expectedData = Maps.newHashMap();
+    Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
+    List<ShuffleBlockInfo> blocks = createShuffleBlockList(
+      0, 0, 0, 3, 25, blockIdBitmap,
+      expectedData, Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2));
+
+    // report result should success
+    Map<Integer, List<Long>> partitionToBlockIds = Maps.newHashMap();
+    partitionToBlockIds.put(0, Lists.newArrayList(blockIdBitmap.stream().iterator()));
+    Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
+    partitionToServers.put(0, Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2));
+    shuffleWriteClientImpl.reportShuffleResult(partitionToServers, testAppId, 0, 0L,
+      partitionToBlockIds, 1);
+    Roaring64NavigableMap report = shuffleWriteClientImpl.getShuffleResult("GRPC",
+      Sets.newHashSet(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2),
+      testAppId, 0, 0);
+    assertEquals(report, blockIdBitmap);
+
+    // data read should success
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
+    SendShuffleDataResult result = shuffleWriteClientImpl.sendShuffleData(testAppId, blocks);
+    Roaring64NavigableMap succBlockIdBitmap = Roaring64NavigableMap.bitmapOf();
+    for (Long blockId : result.getSuccessBlockIds()) {
+      succBlockIdBitmap.addLong(blockId);
+    }
+    assertEquals(0, result.getFailedBlockIds().size());
+    assertEquals(blockIdBitmap, succBlockIdBitmap);
+
+    // when one server is restarted, getShuffleResult should success
+    shuffleServers.get(1).stopServer();
+    shuffleServers.set(1, createServer(1));
+    shuffleServers.get(1).start();
+    report = shuffleWriteClientImpl.getShuffleResult("GRPC",
+      Sets.newHashSet(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2),
+      testAppId, 0, 0);
+    assertEquals(report, blockIdBitmap);
+
+    // when two servers are restarted, getShuffleResult should fail
+    shuffleServers.get(2).stopServer();
+    shuffleServers.set(2, createServer(2));
+    shuffleServers.get(2).start();
+    try {
+      report = shuffleWriteClientImpl.getShuffleResult("GRPC",
+        Sets.newHashSet(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2),
+        testAppId, 0, 0);
+      fail(EXPECTED_EXCEPTION_MESSAGE);
+    } catch (Exception e) {
+      assertTrue(e.getMessage().startsWith("Get shuffle result is failed"));
+    }
+   }
 
   protected void validateResult(ShuffleReadClientImpl readClient, Map<Long, byte[]> expectedData,
                                 Roaring64NavigableMap blockIdBitmap) {
