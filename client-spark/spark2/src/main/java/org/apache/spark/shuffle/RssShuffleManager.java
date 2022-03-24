@@ -74,9 +74,9 @@ public class RssShuffleManager implements ShuffleManager {
   private Map<String, Set<Long>> taskToSuccessBlockIds = Maps.newConcurrentMap();
   private Map<String, Set<Long>> taskToFailedBlockIds = Maps.newConcurrentMap();
   private Map<String, WriteBufferManager> taskToBufferManager = Maps.newConcurrentMap();
-  private int dataReplica;
-  private int dataReplicaWrite;
-  private int dataReplicaRead;
+  private final int dataReplica;
+  private final int dataReplicaWrite;
+  private final int dataReplicaRead;
   private boolean heartbeatStarted = false;
   private ThreadPoolExecutor threadPoolExecutor;
   private EventLoop eventLoop = new EventLoop<AddBlockEvent>("ShuffleDataQueue") {

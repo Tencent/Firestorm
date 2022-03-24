@@ -73,9 +73,9 @@ public class RssShuffleManager implements ShuffleManager {
   private final ThreadPoolExecutor threadPoolExecutor;
   private AtomicReference<String> id = new AtomicReference<>();
   private SparkConf sparkConf;
-  private int dataReplica;
-  private int dataReplicaWrite;
-  private int dataReplicaRead;
+  private final int dataReplica;
+  private final int dataReplicaWrite;
+  private final int dataReplicaRead;
   private ShuffleWriteClient shuffleWriteClient;
   private final Map<String, Set<Long>> taskToSuccessBlockIds;
   private final Map<String, Set<Long>> taskToFailedBlockIds;
