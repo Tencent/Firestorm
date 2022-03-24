@@ -32,6 +32,7 @@ import com.tencent.rss.client.util.ClientType;
 import com.tencent.rss.common.PartitionRange;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
+import com.tencent.rss.common.util.RssUtils;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.coordinator.CoordinatorServer;
 import com.tencent.rss.server.MockedGrpcServer;
@@ -146,15 +147,19 @@ public class QuorumTest extends ShuffleReadWriteBase {
   @Test
   public void QuorumConfigTest() throws Exception {
     try {
-      ShuffleWriteClientImpl client = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1,
-        3, 1, 1);
+      RssUtils.checkQuorumSetting(3, 1, 1);
       fail(EXPECTED_EXCEPTION_MESSAGE);
     } catch (Exception e) {
       assertTrue(e.getMessage().startsWith("Replica config is unsafe"));
     }
     try {
-      ShuffleWriteClientImpl client = new ShuffleWriteClientImpl(ClientType.GRPC.name(), 3, 1000, 1,
-        3, 4, 1);
+      RssUtils.checkQuorumSetting(3, 4, 1);
+      fail(EXPECTED_EXCEPTION_MESSAGE);
+    } catch (Exception e) {
+      assertTrue(e.getMessage().startsWith("Replica config is invalid"));
+    }
+    try {
+      RssUtils.checkQuorumSetting(0, 0, 0);
       fail(EXPECTED_EXCEPTION_MESSAGE);
     } catch (Exception e) {
       assertTrue(e.getMessage().startsWith("Replica config is invalid"));

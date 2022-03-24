@@ -60,6 +60,7 @@ import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.Constants;
+import com.tencent.rss.common.util.RssUtils;
 
 public class RssShuffleManager implements ShuffleManager {
 
@@ -134,6 +135,9 @@ public class RssShuffleManager implements ShuffleManager {
       RssClientConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
     this.dataReplicaRead =  sparkConf.getInt(RssClientConfig.RSS_DATA_REPLICA_READ,
       RssClientConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
+    LOG.info("Check quorum config ["
+      + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + "]");
+    RssUtils.checkQuorumSetting(dataReplica, dataReplicaWrite, dataReplicaRead);
 
     this.clientType = sparkConf.get(RssClientConfig.RSS_CLIENT_TYPE,
         RssClientConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
