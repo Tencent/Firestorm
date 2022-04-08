@@ -86,7 +86,7 @@ public class RssMRAppMaster {
     String coordinators = conf.get(RSS_COORDINATOR_QUORUM);
 
     int replica = conf.getInt(RSS_DATA_REPLICA, RSS_DATA_REPLICA_DEFAULT_VALUE);
-    int replicaWrite = conf.getInt(RSS_DATA_REPLICA_WRITE, RSS_DATA_REPLICA_WRITE);
+    int replicaWrite = conf.getInt(RSS_DATA_REPLICA_WRITE, RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
     int replicaRead = conf.getInt(RSS_DATA_REPLICA_READ, RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
     ShuffleWriteClient client = ShuffleClientFactory
         .getInstance()

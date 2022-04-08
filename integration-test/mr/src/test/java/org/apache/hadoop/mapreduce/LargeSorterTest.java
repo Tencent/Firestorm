@@ -73,7 +73,7 @@ public class LargeSorterTest extends MRIntegrationTestBase {
     String newProps = "";
     String[] splittedProps = props.split(":");
     for (String prop : splittedProps)  {
-      if (!prop.contains("classes") && !prop.contains("grpc")) {
+      if (!prop.contains("classes") && !prop.contains("grpc") && !prop.contains("rss-")) {
         newProps = newProps + ":" + prop;
       }
     }
