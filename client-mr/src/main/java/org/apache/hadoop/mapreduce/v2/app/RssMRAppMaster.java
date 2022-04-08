@@ -83,7 +83,7 @@ public class RssMRAppMaster {
 
     ShuffleWriteClient client = ShuffleClientFactory
         .getInstance()
-        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum);
+        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum, 1, 1, 1);
 
     LOG.info("Registering coordinators {}", coordinators);
     client.registerCoordinators(coordinators);
@@ -97,7 +97,7 @@ public class RssMRAppMaster {
         containerId.getApplicationAttemptId();
     ShuffleAssignmentsInfo response = client.getShuffleAssignments(
         applicationAttemptId.toString(), 0, numReduceTasks,
-        1, dataReplica, Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
+        1, Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
     Map<ShuffleServerInfo, List<PartitionRange>> serverToPartitionRanges = response.getServerToPartitionRanges();
     final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     if (serverToPartitionRanges == null || serverToPartitionRanges.isEmpty()) {
