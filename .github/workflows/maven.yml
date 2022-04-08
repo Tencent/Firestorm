@@ -57,7 +57,7 @@ jobs:
         path: "**/target/surefire-reports/*.txt"
     - name: Build with Maven with Profile mr
       run: mvn -B package --file pom.xml -Pmr
-    - name: Upload spark3 test results to report
+    - name: Upload mr test results to report
       if: failure()
       uses: actions/upload-artifact@v2
       with:
