@@ -87,8 +87,6 @@ public class RssMRAppMaster {
 
     LOG.info("Registering coordinators {}", coordinators);
     client.registerCoordinators(coordinators);
-    int dataReplica = conf.getInt(RSS_DATA_REPLICA, RSS_DATA_REPLICA_DEFAULT_VALUE);
-    // get all register info according to coordinator's response
 
     String containerIdStr =
         System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
