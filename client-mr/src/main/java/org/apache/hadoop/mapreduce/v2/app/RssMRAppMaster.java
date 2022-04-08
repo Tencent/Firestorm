@@ -64,6 +64,10 @@ public class RssMRAppMaster {
   public static final String RSS_COORDINATOR_QUORUM = "mapreduce.rss.coordinator.quorum";
   public static final String RSS_DATA_REPLICA = "mapreduce.rss.data.replica";
   public static final int RSS_DATA_REPLICA_DEFAULT_VALUE = 1;
+  public static final String RSS_DATA_REPLICA_WRITE = "mapreduce.rss.data.replica.write";
+  public static final int RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE = 1;
+  public static final String RSS_DATA_REPLICA_READ = "mapreduce.rss.data.replica.read";
+  public static final int RSS_DATA_REPLICA_READ_DEFAULT_VALUE = 1;
   public static final String RSS_HEARTBEAT_INTERVAL = "mapreduce.rss.heartbeat.interval";
   public static final long RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE = 10 * 1000L;
   public static final String RSS_HEARTBEAT_TIMEOUT = "mapreduce.rss.heartbeat.timeout";
@@ -81,9 +85,13 @@ public class RssMRAppMaster {
     long retryIntervalMax = conf.getLong(RSS_CLIENT_RETRY_INTERVAL_MAX, RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
     String coordinators = conf.get(RSS_COORDINATOR_QUORUM);
 
+    int replica = conf.getInt(RSS_DATA_REPLICA, RSS_DATA_REPLICA_DEFAULT_VALUE);
+    int replicaWrite = conf.getInt(RSS_DATA_REPLICA_WRITE, RSS_DATA_REPLICA_WRITE);
+    int replicaRead = conf.getInt(RSS_DATA_REPLICA_READ, RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
     ShuffleWriteClient client = ShuffleClientFactory
         .getInstance()
-        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum, 1, 1, 1);
+        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax,
+            heartBeatThreadNum, replica, replicaWrite, replicaRead);
 
     LOG.info("Registering coordinators {}", coordinators);
     client.registerCoordinators(coordinators);
