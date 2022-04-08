@@ -288,6 +288,12 @@
       </dependency>
 
       <dependency>
+        <groupId>com.tencent.rss</groupId>
+        <artifactId>client-mr</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-common</artifactId>
         <version>${hadoop.version}</version>
@@ -1219,6 +1225,7 @@
             <type>test-jar</type>
             <scope>test</scope>
           </dependency>
+
           <dependency>
             <groupId>com.tencent.rss</groupId>
             <artifactId>rss-integration-spark-common-test</artifactId>

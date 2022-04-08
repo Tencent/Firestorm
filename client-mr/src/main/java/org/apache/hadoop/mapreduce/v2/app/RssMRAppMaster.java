@@ -15,16 +15,17 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package org.apache.hadoop.mapreduce.v2.app;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.tencent.rss.client.api.ShuffleWriteClient;
-import com.tencent.rss.client.factory.ShuffleClientFactory;
-import com.tencent.rss.common.PartitionRange;
-import com.tencent.rss.common.ShuffleAssignmentsInfo;
-import com.tencent.rss.common.ShuffleServerInfo;
-import com.tencent.rss.common.util.Constants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,12 +42,13 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.tencent.rss.client.api.ShuffleWriteClient;
+import com.tencent.rss.client.factory.ShuffleClientFactory;
+import com.tencent.rss.common.PartitionRange;
+import com.tencent.rss.common.ShuffleAssignmentsInfo;
+import com.tencent.rss.common.ShuffleServerInfo;
+import com.tencent.rss.common.util.Constants;
+
 
 public class RssMRAppMaster {
   private static final Logger LOG = LoggerFactory.getLogger(RssMRAppMaster.class);
@@ -69,21 +71,15 @@ public class RssMRAppMaster {
 
   public static void main(String[] args) {
 
-    String containerIdStr =
-        System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-    ContainerId containerId = ContainerId.fromString(containerIdStr);
-    ApplicationAttemptId applicationAttemptId =
-        containerId.getApplicationAttemptId();
     JobConf conf = new JobConf(new YarnConfiguration());
     conf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
     int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
     String clientType = conf.get(RSS_CLIENT_TYPE, RSS_CLIENT_TYPE_DEFAULT_VALUE);
-    int heartBeatThreadNum = conf.getInt(RSS_CLIENT_HEARTBEAT_THREAD_NUM, RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
+    int heartBeatThreadNum = conf.getInt(RSS_CLIENT_HEARTBEAT_THREAD_NUM,
+        RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
     int retryMax = conf.getInt(RSS_CLIENT_RETRY_MAX, RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
     long retryIntervalMax = conf.getLong(RSS_CLIENT_RETRY_INTERVAL_MAX, RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
     String coordinators = conf.get(RSS_COORDINATOR_QUORUM);
-    long heartbeatInterval = conf.getLong(RSS_HEARTBEAT_INTERVAL, RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
-    long heartbeatTimeout = conf.getLong(RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
 
     ShuffleWriteClient client = ShuffleClientFactory
         .getInstance()
@@ -93,6 +89,12 @@ public class RssMRAppMaster {
     client.registerCoordinators(coordinators);
     int dataReplica = conf.getInt(RSS_DATA_REPLICA, RSS_DATA_REPLICA_DEFAULT_VALUE);
     // get all register info according to coordinator's response
+
+    String containerIdStr =
+        System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
+    ContainerId containerId = ContainerId.fromString(containerIdStr);
+    ApplicationAttemptId applicationAttemptId =
+        containerId.getApplicationAttemptId();
     ShuffleAssignmentsInfo response = client.getShuffleAssignments(
         applicationAttemptId.toString(), 0, numReduceTasks,
         1, dataReplica, Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
@@ -108,6 +110,8 @@ public class RssMRAppMaster {
           entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue());
     });
     LOG.info("Finish register shuffle with " + (System.currentTimeMillis() - start) + " ms");
+    long heartbeatInterval = conf.getLong(RSS_HEARTBEAT_INTERVAL, RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
+    long heartbeatTimeout = conf.getLong(RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
     scheduledExecutorService.scheduleAtFixedRate(
         () -> {
           try {
