@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -163,6 +164,8 @@ public class RssMRAppMaster {
       LOG.error("Modify job conf exception", e);
       throw new RuntimeException("Modify job conf exception ", e);
     }
+    // remove org.apache.hadoop.mapreduce.v2.app.MRAppMaster
+    ArrayUtils.remove(args, 0);
     MRAppMaster.main(args);
     scheduledExecutorService.shutdown();
   }

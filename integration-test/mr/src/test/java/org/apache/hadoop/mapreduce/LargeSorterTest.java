@@ -63,7 +63,7 @@ public class LargeSorterTest extends MRIntegrationTestBase {
     File[] jars = file.listFiles();
     File localFile = null;
     for (File jar : jars) {
-      if (jar.getName().startsWith("client-mr")) {
+      if (jar.getName().startsWith("rss-client-mr")) {
         localFile = jar;
         break;
       }
