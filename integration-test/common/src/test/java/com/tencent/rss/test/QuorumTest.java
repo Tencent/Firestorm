@@ -58,6 +58,8 @@ public class QuorumTest extends ShuffleReadWriteBase {
   private static ShuffleServerInfo shuffleServerInfo0;
   private static ShuffleServerInfo shuffleServerInfo1;
   private static ShuffleServerInfo shuffleServerInfo2;
+  private static ShuffleServerInfo shuffleServerInfo3;
+  private static ShuffleServerInfo shuffleServerInfo4;
   private static ShuffleServerInfo fakedShuffleServerInfo0;
   private static ShuffleServerInfo fakedShuffleServerInfo1;
   private static ShuffleServerInfo fakedShuffleServerInfo2;
@@ -94,13 +96,20 @@ public class QuorumTest extends ShuffleReadWriteBase {
     shuffleServers.add(createServer(0));
     shuffleServers.add(createServer(1));
     shuffleServers.add(createServer(2));
+    shuffleServers.add(createServer(3));
+    shuffleServers.add(createServer(4));
+
 
     shuffleServerInfo0 =
-      new ShuffleServerInfo("127.0.0.1-20001", shuffleServers.get(0).getIp(), SHUFFLE_SERVER_PORT);
+      new ShuffleServerInfo("127.0.0.1-20001", shuffleServers.get(0).getIp(), SHUFFLE_SERVER_PORT + 0);
     shuffleServerInfo1 =
       new ShuffleServerInfo("127.0.0.1-20002", shuffleServers.get(1).getIp(), SHUFFLE_SERVER_PORT + 1);
     shuffleServerInfo2 =
-      new ShuffleServerInfo("127.0.0.1-20003", shuffleServers.get(1).getIp(), SHUFFLE_SERVER_PORT + 2);
+      new ShuffleServerInfo("127.0.0.1-20003", shuffleServers.get(2).getIp(), SHUFFLE_SERVER_PORT + 2);
+    shuffleServerInfo3 =
+      new ShuffleServerInfo("127.0.0.1-20004", shuffleServers.get(3).getIp(), SHUFFLE_SERVER_PORT + 3);
+    shuffleServerInfo4 =
+      new ShuffleServerInfo("127.0.0.1-20005", shuffleServers.get(4).getIp(), SHUFFLE_SERVER_PORT + 4);
     for (CoordinatorServer coordinator : coordinators) {
       coordinator.start();
     }
@@ -325,7 +334,7 @@ public class QuorumTest extends ShuffleReadWriteBase {
         partitionToBlockIds, 1);
       fail(EXPECTED_EXCEPTION_MESSAGE);
     } catch (Exception e){
-      assertTrue(e.getMessage().startsWith("Report shuffle result is failed"));
+      assertTrue(e.getMessage().startsWith("Quorum check of report shuffle result is failed"));
     }
     //  get result should also fail
     try {
