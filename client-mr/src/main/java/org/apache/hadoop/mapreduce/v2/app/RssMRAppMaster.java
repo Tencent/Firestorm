@@ -36,6 +36,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Cluster;
 import org.apache.hadoop.mapreduce.JobSubmissionFiles;
 import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -51,44 +52,29 @@ import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.Constants;
 
 
-public class RssMRAppMaster {
-  private static final Logger LOG = LoggerFactory.getLogger(RssMRAppMaster.class);
 
-  public static final String RSS_CLIENT_HEARTBEAT_THREAD_NUM = "mapreduce.rss.client.heartBeat.threadNum";
-  public static final int RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE = 4;
-  public static final String RSS_CLIENT_TYPE = "mapreduce.rss.client.type";
-  public static final String RSS_CLIENT_TYPE_DEFAULT_VALUE = "GRPC";
-  public static final String RSS_CLIENT_RETRY_MAX = "mapreduce.rss.client.retry.max";
-  public static final int RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE = 100;
-  public static final String RSS_CLIENT_RETRY_INTERVAL_MAX = "mapreduce.rss.client.retry.interval.max";
-  public static final long RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE = 10000;
-  public static final String RSS_COORDINATOR_QUORUM = "mapreduce.rss.coordinator.quorum";
-  public static final String RSS_DATA_REPLICA = "mapreduce.rss.data.replica";
-  public static final int RSS_DATA_REPLICA_DEFAULT_VALUE = 1;
-  public static final String RSS_DATA_REPLICA_WRITE = "mapreduce.rss.data.replica.write";
-  public static final int RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE = 1;
-  public static final String RSS_DATA_REPLICA_READ = "mapreduce.rss.data.replica.read";
-  public static final int RSS_DATA_REPLICA_READ_DEFAULT_VALUE = 1;
-  public static final String RSS_HEARTBEAT_INTERVAL = "mapreduce.rss.heartbeat.interval";
-  public static final long RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE = 10 * 1000L;
-  public static final String RSS_HEARTBEAT_TIMEOUT = "mapreduce.rss.heartbeat.timeout";
-  public static final String RSS_ASSIGNMENT_PREFIX = "mapreduce.rss.assignment.partition.";
+public class RssMRAppMaster {
+
+  private static final Logger LOG = LoggerFactory.getLogger(RssMRAppMaster.class);
 
   public static void main(String[] args) {
 
     JobConf conf = new JobConf(new YarnConfiguration());
     conf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
     int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
-    String clientType = conf.get(RSS_CLIENT_TYPE, RSS_CLIENT_TYPE_DEFAULT_VALUE);
-    int heartBeatThreadNum = conf.getInt(RSS_CLIENT_HEARTBEAT_THREAD_NUM,
-        RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
-    int retryMax = conf.getInt(RSS_CLIENT_RETRY_MAX, RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
-    long retryIntervalMax = conf.getLong(RSS_CLIENT_RETRY_INTERVAL_MAX, RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
-    String coordinators = conf.get(RSS_COORDINATOR_QUORUM);
+    String clientType = conf.get(RssMRConfig.RSS_CLIENT_TYPE, RssMRConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
+    int heartBeatThreadNum = conf.getInt(RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM,
+        RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
+    int retryMax = conf.getInt(RssMRConfig.RSS_CLIENT_RETRY_MAX, RssMRConfig.RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
+    long retryIntervalMax = conf.getLong(RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX,
+        RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
+    String coordinators = conf.get(RssMRConfig.RSS_COORDINATOR_QUORUM);
 
-    int replica = conf.getInt(RSS_DATA_REPLICA, RSS_DATA_REPLICA_DEFAULT_VALUE);
-    int replicaWrite = conf.getInt(RSS_DATA_REPLICA_WRITE, RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
-    int replicaRead = conf.getInt(RSS_DATA_REPLICA_READ, RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
+    int replica = conf.getInt(RssMRConfig.RSS_DATA_REPLICA, RssMRConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
+    int replicaWrite = conf.getInt(RssMRConfig.RSS_DATA_REPLICA_WRITE,
+        RssMRConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
+    int replicaRead = conf.getInt(RssMRConfig.RSS_DATA_REPLICA_READ,
+        RssMRConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
     ShuffleWriteClient client = ShuffleClientFactory
         .getInstance()
         .createShuffleWriteClient(clientType, retryMax, retryIntervalMax,
@@ -117,8 +103,9 @@ public class RssMRAppMaster {
           entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue());
     });
     LOG.info("Finish register shuffle with " + (System.currentTimeMillis() - start) + " ms");
-    long heartbeatInterval = conf.getLong(RSS_HEARTBEAT_INTERVAL, RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
-    long heartbeatTimeout = conf.getLong(RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
+    long heartbeatInterval = conf.getLong(RssMRConfig.RSS_HEARTBEAT_INTERVAL,
+        RssMRConfig.RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
+    long heartbeatTimeout = conf.getLong(RssMRConfig.RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
     scheduledExecutorService.scheduleAtFixedRate(
         () -> {
           try {
@@ -143,22 +130,20 @@ public class RssMRAppMaster {
       for (ShuffleServerInfo server : entry.getValue()) {
         servers.add(server.getHost() + ":" + server.getPort());
       }
-      conf.set(RSS_ASSIGNMENT_PREFIX + entry.getKey(), StringUtils.join(servers, ","));
+      conf.set(RssMRConfig.RSS_ASSIGNMENT_PREFIX + entry.getKey(), StringUtils.join(servers, ","));
     });
     String jobDirStr = conf.get(MRJobConfig.MAPREDUCE_JOB_DIR);
     if (jobDirStr == null) {
-      throw new RuntimeException("");
+      throw new RuntimeException("jobDir is empty");
     }
-    Path newJobConfFile = new Path(jobDirStr, MRJobConfig.JOB_CONF_FILE + ".bak");
-    Path oldJobConfFile = new Path(jobDirStr, MRJobConfig.JOB_CONF_FILE);
+    Path jobConfFile = new Path(jobDirStr, MRJobConfig.JOB_CONF_FILE);
     try {
       FileSystem fs = new Cluster(conf).getFileSystem();
+      fs.delete(jobConfFile, true);
       try (FSDataOutputStream out =
-             FileSystem.create(fs, newJobConfFile,
+             FileSystem.create(fs, jobConfFile,
                  new FsPermission(JobSubmissionFiles.JOB_FILE_PERMISSION))) {
           conf.writeXml(out);
-          fs.delete(oldJobConfFile, true);
-          fs.rename(newJobConfFile, oldJobConfFile);
       }
     } catch (Exception e) {
       LOG.error("Modify job conf exception", e);
