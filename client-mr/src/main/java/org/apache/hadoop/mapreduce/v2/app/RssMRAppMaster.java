@@ -96,13 +96,7 @@ public class RssMRAppMaster {
     if (serverToPartitionRanges == null || serverToPartitionRanges.isEmpty()) {
       return;
     }
-    LOG.info("Start to register shuffle");
-    long start = System.currentTimeMillis();
-    serverToPartitionRanges.entrySet().forEach(entry -> {
-      client.registerShuffle(
-          entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue());
-    });
-    LOG.info("Finish register shuffle with " + (System.currentTimeMillis() - start) + " ms");
+
     long heartbeatInterval = conf.getLong(RssMRConfig.RSS_HEARTBEAT_INTERVAL,
         RssMRConfig.RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
     long heartbeatTimeout = conf.getLong(RssMRConfig.RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
@@ -118,6 +112,14 @@ public class RssMRAppMaster {
         heartbeatInterval / 2,
         heartbeatInterval,
         TimeUnit.MILLISECONDS);
+
+    LOG.info("Start to register shuffle");
+    long start = System.currentTimeMillis();
+    serverToPartitionRanges.entrySet().forEach(entry -> {
+      client.registerShuffle(
+          entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue());
+    });
+    LOG.info("Finish register shuffle with " + (System.currentTimeMillis() - start) + " ms");
 
     // write shuffle worker assignments to submit work directory
     // format is as below:
