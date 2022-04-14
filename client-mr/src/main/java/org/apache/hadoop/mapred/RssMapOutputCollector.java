@@ -18,13 +18,14 @@
 
 package org.apache.hadoop.mapred;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.tencent.rss.client.api.ShuffleWriteClient;
-import com.tencent.rss.client.factory.ShuffleClientFactory;
-import com.tencent.rss.common.ShuffleServerInfo;
-import com.tencent.rss.common.exception.RssException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -36,10 +37,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.tencent.rss.client.api.ShuffleWriteClient;
+import com.tencent.rss.client.factory.ShuffleClientFactory;
+import com.tencent.rss.common.ShuffleServerInfo;
+import com.tencent.rss.common.exception.RssException;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
     implements MapOutputCollector<K, V> {
@@ -54,24 +55,18 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
 
   @Override
   public void init(Context context) throws IOException, ClassNotFoundException {
-    SerializationFactory serializationFactory;
     JobConf jobConf = context.getJobConf();
     reporter = context.getReporter();
-    MapTask mapTask = context.getMapTask();
-    Counters.Counter mapOutputByteCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES);
-    Counters.Counter mapOutputRecordCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
     keyClass = (Class<K>)jobConf.getMapOutputKeyClass();
     valClass = (Class<V>)jobConf.getMapOutputValueClass();
-    serializationFactory = new SerializationFactory(jobConf);
-    Serializer<K> keySerializer = serializationFactory.getSerializer(keyClass);
-    Serializer<V> valSerializer = serializationFactory.getSerializer(valClass);
-    int sortmb = jobConf.getInt(JobContext.IO_SORT_MB, 100) ;
+    int sortmb = jobConf.getInt(JobContext.IO_SORT_MB, 100);
     if ((sortmb & 0x7FF) != sortmb) {
       throw new IOException(
           "Invalid \"" + JobContext.IO_SORT_MB + "\": " + sortmb);
     }
     long maxMemSize = sortmb << 20;
     partitions = jobConf.getNumReduceTasks();
+    MapTask mapTask = context.getMapTask();
     long taskAttemptId = (mapTask.getTaskID().getTaskID().getId() << 4) + mapTask.getTaskID().getId();
     int batch = jobConf.getInt(RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
@@ -131,6 +126,9 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
       }
       partitionToServers.put(i, assignServers);
     }
+    SerializationFactory serializationFactory = new SerializationFactory(jobConf);
+    Serializer<K> keySerializer = serializationFactory.getSerializer(keyClass);
+    Serializer<V> valSerializer = serializationFactory.getSerializer(valClass);
     bufferManager = new SortWriteBufferManager(
         maxMemSize,
         taskAttemptId,
@@ -146,8 +144,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         partitionToServers,
         successBlockIds,
         failedBlockIds,
-        mapOutputByteCounter,
-        mapOutputRecordCounter,
+        reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES),
+        reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
         bitmapSplitNum);
   }
 
@@ -165,8 +163,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
           + value.getClass().getName());
     }
     if (partition < 0 || partition >= partitions) {
-      throw new IOException("Illegal partition for " + key + " (" +
-          partition + ")");
+      throw new IOException("Illegal partition for " + key + " ("
+          + partition + ")");
     }
     checkRssException();
     bufferManager.addRecord(partition, key, value);
@@ -180,11 +178,13 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
 
   @Override
   public void close() throws IOException, InterruptedException {
+    reporter.progress();
     bufferManager.freeAllResources();
   }
 
   @Override
   public void flush() throws IOException, InterruptedException, ClassNotFoundException {
+    reporter.progress();
     bufferManager.waitTriggerFinished();
   }
 }

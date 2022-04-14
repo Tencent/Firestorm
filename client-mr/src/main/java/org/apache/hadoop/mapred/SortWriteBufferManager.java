@@ -35,20 +35,20 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.tencent.rss.client.api.ShuffleWriteClient;
-import com.tencent.rss.client.response.SendShuffleDataResult;
-import com.tencent.rss.common.ShuffleServerInfo;
-import com.tencent.rss.common.exception.RssException;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
-
-import com.tencent.rss.client.util.ClientUtils;
-import com.tencent.rss.common.ShuffleBlockInfo;
-import com.tencent.rss.common.util.ChecksumUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.tencent.rss.client.api.ShuffleWriteClient;
+import com.tencent.rss.client.response.SendShuffleDataResult;
+import com.tencent.rss.client.util.ClientUtils;
+import com.tencent.rss.common.ShuffleBlockInfo;
+import com.tencent.rss.common.ShuffleServerInfo;
+import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.common.util.ChecksumUtils;
 
 
 public class SortWriteBufferManager<K, V> {

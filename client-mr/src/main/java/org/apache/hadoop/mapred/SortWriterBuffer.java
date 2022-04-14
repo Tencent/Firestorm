@@ -18,15 +18,15 @@
 
 package org.apache.hadoop.mapred;
 
-import com.google.common.collect.Lists;
-import org.apache.hadoop.io.RawComparator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.List;
+
+import com.google.common.collect.Lists;
+import org.apache.hadoop.io.RawComparator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SortWriterBuffer<K, V> extends OutputStream  {
 
@@ -73,7 +73,7 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
         offset += length;
       } else {
         int finalBeginOffset = beginOffSet;
-        for (int j = beginIndex; j <= endIndex; j++){
+        for (int j = beginIndex; j <= endIndex; j++) {
           int finalEndOffset = (int) ((j == endIndex) ? endOffset : maxBufferSize);
           int length = finalEndOffset - finalBeginOffset;
           System.arraycopy(buffers.get(j).getBuffer(), finalBeginOffset, data, offset, length);
@@ -116,11 +116,11 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
   }
 
   @Override
-  public void write(byte b[], int off, int len) throws IOException {
+  public void write(byte[] b, int off, int len) throws IOException {
     if (b == null) {
       throw new NullPointerException();
-    } else if ((off < 0) || (off > b.length) || (len < 0) ||
-        ((off + len) > b.length) || ((off + len) < 0)) {
+    } else if ((off < 0) || (off > b.length) || (len < 0)
+        || ((off + len) > b.length) || ((off + len) < 0)) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {
       return;
@@ -132,7 +132,7 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
     int index = (int) (dataLength / maxBufferSize);
     int offset = (int) (dataLength / maxBufferSize);
     int srcPos = 0;
-    while(len > 0) {
+    while (len > 0) {
       int copyLength = len < maxBufferSize ? (len - offset) : (int) (maxBufferSize - offset);
       System.arraycopy(b, srcPos, buffers.get(index), offset, copyLength);
       offset = 0;
@@ -149,7 +149,7 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
     private long start;
     private long end;
 
-    public Record(K key, long start, long end) {
+    Record(K key, long start, long end) {
       this.key = key;
       this.start = start;
       this.end = end;
