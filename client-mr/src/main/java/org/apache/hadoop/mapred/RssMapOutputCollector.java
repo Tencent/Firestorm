@@ -18,41 +18,48 @@
 
 package org.apache.hadoop.mapred;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.tencent.rss.client.api.ShuffleWriteClient;
+import com.tencent.rss.client.factory.ShuffleClientFactory;
 import com.tencent.rss.common.ShuffleServerInfo;
+import com.tencent.rss.common.exception.RssException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.mapreduce.TaskCounter;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
     implements MapOutputCollector<K, V> {
 
-  private JobConf jobConf;
   private Task.TaskReporter reporter;
-  private MapTask mapTask;
-
   private Class<K> keyClass;
   private Class<V> valClass;
-;
+  private Set<Long> successBlockIds = Sets.newConcurrentHashSet();
+  private Set<Long> failedBlockIds = Sets.newConcurrentHashSet();
   private int partitions;
   private SortWriteBufferManager bufferManager;
 
   @Override
   public void init(Context context) throws IOException, ClassNotFoundException {
     SerializationFactory serializationFactory;
-    Counters.Counter mapOutputByteCounter;
-    Counters.Counter mapOutputRecordCounter;
-    jobConf = context.getJobConf();
+    JobConf jobConf = context.getJobConf();
     reporter = context.getReporter();
-    mapTask = context.getMapTask();
-    mapOutputByteCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES);
-    mapOutputRecordCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
+    MapTask mapTask = context.getMapTask();
+    Counters.Counter mapOutputByteCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES);
+    Counters.Counter mapOutputRecordCounter = reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS);
     keyClass = (Class<K>)jobConf.getMapOutputKeyClass();
     valClass = (Class<V>)jobConf.getMapOutputValueClass();
     serializationFactory = new SerializationFactory(jobConf);
@@ -66,14 +73,64 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     long maxMemSize = sortmb << 20;
     partitions = jobConf.getNumReduceTasks();
     long taskAttemptId = (mapTask.getTaskID().getTaskID().getId() << 4) + mapTask.getTaskID().getId();
-    int batch;
-    RawComparator<K> comparator;
-    double memoryThreshold;
-    String appId;
-    ShuffleWriteClient shuffleWriteClient;
-    long sendCheckInterval;
-    long sendCheckTimeout;
-    Map<Integer, List<ShuffleServerInfo>> partitionToServers;
+    int batch = jobConf.getInt(RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
+        RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
+    RawComparator<K> comparator = jobConf.getOutputKeyComparator();
+    double memoryThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_MEMORY_THRESHOLD,
+        RssMRConfig.RSS_CLIENT_DEFAULT_MEMORY_THRESHOLD);
+    String containerIdStr =
+        System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
+    ContainerId containerId = ContainerId.fromString(containerIdStr);
+    ApplicationAttemptId applicationAttemptId =
+        containerId.getApplicationAttemptId();
+    String appId = applicationAttemptId.toString();
+
+    int heartBeatThreadNum = jobConf.getInt(RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM,
+        RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
+    int retryMax = jobConf.getInt(RssMRConfig.RSS_CLIENT_RETRY_MAX,
+        RssMRConfig.RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
+    long retryIntervalMax = jobConf.getLong(RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX,
+        RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
+    String clientType = jobConf.get(RssMRConfig.RSS_CLIENT_TYPE,
+        RssMRConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
+
+    int replicaWrite = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_WRITE,
+        RssMRConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
+    int replicaRead = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_READ,
+        RssMRConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
+    int replica = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA,
+        RssMRConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
+    ShuffleWriteClient client = ShuffleClientFactory
+        .getInstance()
+        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax,
+            heartBeatThreadNum, replica, replicaWrite, replicaRead);
+
+    long sendCheckInterval = jobConf.getLong(RssMRConfig.RSS_CLIENT_SEND_CHECK_INTERVAL_MS,
+        RssMRConfig.RSS_CLIENT_DEFAULT_SEND_CHECK_INTERVAL_MS);
+    long sendCheckTimeout = jobConf.getLong(RssMRConfig.RSS_CLIENT_SEND_CHECK_TIMEOUT_MS,
+        RssMRConfig.RSS_CLIENT_DEFAULT_CHECK_TIMEOUT_MS);
+    int bitmapSplitNum = jobConf.getInt(RssMRConfig.RSS_CLIENT_BITMAP_NUM,
+        RssMRConfig.RSS_CLIENT_DEFAULT_BITMAP_NUM);
+
+    Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
+    for (int i = 0; i < partitions; i++) {
+      String servers = jobConf.get(RssMRConfig.RSS_ASSIGNMENT_PREFIX + i);
+      if (StringUtils.isEmpty(servers)) {
+        throw new RssException("assign partition " + i + " is empty");
+      }
+      String[] splitServers = servers.split(",");
+      List<ShuffleServerInfo> assignServers = Lists.newArrayList();
+      for (String splitServer : splitServers) {
+        String[] serverInfo = splitServer.split(":");
+        if (serverInfo.length != 2) {
+          throw new RssException("partition " + i + " server info isn't right");
+        }
+        ShuffleServerInfo sever = new ShuffleServerInfo(StringUtils.join(serverInfo, "-"),
+            serverInfo[0], Integer.parseInt(serverInfo[1]));
+        assignServers.add(sever);
+      }
+      partitionToServers.put(i, assignServers);
+    }
     bufferManager = new SortWriteBufferManager(
         maxMemSize,
         taskAttemptId,
@@ -83,10 +140,15 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         comparator,
         memoryThreshold,
         appId,
-        shuffleWriteClient,
+        client,
         sendCheckInterval,
         sendCheckTimeout,
-        partitionToServers);
+        partitionToServers,
+        successBlockIds,
+        failedBlockIds,
+        mapOutputByteCounter,
+        mapOutputRecordCounter,
+        bitmapSplitNum);
   }
 
   @Override
@@ -111,7 +173,9 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   }
 
   private void checkRssException() {
-
+    if (!failedBlockIds.isEmpty()) {
+      throw new RssException("There are some blocks failed");
+    }
   }
 
   @Override

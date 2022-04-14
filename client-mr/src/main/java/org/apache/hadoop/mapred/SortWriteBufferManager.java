@@ -58,6 +58,8 @@ public class SortWriteBufferManager<K, V> {
   private final long maxMemSize;
   private final Map<Integer,SortWriterBuffer<K, V>> buffers = Maps.newConcurrentMap();
   private final Map<Integer, Integer> partitionToSeqNo = Maps.newHashMap();
+  private final Counters.Counter mapOutputByteCounter;
+  private final Counters.Counter mapOutputRecordCounter;
   private long uncompressedDataLen = 0;
   private long compressTime = 0;
   private final long taskAttemptId;
@@ -71,14 +73,16 @@ public class SortWriteBufferManager<K, V> {
   private final Serializer<K> keySerializer;
   private final Serializer<V> valSerializer;
   private final RawComparator<K> comparator;
-  private final Set<Long> successBlockIds = Sets.newConcurrentHashSet();
-  private final Set<Long> failedBlockIds = Sets.newConcurrentHashSet();
+  private final Set<Long> successBlockIds;
+  private final Set<Long> failedBlockIds;
   private final List<SortWriterBuffer<K, V>> waitTriggerBuffers = Lists.newLinkedList();
   private final String appId;
   private final ShuffleWriteClient shuffleWriteClient;
   private final long sendCheckTimeout;
   private final long sendCheckInterval;
   private final Set<Long> allBlockIds = Sets.newConcurrentHashSet();
+  private final int bitmapSplitNum;
+  private final Map<Integer, List<Long>> partitionToBlocks = Maps.newConcurrentMap();
   private final ExecutorService triggerExecutorService = Executors.newFixedThreadPool(
       5,
       new ThreadFactoryBuilder()
@@ -98,7 +102,12 @@ public class SortWriteBufferManager<K, V> {
       ShuffleWriteClient shuffleWriteClient,
       long sendCheckInterval,
       long sendCheckTimeout,
-      Map<Integer, List<ShuffleServerInfo>> partitionToServers) {
+      Map<Integer, List<ShuffleServerInfo>> partitionToServers,
+      Set<Long> successBlockIds,
+      Set<Long> failedBlockIds,
+      Counters.Counter mapOutputByteCounter,
+      Counters.Counter mapOutputRecordCounter,
+      int bitmapSplitNum) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
@@ -111,6 +120,11 @@ public class SortWriteBufferManager<K, V> {
     this.sendCheckInterval = sendCheckInterval;
     this.sendCheckTimeout = sendCheckTimeout;
     this.partitionToServers = partitionToServers;
+    this.successBlockIds = successBlockIds;
+    this.failedBlockIds = failedBlockIds;
+    this.mapOutputByteCounter = mapOutputByteCounter;
+    this.mapOutputRecordCounter = mapOutputRecordCounter;
+    this.bitmapSplitNum = bitmapSplitNum;
   }
 
   public void addRecord(int partitionId, K key, V value) throws IOException,InterruptedException {
@@ -144,6 +158,8 @@ public class SortWriteBufferManager<K, V> {
     if (memoryUsedSize.get() > maxMemSize * memoryThreshold) {
       triggerBuffers();
     }
+    mapOutputRecordCounter.increment(1);
+    mapOutputByteCounter.increment(length);
     return;
   }
 
@@ -162,6 +178,10 @@ public class SortWriteBufferManager<K, V> {
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
       allBlockIds.add(block.getBlockId());
+      if (partitionToBlocks.containsKey(block.getPartitionId())) {
+        partitionToBlocks.putIfAbsent(block.getPartitionId(), Lists.newArrayList());
+      }
+      partitionToBlocks.get(block.getPartitionId()).add(block.getBlockId());
     }
     triggerExecutorService.submit(new Runnable() {
       @Override
@@ -219,6 +239,13 @@ public class SortWriteBufferManager<K, V> {
         throw new RssException(errorMsg);
       }
     }
+
+    start = System.currentTimeMillis();
+    shuffleWriteClient.reportShuffleResult(partitionToServers, appId, 0,
+        taskAttemptId, partitionToBlocks, bitmapSplitNum);
+    LOG.info("Report shuffle result for task[{}] with bitmapNum[{}] cost {} ms",
+        taskAttemptId, bitmapSplitNum, (System.currentTimeMillis() - start));
+    LOG.info("Task uncompressed data length {} compress time cost {}", uncompressedDataLen, compressTime);
   }
 
   // transform records to shuffleBlock
