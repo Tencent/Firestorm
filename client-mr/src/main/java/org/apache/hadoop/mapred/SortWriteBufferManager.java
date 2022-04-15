@@ -20,6 +20,7 @@ package org.apache.hadoop.mapred;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,7 +76,7 @@ public class SortWriteBufferManager<K, V> {
   private final RawComparator<K> comparator;
   private final Set<Long> successBlockIds;
   private final Set<Long> failedBlockIds;
-  private final List<SortWriteBuffer<K, V>> waitTriggerBuffers = Lists.newLinkedList();
+  private final List<SortWriteBuffer<K, V>> waitSendBuffers = Lists.newLinkedList();
   private final String appId;
   private final ShuffleWriteClient shuffleWriteClient;
   private final long sendCheckTimeout;
@@ -84,11 +85,11 @@ public class SortWriteBufferManager<K, V> {
   private final int bitmapSplitNum;
   private final Map<Integer, List<Long>> partitionToBlocks = Maps.newConcurrentMap();
   private long maxSegmentSize;
-  private final ExecutorService triggerExecutorService = Executors.newFixedThreadPool(
+  private final ExecutorService sendExecutorService = Executors.newFixedThreadPool(
       5,
       new ThreadFactoryBuilder()
             .setDaemon(true)
-            .setNameFormat("trigger-thread-%d")
+            .setNameFormat("send-thread-%d")
       .build());
 
   public SortWriteBufferManager(
@@ -143,7 +144,7 @@ public class SortWriteBufferManager<K, V> {
     if (!buffers.containsKey(partitionId)) {
       SortWriteBuffer<K, V> sortWriterBuffer = new SortWriteBuffer(partitionId, comparator, maxSegmentSize);
       buffers.putIfAbsent(partitionId, sortWriterBuffer);
-      waitTriggerBuffers.add(sortWriterBuffer);
+      waitSendBuffers.add(sortWriterBuffer);
     }
     SortWriteBuffer<K, V> buffer = buffers.get(partitionId);
     keySerializer.open(buffer);
@@ -157,36 +158,45 @@ public class SortWriteBufferManager<K, V> {
       throw new RssException("record is too big");
     }
     buffer.addRecord(key, start, end);
-
+    memoryUsedSize.addAndGet(length);
     if (memoryUsedSize.get() > maxMemSize * memoryThreshold) {
-      triggerBuffers();
+      sendBuffersToServers();
     }
     mapOutputRecordCounter.increment(1);
     mapOutputByteCounter.increment(length);
     return;
   }
 
-  private void triggerBuffers() {
-    waitTriggerBuffers.sort(new Comparator<SortWriteBuffer<K, V>>() {
+  // Only for test
+  void sendBuffersToServers() {
+    waitSendBuffers.sort(new Comparator<SortWriteBuffer<K, V>>() {
       @Override
       public int compare(SortWriteBuffer<K, V> o1, SortWriteBuffer<K, V> o2) {
         return o1.getDataLength() - o2.getDataLength();
       }
     });
-    List<SortWriteBuffer<K, V>> selectBuffers = waitTriggerBuffers.subList(0, batch);
-    waitTriggerBuffers.retainAll(selectBuffers);
+    int sendSize = batch;
+    if (batch > waitSendBuffers.size()) {
+      sendSize = waitSendBuffers.size();
+    }
+    List<SortWriteBuffer<K, V>> selectBuffers = Lists.newArrayList();
+    Iterator<SortWriteBuffer<K, V>> iterator = waitSendBuffers.iterator();
+    while (iterator.hasNext()) {
+      selectBuffers.add(iterator.next());
+      iterator.remove();
+    }
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
     for (SortWriteBuffer buffer : selectBuffers) {
       buffers.remove(buffer.getPartitionId());
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
       allBlockIds.add(block.getBlockId());
-      if (partitionToBlocks.containsKey(block.getPartitionId())) {
+      if (!partitionToBlocks.containsKey(block.getPartitionId())) {
         partitionToBlocks.putIfAbsent(block.getPartitionId(), Lists.newArrayList());
       }
       partitionToBlocks.get(block.getPartitionId()).add(block.getBlockId());
     }
-    triggerExecutorService.submit(new Runnable() {
+    sendExecutorService.submit(new Runnable() {
       @Override
       public void run() {
         long size = 0;
@@ -198,6 +208,8 @@ public class SortWriteBufferManager<K, V> {
           SendShuffleDataResult result = shuffleWriteClient.sendShuffleData(appId, shuffleBlocks);
           successBlockIds.addAll(result.getSuccessBlockIds());
           failedBlockIds.addAll(result.getFailedBlockIds());
+        } catch (Throwable t) {
+          LOG.warn("send shuffle data exception ", t);
         } finally {
           try {
             memoryLock.lock();
@@ -212,9 +224,9 @@ public class SortWriteBufferManager<K, V> {
     });
   }
 
-  public void waitTriggerFinished() {
-    while (!waitTriggerBuffers.isEmpty()) {
-      triggerBuffers();
+  public void waitSendFinished() {
+    while (!waitSendBuffers.isEmpty()) {
+      sendBuffersToServers();
     }
     long start = System.currentTimeMillis();
     while (true) {
@@ -252,7 +264,7 @@ public class SortWriteBufferManager<K, V> {
   }
 
   // transform records to shuffleBlock
-  protected ShuffleBlockInfo createShuffleBlock(SortWriteBuffer wb) {
+  ShuffleBlockInfo createShuffleBlock(SortWriteBuffer wb) {
     byte[] data = wb.getData();
     int partitionId = wb.getPartitionId();
     final int uncompressLength = data.length;
@@ -282,6 +294,6 @@ public class SortWriteBufferManager<K, V> {
   }
 
   public void freeAllResources() {
-    triggerExecutorService.shutdownNow();
+    sendExecutorService.shutdownNow();
   }
 }

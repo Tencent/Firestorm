@@ -185,6 +185,6 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   @Override
   public void flush() throws IOException, InterruptedException, ClassNotFoundException {
     reporter.progress();
-    bufferManager.waitTriggerFinished();
+    bufferManager.waitSendFinished();
   }
 }

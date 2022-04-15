@@ -73,7 +73,7 @@ public class SortWriteBufferTest {
     assertEquals(value, valueRead);
 
     buffer = new SortWriteBuffer<BytesWritable, BytesWritable>(
-        1, WritableComparator.get(BytesWritable.class), 10L);
+        1, WritableComparator.get(BytesWritable.class), 528L);
     keySerializer.open(buffer);
     valSerializer.open(buffer);
     start = buffer.getDataLength();
@@ -81,7 +81,7 @@ public class SortWriteBufferTest {
     keyStr = "key3";
     key = new BytesWritable(keyStr.getBytes());
     keySerializer.serialize(key);
-    byte[] valueBytes = new byte[1023];
+    byte[] valueBytes = new byte[200];
     Map<String, BytesWritable> valueMap = Maps.newConcurrentMap();
     Random random = new Random();
     random.nextBytes(valueBytes);
