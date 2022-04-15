@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -85,6 +86,8 @@ public class SortWriteBufferManager<K, V> {
   private final int bitmapSplitNum;
   private final Map<Integer, List<Long>> partitionToBlocks = Maps.newConcurrentMap();
   private long maxSegmentSize;
+  private final boolean isMemoryShuffleEnabled;
+  private final int numMaps;
   private final ExecutorService sendExecutorService = Executors.newFixedThreadPool(
       5,
       new ThreadFactoryBuilder()
@@ -110,7 +113,9 @@ public class SortWriteBufferManager<K, V> {
       Counters.Counter mapOutputByteCounter,
       Counters.Counter mapOutputRecordCounter,
       int bitmapSplitNum,
-      long maxSegmentSize) {
+      long maxSegmentSize,
+      int numMaps,
+      boolean isMemoryShuffleEnabled) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
@@ -129,6 +134,8 @@ public class SortWriteBufferManager<K, V> {
     this.mapOutputRecordCounter = mapOutputRecordCounter;
     this.bitmapSplitNum = bitmapSplitNum;
     this.maxSegmentSize = maxSegmentSize;
+    this.numMaps = numMaps;
+    this.isMemoryShuffleEnabled = isMemoryShuffleEnabled;
   }
 
   public void addRecord(int partitionId, K key, V value) throws IOException,InterruptedException {
@@ -229,6 +236,12 @@ public class SortWriteBufferManager<K, V> {
       sendBuffersToServers();
     }
     long start = System.currentTimeMillis();
+    long commitDuration = 0;
+    if (!isMemoryShuffleEnabled) {
+      long s = System.currentTimeMillis();
+      sendCommit();
+      commitDuration = System.currentTimeMillis() - s;
+    }
     while (true) {
       // if failed when send data to shuffle server, mark task as failed
       if (failedBlockIds.size() > 0) {
@@ -260,7 +273,8 @@ public class SortWriteBufferManager<K, V> {
         taskAttemptId, partitionToBlocks, bitmapSplitNum);
     LOG.info("Report shuffle result for task[{}] with bitmapNum[{}] cost {} ms",
         taskAttemptId, bitmapSplitNum, (System.currentTimeMillis() - start));
-    LOG.info("Task uncompressed data length {} compress time cost {}", uncompressedDataLen, compressTime);
+    LOG.info("Task uncompressed data length {} compress time cost {} commit time cost {}",
+        uncompressedDataLen, compressTime, commitDuration);
   }
 
   // transform records to shuffleBlock
@@ -278,6 +292,39 @@ public class SortWriteBufferManager<K, V> {
     inSendListBytes.addAndGet(wb.getDataLength());
     return new ShuffleBlockInfo(0, partitionId, blockId, compressed.length, crc32,
         compressed, partitionToServers.get(partitionId), uncompressLength, wb.getDataLength(), taskAttemptId);
+  }
+
+  protected void sendCommit() {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Set<ShuffleServerInfo> serverInfos = Sets.newHashSet();
+    for (List<ShuffleServerInfo> serverInfoLists : partitionToServers.values()) {
+      for (ShuffleServerInfo serverInfo : serverInfoLists) {
+        serverInfos.add(serverInfo);
+      }
+    }
+    Future<Boolean> future = executor.submit(
+        () -> shuffleWriteClient.sendCommit(serverInfos, appId, 0, numMaps));
+    long start = System.currentTimeMillis();
+    int currentWait = 200;
+    int maxWait = 5000;
+    while (!future.isDone()) {
+      LOG.info("Wait commit to shuffle server for task[" + taskAttemptId + "] cost "
+          + (System.currentTimeMillis() - start) + " ms");
+      Uninterruptibles.sleepUninterruptibly(currentWait, TimeUnit.MILLISECONDS);
+      currentWait = Math.min(currentWait * 2, maxWait);
+    }
+    try {
+      // check if commit/finish rpc is successful
+      if (!future.get()) {
+        throw new RssException("Failed to commit task to shuffle server");
+      }
+    } catch (InterruptedException ie) {
+      LOG.warn("Ignore the InterruptedException which should be caused by internal killed");
+    } catch (Exception e) {
+      throw new RuntimeException("Exception happened when get commit status", e);
+    } finally {
+      executor.shutdown();
+    }
   }
 
   // it's run in single thread, and is not thread safe

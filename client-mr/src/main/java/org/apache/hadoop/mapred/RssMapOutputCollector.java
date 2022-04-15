@@ -26,6 +26,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.tencent.rss.storage.util.StorageType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -105,6 +106,11 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         RssMRConfig.RSS_CLIENT_DEFAULT_CHECK_TIMEOUT_MS);
     int bitmapSplitNum = jobConf.getInt(RssMRConfig.RSS_CLIENT_BITMAP_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BITMAP_NUM);
+    int numMaps = jobConf.getNumMapTasks();
+    String storageType = jobConf.get(RssMRConfig.RSS_STORAGE_TYPE);
+    if (StringUtils.isEmpty(storageType)) {
+      throw new RssException("storage type mustn't be empty");
+    }
 
     Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
     for (int i = 0; i < partitions; i++) {
@@ -146,7 +152,9 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES),
         reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
         bitmapSplitNum,
-        maxSegmentSize);
+        maxSegmentSize,
+        numMaps,
+        isMemoryShuffleEnabled(storageType));
   }
 
   @Override
@@ -186,5 +194,11 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   public void flush() throws IOException, InterruptedException, ClassNotFoundException {
     reporter.progress();
     bufferManager.waitSendFinished();
+  }
+
+  private boolean isMemoryShuffleEnabled(String storageType) {
+    return StorageType.MEMORY_LOCALFILE.name().equals(storageType)
+        || StorageType.MEMORY_HDFS.name().equals(storageType)
+        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType);
   }
 }
