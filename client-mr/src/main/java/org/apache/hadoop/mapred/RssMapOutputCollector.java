@@ -29,7 +29,6 @@ import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
-import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.mapreduce.TaskCounter;
@@ -127,14 +126,14 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
       partitionToServers.put(i, assignServers);
     }
     SerializationFactory serializationFactory = new SerializationFactory(jobConf);
-    Serializer<K> keySerializer = serializationFactory.getSerializer(keyClass);
-    Serializer<V> valSerializer = serializationFactory.getSerializer(valClass);
+    long maxSegmentSize = jobConf.getLong(RssMRConfig.RSS_CLIENT_MAX_SEGMENT_SIZE,
+        RssMRConfig.RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE);
     bufferManager = new SortWriteBufferManager(
         maxMemSize,
         taskAttemptId,
         batch,
-        keySerializer,
-        valSerializer,
+        serializationFactory.getSerializer(keyClass),
+        serializationFactory.getSerializer(valClass),
         comparator,
         memoryThreshold,
         appId,
@@ -146,7 +145,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         failedBlockIds,
         reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES),
         reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
-        bitmapSplitNum);
+        bitmapSplitNum,
+        maxSegmentSize);
   }
 
   @Override

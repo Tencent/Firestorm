@@ -28,21 +28,22 @@ import org.apache.hadoop.io.RawComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SortWriterBuffer<K, V> extends OutputStream  {
+public class SortWriteBuffer<K, V> extends OutputStream  {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SortWriterBuffer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(SortWriteBuffer.class);
   private long copyTime = 0;
   private final List<WrappedBuffer> buffers = Lists.newArrayList();
   private final List<Record<K>> records = Lists.newArrayList();
   private int dataLength = 0;
   private long sortTime = 0;
   private final RawComparator<K> comparator;
-  private long maxBufferSize;
+  private long maxSegmentSize;
   private int partitionId;
 
-  public SortWriterBuffer(int partitionId, RawComparator<K> comparator) {
+  public SortWriteBuffer(int partitionId, RawComparator<K> comparator, long maxSegmentSize) {
     this.partitionId = partitionId;
     this.comparator = comparator;
+    this.maxSegmentSize = maxSegmentSize;
   }
 
   public synchronized void addRecord(K key, long start, long end) {
@@ -63,10 +64,10 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
     long startCopy =  System.currentTimeMillis();
     sortTime += startCopy - startSort;
     for (Record<K> record : records) {
-      int beginIndex = (int) (record.getStart() / maxBufferSize);
-      int beginOffSet = (int) (record.getStart() % maxBufferSize);
-      int endIndex = (int) (record.getEnd() / maxBufferSize);
-      int endOffset = (int) (record.getEnd() % maxBufferSize);
+      int beginIndex = (int) (record.getStart() / maxSegmentSize);
+      int beginOffSet = (int) (record.getStart() % maxSegmentSize);
+      int endIndex = (int) (record.getEnd() / maxSegmentSize);
+      int endOffset = (int) (record.getEnd() % maxSegmentSize);
       if (beginIndex == endIndex) {
         int length = endOffset - beginOffSet;
         System.arraycopy(buffers.get(beginIndex).getBuffer(), beginOffSet, data, offset, length);
@@ -74,7 +75,7 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
       } else {
         int finalBeginOffset = beginOffSet;
         for (int j = beginIndex; j <= endIndex; j++) {
-          int finalEndOffset = (int) ((j == endIndex) ? endOffset : maxBufferSize);
+          int finalEndOffset = (int) ((j == endIndex) ? endOffset : maxSegmentSize);
           int length = finalEndOffset - finalBeginOffset;
           System.arraycopy(buffers.get(j).getBuffer(), finalBeginOffset, data, offset, length);
           offset += length;
@@ -105,11 +106,11 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
 
   @Override
   public void write(int b) throws IOException {
-    if (dataLength + 4 > buffers.size() * maxBufferSize) {
-      buffers.add(new WrappedBuffer((int)maxBufferSize));
+    if (dataLength + 4 > buffers.size() * maxSegmentSize) {
+      buffers.add(new WrappedBuffer((int) maxSegmentSize));
     }
-    int index = (int) (dataLength / maxBufferSize);
-    int offset = (int) (dataLength / maxBufferSize);
+    int index = (int) (dataLength / maxSegmentSize);
+    int offset = (int) (dataLength % maxSegmentSize);
     WrappedBuffer buffer = buffers.get(index);
     buffer.getBuffer()[offset] = (byte) b;
     dataLength++;
@@ -125,16 +126,21 @@ public class SortWriterBuffer<K, V> extends OutputStream  {
     } else if (len == 0) {
       return;
     }
-    int bufferNum = (int)((dataLength + len) / maxBufferSize) + 1 - buffers.size();
+    int bufferNum = (int)((dataLength + len) / maxSegmentSize) + 1 - buffers.size();
     for (int i = 0; i < bufferNum; i++) {
-      buffers.add(new WrappedBuffer((int)maxBufferSize));
+      buffers.add(new WrappedBuffer((int) maxSegmentSize));
     }
-    int index = (int) (dataLength / maxBufferSize);
-    int offset = (int) (dataLength / maxBufferSize);
+    int index = (int) (dataLength / maxSegmentSize);
+    int offset = (int) (dataLength % maxSegmentSize);
     int srcPos = 0;
     while (len > 0) {
-      int copyLength = len < maxBufferSize ? (len - offset) : (int) (maxBufferSize - offset);
-      System.arraycopy(b, srcPos, buffers.get(index), offset, copyLength);
+      int copyLength = 0;
+      if (offset + len > maxSegmentSize) {
+        copyLength = (int) (maxSegmentSize - offset);
+      } else {
+        copyLength = len;
+      }
+      System.arraycopy(b, srcPos, buffers.get(index).getBuffer(), offset, copyLength);
       offset = 0;
       srcPos += copyLength;
       index++;

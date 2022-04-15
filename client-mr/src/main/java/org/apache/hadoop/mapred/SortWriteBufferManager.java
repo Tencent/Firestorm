@@ -56,7 +56,7 @@ public class SortWriteBufferManager<K, V> {
   private static final Logger LOG = LoggerFactory.getLogger(SortWriteBufferManager.class);
 
   private final long maxMemSize;
-  private final Map<Integer,SortWriterBuffer<K, V>> buffers = Maps.newConcurrentMap();
+  private final Map<Integer, SortWriteBuffer<K, V>> buffers = Maps.newConcurrentMap();
   private final Map<Integer, Integer> partitionToSeqNo = Maps.newHashMap();
   private final Counters.Counter mapOutputByteCounter;
   private final Counters.Counter mapOutputRecordCounter;
@@ -75,7 +75,7 @@ public class SortWriteBufferManager<K, V> {
   private final RawComparator<K> comparator;
   private final Set<Long> successBlockIds;
   private final Set<Long> failedBlockIds;
-  private final List<SortWriterBuffer<K, V>> waitTriggerBuffers = Lists.newLinkedList();
+  private final List<SortWriteBuffer<K, V>> waitTriggerBuffers = Lists.newLinkedList();
   private final String appId;
   private final ShuffleWriteClient shuffleWriteClient;
   private final long sendCheckTimeout;
@@ -83,6 +83,7 @@ public class SortWriteBufferManager<K, V> {
   private final Set<Long> allBlockIds = Sets.newConcurrentHashSet();
   private final int bitmapSplitNum;
   private final Map<Integer, List<Long>> partitionToBlocks = Maps.newConcurrentMap();
+  private long maxSegmentSize;
   private final ExecutorService triggerExecutorService = Executors.newFixedThreadPool(
       5,
       new ThreadFactoryBuilder()
@@ -107,7 +108,8 @@ public class SortWriteBufferManager<K, V> {
       Set<Long> failedBlockIds,
       Counters.Counter mapOutputByteCounter,
       Counters.Counter mapOutputRecordCounter,
-      int bitmapSplitNum) {
+      int bitmapSplitNum,
+      long maxSegmentSize) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
@@ -125,6 +127,7 @@ public class SortWriteBufferManager<K, V> {
     this.mapOutputByteCounter = mapOutputByteCounter;
     this.mapOutputRecordCounter = mapOutputRecordCounter;
     this.bitmapSplitNum = bitmapSplitNum;
+    this.maxSegmentSize = maxSegmentSize;
   }
 
   public void addRecord(int partitionId, K key, V value) throws IOException,InterruptedException {
@@ -138,11 +141,11 @@ public class SortWriteBufferManager<K, V> {
     }
 
     if (!buffers.containsKey(partitionId)) {
-      SortWriterBuffer<K, V> sortWriterBuffer = new SortWriterBuffer(partitionId, comparator);
+      SortWriteBuffer<K, V> sortWriterBuffer = new SortWriteBuffer(partitionId, comparator, maxSegmentSize);
       buffers.putIfAbsent(partitionId, sortWriterBuffer);
       waitTriggerBuffers.add(sortWriterBuffer);
     }
-    SortWriterBuffer<K, V> buffer = buffers.get(partitionId);
+    SortWriteBuffer<K, V> buffer = buffers.get(partitionId);
     keySerializer.open(buffer);
     valSerializer.open(buffer);
     long start = buffer.getDataLength();
@@ -164,16 +167,16 @@ public class SortWriteBufferManager<K, V> {
   }
 
   private void triggerBuffers() {
-    waitTriggerBuffers.sort(new Comparator<SortWriterBuffer<K, V>>() {
+    waitTriggerBuffers.sort(new Comparator<SortWriteBuffer<K, V>>() {
       @Override
-      public int compare(SortWriterBuffer<K, V> o1, SortWriterBuffer<K, V> o2) {
+      public int compare(SortWriteBuffer<K, V> o1, SortWriteBuffer<K, V> o2) {
         return o1.getDataLength() - o2.getDataLength();
       }
     });
-    List<SortWriterBuffer<K, V>> selectBuffers = waitTriggerBuffers.subList(0, batch);
+    List<SortWriteBuffer<K, V>> selectBuffers = waitTriggerBuffers.subList(0, batch);
     waitTriggerBuffers.retainAll(selectBuffers);
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
-    for (SortWriterBuffer buffer : selectBuffers) {
+    for (SortWriteBuffer buffer : selectBuffers) {
       buffers.remove(buffer.getPartitionId());
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
@@ -249,7 +252,7 @@ public class SortWriteBufferManager<K, V> {
   }
 
   // transform records to shuffleBlock
-  protected ShuffleBlockInfo createShuffleBlock(SortWriterBuffer wb) {
+  protected ShuffleBlockInfo createShuffleBlock(SortWriteBuffer wb) {
     byte[] data = wb.getData();
     int partitionId = wb.getPartitionId();
     final int uncompressLength = data.length;

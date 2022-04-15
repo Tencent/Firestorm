@@ -49,4 +49,6 @@ public class RssMRConfig {
   public static final long RSS_CLIENT_DEFAULT_CHECK_TIMEOUT_MS = 60 * 1000 * 10;
   public static final String RSS_CLIENT_BITMAP_NUM = "mapreduce.rss.client.bitmap.num";
   public static final int RSS_CLIENT_DEFAULT_BITMAP_NUM = 1;
+  public static final String RSS_CLIENT_MAX_SEGMENT_SIZE = "mapreduce.rss.client.max.buffer.size";
+  public static final long RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE = 3 * 1024;
 }
