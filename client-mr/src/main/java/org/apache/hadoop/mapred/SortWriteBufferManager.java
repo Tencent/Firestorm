@@ -88,6 +88,8 @@ public class SortWriteBufferManager<K, V> {
   private long maxSegmentSize;
   private final boolean isMemoryShuffleEnabled;
   private final int numMaps;
+  private long copyTime = 0;
+  private long sortTime = 0;
   private final ExecutorService sendExecutorService = Executors.newFixedThreadPool(
       5,
       new ThreadFactoryBuilder()
@@ -187,9 +189,11 @@ public class SortWriteBufferManager<K, V> {
     }
     List<SortWriteBuffer<K, V>> selectBuffers = Lists.newArrayList();
     Iterator<SortWriteBuffer<K, V>> iterator = waitSendBuffers.iterator();
-    while (iterator.hasNext()) {
+    int index = 0;
+    while (iterator.hasNext() && index < sendSize) {
       selectBuffers.add(iterator.next());
       iterator.remove();
+      index++;
     }
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
     for (SortWriteBuffer buffer : selectBuffers) {
@@ -272,13 +276,16 @@ public class SortWriteBufferManager<K, V> {
         taskAttemptId, partitionToBlocks, bitmapSplitNum);
     LOG.info("Report shuffle result for task[{}] with bitmapNum[{}] cost {} ms",
         taskAttemptId, bitmapSplitNum, (System.currentTimeMillis() - start));
-    LOG.info("Task uncompressed data length {} compress time cost {} commit time cost {}",
-        uncompressedDataLen, compressTime, commitDuration);
+    LOG.info("Task uncompressed data length {} compress time cost {}, commit time cost {},"
+            + " copy time cost{}, sort time cost{}",
+        uncompressedDataLen, compressTime, commitDuration, copyTime, sortTime);
   }
 
   // transform records to shuffleBlock
   ShuffleBlockInfo createShuffleBlock(SortWriteBuffer wb) {
     byte[] data = wb.getData();
+    copyTime += wb.getCopyTime();
+    sortTime += wb.getSortTime();
     int partitionId = wb.getPartitionId();
     final int uncompressLength = data.length;
     long start = System.currentTimeMillis();
