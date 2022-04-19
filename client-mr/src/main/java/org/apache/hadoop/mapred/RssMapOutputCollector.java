@@ -36,8 +36,6 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
-import com.tencent.rss.client.api.ShuffleWriteClient;
-import com.tencent.rss.client.factory.ShuffleClientFactory;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.ByteUnit;
@@ -80,25 +78,6 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         containerId.getApplicationAttemptId();
     String appId = applicationAttemptId.toString();
 
-    int heartBeatThreadNum = jobConf.getInt(RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM,
-        RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE);
-    int retryMax = jobConf.getInt(RssMRConfig.RSS_CLIENT_RETRY_MAX,
-        RssMRConfig.RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
-    long retryIntervalMax = jobConf.getLong(RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX,
-        RssMRConfig.RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE);
-    String clientType = jobConf.get(RssMRConfig.RSS_CLIENT_TYPE,
-        RssMRConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
-
-    int replicaWrite = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_WRITE,
-        RssMRConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
-    int replicaRead = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_READ,
-        RssMRConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
-    int replica = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA,
-        RssMRConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
-    ShuffleWriteClient client = ShuffleClientFactory
-        .getInstance()
-        .createShuffleWriteClient(clientType, retryMax, retryIntervalMax,
-            heartBeatThreadNum, replica, replicaWrite, replicaRead);
 
     long sendCheckInterval = jobConf.getLong(RssMRConfig.RSS_CLIENT_SEND_CHECK_INTERVAL_MS,
         RssMRConfig.RSS_CLIENT_DEFAULT_SEND_CHECK_INTERVAL_MS);
@@ -112,6 +91,35 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
       throw new RssException("storage type mustn't be empty");
     }
 
+    Map<Integer, List<ShuffleServerInfo>> partitionToServers = createAssignmentMap(jobConf);
+
+    SerializationFactory serializationFactory = new SerializationFactory(jobConf);
+    long maxSegmentSize = jobConf.getLong(RssMRConfig.RSS_CLIENT_MAX_SEGMENT_SIZE,
+        RssMRConfig.RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE);
+    bufferManager = new SortWriteBufferManager(
+        (long)ByteUnit.MiB.toBytes(sortmb),
+        taskAttemptId,
+        batch,
+        serializationFactory.getSerializer(keyClass),
+        serializationFactory.getSerializer(valClass),
+        comparator,
+        memoryThreshold,
+        appId,
+        MRRssUtils.createShuffleClient(jobConf),
+        sendCheckInterval,
+        sendCheckTimeout,
+        partitionToServers,
+        successBlockIds,
+        failedBlockIds,
+        reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES),
+        reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
+        bitmapSplitNum,
+        maxSegmentSize,
+        numMaps,
+        isMemoryShuffleEnabled(storageType));
+  }
+
+  private Map<Integer, List<ShuffleServerInfo>> createAssignmentMap(JobConf jobConf) {
     Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
     for (int i = 0; i < partitions; i++) {
       String servers = jobConf.get(RssMRConfig.RSS_ASSIGNMENT_PREFIX + i);
@@ -131,30 +139,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
       }
       partitionToServers.put(i, assignServers);
     }
-    SerializationFactory serializationFactory = new SerializationFactory(jobConf);
-    long maxSegmentSize = jobConf.getLong(RssMRConfig.RSS_CLIENT_MAX_SEGMENT_SIZE,
-        RssMRConfig.RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE);
-    bufferManager = new SortWriteBufferManager(
-        (long)ByteUnit.MiB.toBytes(sortmb),
-        taskAttemptId,
-        batch,
-        serializationFactory.getSerializer(keyClass),
-        serializationFactory.getSerializer(valClass),
-        comparator,
-        memoryThreshold,
-        appId,
-        client,
-        sendCheckInterval,
-        sendCheckTimeout,
-        partitionToServers,
-        successBlockIds,
-        failedBlockIds,
-        reporter.getCounter(TaskCounter.MAP_OUTPUT_BYTES),
-        reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
-        bitmapSplitNum,
-        maxSegmentSize,
-        numMaps,
-        isMemoryShuffleEnabled(storageType));
+    return partitionToServers;
   }
 
   @Override

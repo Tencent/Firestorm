@@ -171,7 +171,6 @@ public class SortWriteBufferManager<K, V> {
     }
     mapOutputRecordCounter.increment(1);
     mapOutputByteCounter.increment(length);
-    return;
   }
 
   // Only for test
