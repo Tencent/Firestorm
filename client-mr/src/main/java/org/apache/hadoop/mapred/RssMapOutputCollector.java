@@ -26,6 +26,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.tencent.rss.common.util.ByteUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -66,7 +67,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     }
     partitions = jobConf.getNumReduceTasks();
     MapTask mapTask = context.getMapTask();
-    long taskAttemptId = (mapTask.getTaskID().getTaskID().getId() << 4) + mapTask.getTaskID().getId();
+    long taskAttemptId = MRRssUtils.convertTaskAttemptIdToLong(mapTask.getTaskID());
     int batch = jobConf.getInt(RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
     RawComparator<K> comparator = jobConf.getOutputKeyComparator();
@@ -115,7 +116,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     for (int i = 0; i < partitions; i++) {
       String servers = jobConf.get(RssMRConfig.RSS_ASSIGNMENT_PREFIX + i);
       if (StringUtils.isEmpty(servers)) {
-        throw new RssException("assign partition " + i + " is empty");
+        throw new RssException("assign partition " + i + " shouldn't be empty");
       }
       String[] splitServers = servers.split(",");
       List<ShuffleServerInfo> assignServers = Lists.newArrayList();
@@ -134,7 +135,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     long maxSegmentSize = jobConf.getLong(RssMRConfig.RSS_CLIENT_MAX_SEGMENT_SIZE,
         RssMRConfig.RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE);
     bufferManager = new SortWriteBufferManager(
-        sortmb << 20,
+        (long)ByteUnit.MiB.toBytes(sortmb),
         taskAttemptId,
         batch,
         serializationFactory.getSerializer(keyClass),
