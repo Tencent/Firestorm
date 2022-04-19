@@ -26,7 +26,6 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.tencent.rss.common.util.ByteUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -41,6 +40,7 @@ import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.factory.ShuffleClientFactory;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.common.util.ByteUnit;
 import com.tencent.rss.storage.util.StorageType;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
