@@ -162,8 +162,8 @@ public class SortWriteBufferManager<K, V> {
     long start = buffer.getDataLength();
     valSerializer.serialize(value);
     long end = buffer.getDataLength();
-    long keySize = buffer.addRecord(key, start, end);
-    long length = end - start + keySize;
+    long keyLength = buffer.addRecord(key, start, end);
+    long length = end - start + keyLength;
     if (length > maxMemSize) {
       throw new RssException("record is too big");
     }
@@ -196,9 +196,9 @@ public class SortWriteBufferManager<K, V> {
       index++;
     }
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
-    long keySize = 0;
+    long keyLength = 0;
     for (SortWriteBuffer buffer : selectBuffers) {
-      keySize += buffer.getTotalKeySize();
+      keyLength += buffer.getTotalKeyLength();
       buffers.remove(buffer.getPartitionId());
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
@@ -208,7 +208,7 @@ public class SortWriteBufferManager<K, V> {
       }
       partitionToBlocks.get(block.getPartitionId()).add(block.getBlockId());
     }
-    long finalKeySize = keySize;
+    long finalKeyLength = keyLength;
     sendExecutorService.submit(new Runnable() {
       @Override
       public void run() {
@@ -227,7 +227,7 @@ public class SortWriteBufferManager<K, V> {
           try {
             memoryLock.lock();
             memoryUsedSize.addAndGet(-size);
-            memoryUsedSize.addAndGet(-finalKeySize);
+            memoryUsedSize.addAndGet(-finalKeyLength);
             inSendListBytes.addAndGet(-size);
             full.signalAll();
           } finally {
