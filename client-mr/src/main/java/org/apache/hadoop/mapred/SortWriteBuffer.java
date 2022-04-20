@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import org.openjdk.jol.info.GraphLayout;
 import org.apache.hadoop.io.RawComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
   private final List<WrappedBuffer> buffers = Lists.newArrayList();
   private final List<Record<K>> records = Lists.newArrayList();
   private int dataLength = 0;
+  private int totalKeySize = 0;
   private long sortTime = 0;
   private final RawComparator<K> comparator;
   private long maxSegmentSize;
@@ -46,8 +48,11 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
     this.maxSegmentSize = maxSegmentSize;
   }
 
-  public synchronized void addRecord(K key, long start, long end) {
+  public synchronized long addRecord(K key, long start, long end) {
+    long keySize = GraphLayout.parseInstance(key).totalSize();
     records.add(new Record<K>(key, start, end));
+    totalKeySize += keySize;
+    return keySize;
   }
 
   public synchronized byte[] getData() {
@@ -90,6 +95,10 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
 
   public int getDataLength() {
     return dataLength;
+  }
+
+  public int getTotalKeySize() {
+    return totalKeySize;
   }
 
   public long getCopyTime() {

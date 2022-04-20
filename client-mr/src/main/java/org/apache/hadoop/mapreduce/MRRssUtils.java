@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.apache.hadoop.mapred;
+package org.apache.hadoop.mapreduce;
 
-import org.apache.hadoop.mapreduce.RssMRConfig;
-import org.apache.hadoop.mapreduce.TaskType;
+import org.apache.hadoop.mapred.JobConf;
 
 import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.factory.ShuffleClientFactory;

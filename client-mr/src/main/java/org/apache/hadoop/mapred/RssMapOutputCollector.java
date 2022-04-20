@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.MRRssUtils;
 import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.mapreduce.TaskCounter;
 import org.apache.hadoop.yarn.api.ApplicationConstants;

@@ -140,6 +140,7 @@ public class SortWriteBufferManager<K, V> {
     this.isMemoryShuffleEnabled = isMemoryShuffleEnabled;
   }
 
+  // todo: Single Buffer should also have its size limit
   public void addRecord(int partitionId, K key, V value) throws IOException,InterruptedException {
     memoryLock.lock();
     try {
@@ -159,14 +160,13 @@ public class SortWriteBufferManager<K, V> {
     keySerializer.open(buffer);
     valSerializer.open(buffer);
     long start = buffer.getDataLength();
-    keySerializer.serialize(key);
     valSerializer.serialize(value);
     long end = buffer.getDataLength();
-    long length = end - start;
+    long keySize = buffer.addRecord(key, start, end);
+    long length = end - start + keySize;
     if (length > maxMemSize) {
       throw new RssException("record is too big");
     }
-    buffer.addRecord(key, start, end);
     memoryUsedSize.addAndGet(length);
     if (memoryUsedSize.get() > maxMemSize * memoryThreshold) {
       sendBuffersToServers();
@@ -196,7 +196,9 @@ public class SortWriteBufferManager<K, V> {
       index++;
     }
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
+    long keySize = 0;
     for (SortWriteBuffer buffer : selectBuffers) {
+      keySize += buffer.getTotalKeySize();
       buffers.remove(buffer.getPartitionId());
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
@@ -206,6 +208,7 @@ public class SortWriteBufferManager<K, V> {
       }
       partitionToBlocks.get(block.getPartitionId()).add(block.getBlockId());
     }
+    long finalKeySize = keySize;
     sendExecutorService.submit(new Runnable() {
       @Override
       public void run() {
@@ -224,6 +227,7 @@ public class SortWriteBufferManager<K, V> {
           try {
             memoryLock.lock();
             memoryUsedSize.addAndGet(-size);
+            memoryUsedSize.addAndGet(-finalKeySize);
             inSendListBytes.addAndGet(-size);
             full.signalAll();
           } finally {

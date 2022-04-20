@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.apache.hadoop.mapred;
+package org.apache.hadoop.mapreduce;
 
-import org.apache.hadoop.mapreduce.TaskType;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +27,7 @@ public class MRRssUtilsTest {
   @Test
   public void TaskAttemptIdTest() {
     long taskAttemptId = 0x1000ad12;
-    TaskAttemptID mrTaskAttemptId = MRRssUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, taskAttemptId);
+    TaskAttemptID mrTaskAttemptId = MRRssUtils.createMRTaskAttemptId(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, taskAttemptId);
     long testId = MRRssUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
     assertEquals(taskAttemptId, testId);
     taskAttemptId = 0xff1000ad12L;
