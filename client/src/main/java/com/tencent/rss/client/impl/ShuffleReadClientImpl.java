@@ -182,7 +182,7 @@ public class ShuffleReadClientImpl implements ShuffleReadClient {
             + "], expected:" + expectedCrc + ", actual:" + actualCrc);
       }
       return new CompressedShuffleBlock(ByteBuffer.wrap(readBuffer,
-          bs.getOffset(), bs.getLength()), bs.getUncompressLength());
+          bs.getOffset(), bs.getLength()), bs.getUncompressLength(), bs.getBlockId());
     }
     // current segment hasn't data, try next segment
     return readShuffleBlockData();
