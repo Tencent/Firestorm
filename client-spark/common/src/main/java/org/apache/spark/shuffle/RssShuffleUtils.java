@@ -25,10 +25,8 @@ import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.lz4.LZ4Factory;
 import net.jpountz.lz4.LZ4FastDecompressor;
@@ -201,21 +199,18 @@ public class RssShuffleUtils {
     }
   }
 
-  public static final Set<StorageType> getStorageTypeWithoutPath() {
-    return Sets.newHashSet(StorageType.LOCALFILE, StorageType.MEMORY_LOCALFILE);
+  public static boolean requireRemoteStorage(String storageType) {
+    return StorageType.MEMORY_HDFS.name().equals(storageType)
+        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType)
+        || StorageType.HDFS.name().equals(storageType)
+        || StorageType.LOCALFILE_HDFS.name().equals(storageType)
+        || StorageType.LOCALFILE_HDFS_2.name().equals(storageType);
   }
 
   public static void validateRssClientConf(SparkConf sparkConf) {
     String msgFormat = "%s must be set by the client or fetched from coordinators.";
     if (!sparkConf.contains(RssClientConfig.RSS_STORAGE_TYPE)) {
       String msg = String.format(msgFormat, "Storage type");
-      LOG.error(msg);
-      throw new IllegalArgumentException(msg);
-    }
-
-    StorageType storageType = StorageType.valueOf(sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE));
-    if (!sparkConf.contains(RssClientConfig.RSS_BASE_PATH) && !getStorageTypeWithoutPath().contains(storageType)) {
-      String msg = String.format(msgFormat, "Storage path");
       LOG.error(msg);
       throw new IllegalArgumentException(msg);
     }
