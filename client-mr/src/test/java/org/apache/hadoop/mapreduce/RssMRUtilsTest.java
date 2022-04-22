@@ -22,17 +22,17 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class MRRssUtilsTest {
+public class RssMRUtilsTest {
 
   @Test
   public void TaskAttemptIdTest() {
     long taskAttemptId = 0x1000ad12;
-    TaskAttemptID mrTaskAttemptId = MRRssUtils.createMRTaskAttemptId(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, taskAttemptId);
-    long testId = MRRssUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
+    TaskAttemptID mrTaskAttemptId = RssMRUtils.createMRTaskAttemptId(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, taskAttemptId);
+    long testId = RssMRUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
     assertEquals(taskAttemptId, testId);
     taskAttemptId = 0xff1000ad12L;
-    mrTaskAttemptId = MRRssUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, taskAttemptId);
-    testId = MRRssUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
+    mrTaskAttemptId = RssMRUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, taskAttemptId);
+    testId = RssMRUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
     assertEquals(taskAttemptId, testId);
   }
 }

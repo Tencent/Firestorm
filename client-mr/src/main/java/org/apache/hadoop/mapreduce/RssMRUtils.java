@@ -23,19 +23,19 @@ import org.apache.hadoop.mapred.JobConf;
 import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.factory.ShuffleClientFactory;
 
-public class MRRssUtils {
+public class RssMRUtils {
 
-  // Class TaskAttemptId have two field id and mapId, mapId is 4 high byte,
-  // id is low 4 byte.
+  // Class TaskAttemptId have two field id and mapId, mapId is 4 low byte,
+  // id is high 4 byte.
   public static long convertTaskAttemptIdToLong(TaskAttemptID taskAttemptID) {
-    long highBytes = ((long)taskAttemptID.getTaskID().getId()) << 32;
-    long lowBytes = taskAttemptID.getId();
+    long lowBytes = taskAttemptID.getTaskID().getId();
+    long highBytes = (long)taskAttemptID.getId() << 32;
     return highBytes + lowBytes;
   }
 
   public static TaskAttemptID createMRTaskAttemptId(JobID jobID, TaskType taskType, long rssTaskAttemptId) {
-    TaskID taskID = new TaskID(jobID,taskType, (int)(rssTaskAttemptId >> 32));
-    return new TaskAttemptID(taskID, (int)rssTaskAttemptId);
+    TaskID taskID = new TaskID(jobID,taskType, (int)rssTaskAttemptId);
+    return new TaskAttemptID(taskID, (int)(rssTaskAttemptId >> 32));
   }
 
   public static ShuffleWriteClient createShuffleClient(JobConf jobConf) {

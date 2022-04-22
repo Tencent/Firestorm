@@ -30,7 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.MRRssUtils;
+import org.apache.hadoop.mapreduce.RssMRUtils;
 import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.mapreduce.TaskCounter;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -66,7 +66,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     }
     partitions = jobConf.getNumReduceTasks();
     MapTask mapTask = context.getMapTask();
-    long taskAttemptId = MRRssUtils.convertTaskAttemptIdToLong(mapTask.getTaskID());
+    long taskAttemptId = RssMRUtils.convertTaskAttemptIdToLong(mapTask.getTaskID());
     int batch = jobConf.getInt(RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
     RawComparator<K> comparator = jobConf.getOutputKeyComparator();
@@ -106,7 +106,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         comparator,
         memoryThreshold,
         appId,
-        MRRssUtils.createShuffleClient(jobConf),
+        RssMRUtils.createShuffleClient(jobConf),
         sendCheckInterval,
         sendCheckTimeout,
         partitionToServers,
