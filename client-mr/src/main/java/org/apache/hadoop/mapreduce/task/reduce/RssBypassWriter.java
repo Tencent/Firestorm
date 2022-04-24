@@ -29,15 +29,32 @@ import org.apache.hadoop.io.IOUtils;
 
 import com.tencent.rss.common.exception.RssException;
 
+// In MR shuffle, MapOutput encapsulates the logic to fetch map task's output data via http.
+// So, in RSS, we should bypass this logic, and directly write data to MapOutput.
 public class RssBypassWriter {
   private static final Log LOG = LogFactory.getLog(RssBypassWriter.class);
 
-  public static void write(InMemoryMapOutput inMemoryMapOutput, ByteBuffer buffer) {
+  public static void write(MapOutput mapOutput, ByteBuffer buffer) {
+    // Write and commit uncompressed data to MapOutput.
+    // In the majority of cases, merger allocates memory to accept data,
+    // but when data size exceeds the threshold, merger can also allocate disk.
+    // So, we should consider the two situations, respectively.
+    if (mapOutput instanceof InMemoryMapOutput) {
+      write((InMemoryMapOutput) mapOutput, buffer);
+    } else if (mapOutput instanceof OnDiskMapOutput) {
+      write((OnDiskMapOutput) mapOutput, buffer);
+    } else {
+      throw new IllegalStateException("Merger reserve unknown type of MapOutput："
+        + mapOutput.getClass().getCanonicalName());
+    }
+  }
+
+  private static void write(InMemoryMapOutput inMemoryMapOutput, ByteBuffer buffer) {
     byte[] memory = inMemoryMapOutput.getMemory();
     System.arraycopy(buffer.array(),0, memory, 0, buffer.capacity());
   }
 
-  public static void write(OnDiskMapOutput onDiskMapOutput, ByteBuffer buffer) {
+  private static void write(OnDiskMapOutput onDiskMapOutput, ByteBuffer buffer) {
     OutputStream disk = null;
     try {
       Class clazz = Class.forName(OnDiskMapOutput.class.getName());

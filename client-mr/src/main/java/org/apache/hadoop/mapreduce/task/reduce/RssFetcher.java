@@ -29,8 +29,8 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TaskStatus;
-import org.apache.hadoop.mapreduce.MRRssUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.util.Progress;
 
@@ -38,6 +38,7 @@ import com.tencent.rss.client.api.ShuffleReadClient;
 import com.tencent.rss.client.response.CompressedShuffleBlock;
 import com.tencent.rss.common.RssShuffleUtils;
 import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.common.util.ByteUnit;
 
 public class RssFetcher<K,V> {
 
@@ -51,7 +52,7 @@ public class RssFetcher<K,V> {
   }
 
   private static final String SHUFFLE_ERR_GRP_NAME = "Shuffle Errors";
-  private static final float BYTES_PER_MILLIS_TO_MBS = 1000f / 1024 / 1024;
+  private static final double BYTES_PER_MILLIS_TO_MBS = 1000d / (ByteUnit.MiB.toBytes(1));
   private final DecimalFormat mbpsFormat = new DecimalFormat("0.00");
 
   private final JobConf jobConf;
@@ -78,6 +79,7 @@ public class RssFetcher<K,V> {
   private long copyTime = 0;  // the sum of readTime + decompressTime + serializeTime
   private long unCompressionLength = 0;
   private final TaskAttemptID reduceId;
+  private int uniqueMapId = 0;
 
   RssFetcher(JobConf job, TaskAttemptID reduceId,
              TaskStatus status,
@@ -112,7 +114,7 @@ public class RssFetcher<K,V> {
     this.totalBlockCount = totalBlockCount;
   }
 
-  public void fetchAllBlocks() throws IOException, InterruptedException {
+  public void fetchAllRssBlocks() {
     while (!stopped) {
       try {
         // If merge is on, block
@@ -149,10 +151,13 @@ public class RssFetcher<K,V> {
       long decompressDuration = System.currentTimeMillis() - startDecompress;
       decompressTime += decompressDuration;
 
-      // Allocate a MapOutput (- either in-memory or on-disk) to put uncompressed block
+      // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
+      // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
+      // treat each "block" as a faked "mapout".
+      // To avoid name conflicts, we use getNextUniqueTaskAttemptID instead.
+      // It will generate a unique TaskAttemptID(increased_seq++, 0).
       final long startSerialization = System.currentTimeMillis();
-      TaskAttemptID mapId = MRRssUtils.createMRTaskAttemptId(
-        reduceId.getJobID(), TaskType.MAP, compressedBlock.getBlockId());
+      TaskAttemptID mapId = getNextUniqueTaskAttemptID();
       MapOutput<K, V> mapOutput = null;
       try {
         mapOutput = merger.reserve(mapId, compressedBlock.getUncompressLength(), 0);
@@ -168,25 +173,16 @@ public class RssFetcher<K,V> {
         return;
       }
 
-      // Write and commit uncompressed data to MapOutput.
-      // In the majority of cases, merger allocates memory to accept data,
-      // but when data size exceeds the threshold, merger can also allocate disk.
-      // So, we should consider the two situations, respectively.
+      // write data to mapOutput
       try {
-        if (mapOutput instanceof InMemoryMapOutput) {
-          InMemoryMapOutput inMemoryMapOutput = (InMemoryMapOutput) mapOutput;
-          RssBypassWriter.write(inMemoryMapOutput, uncompressedData);
-        } else if (mapOutput instanceof OnDiskMapOutput) {
-          LOG.info("Reduce: " + reduceId + " allocates disk to accept block: "
-            + compressedBlock.getBlockId() + " with byte sizes: " + uncompressedData.capacity());
-          OnDiskMapOutput onDiskMapOutput = (OnDiskMapOutput) mapOutput;
-          RssBypassWriter.write(onDiskMapOutput, uncompressedData);
-        } else {
-          throw new IllegalStateException("Merger reserve unknown type of MapOutput： "
-            + mapOutput.getClass().getCanonicalName());
-        }
-        // Let the merger knows this block is ready for merging
+        RssBypassWriter.write(mapOutput, uncompressedData);
+        // let the merger knows this block is ready for merging
         mapOutput.commit();
+        if (mapOutput instanceof OnDiskMapOutput) {
+          LOG.info("Reduce: " + reduceId + " allocates disk to accept block: "
+            + compressedBlock.getBlockId() + " with byte sizes: "
+            + uncompressedData.capacity());
+        }
       } catch (Throwable t) {
         ioErrs.increment(1);
         mapOutput.abort();
@@ -214,6 +210,11 @@ public class RssFetcher<K,V> {
     }
   }
 
+  private TaskAttemptID getNextUniqueTaskAttemptID() {
+    TaskID taskID = new TaskID(reduceId.getJobID(), TaskType.MAP, uniqueMapId++);
+    return new TaskAttemptID(taskID, 0);
+  }
+
   private void stopFetchAfterException(Exception e) {
     stopFetch();
     exceptionReporter.reportException(e);
@@ -228,8 +229,8 @@ public class RssFetcher<K,V> {
     String statusString = copyBlockCount + " / " + copyBlockCount + " copied.";
     status.setStateString(statusString);
 
-    float bytesPerMillis = (float) unCompressionLength / copyTime;
-    float transferRate = bytesPerMillis * BYTES_PER_MILLIS_TO_MBS;
+    double bytesPerMillis = (double) unCompressionLength / copyTime;
+    double transferRate = bytesPerMillis * BYTES_PER_MILLIS_TO_MBS;
     progress.setStatus("copy(" + copyBlockCount + " of " + copyBlockCount + " at "
       + mbpsFormat.format(transferRate) + " MB/s)");
   }

@@ -23,6 +23,7 @@
     <groupId>com.tencent.rss</groupId>
     <artifactId>rss-main</artifactId>
     <version>0.5.0-snapshot</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>rss-common</artifactId>

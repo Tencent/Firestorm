@@ -30,11 +30,9 @@ import org.apache.hadoop.mapred.ShuffleConsumerPlugin;
 import org.apache.hadoop.mapred.Task;
 import org.apache.hadoop.mapred.TaskStatus;
 import org.apache.hadoop.mapred.TaskUmbilicalProtocol;
-import org.apache.hadoop.mapreduce.MRRssUtils;
 import org.apache.hadoop.mapreduce.RssMRConfig;
+import org.apache.hadoop.mapreduce.RssMRUtils;
 import org.apache.hadoop.util.Progress;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import com.tencent.rss.client.api.ShuffleReadClient;
@@ -91,10 +89,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
     merger = createMergeManager(context);
 
     // rss init
-    String containerIdStr =
-      System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-    ContainerId containerId = ContainerId.fromString(containerIdStr);
-    this.appId = containerId.getApplicationAttemptId().toString();
+    this.appId = RssMRUtils.getApplicationAttemptId().toString();
     this.storageType = jobConf.get(RssMRConfig.RSS_STORAGE_TYPE);
     this.replicaWrite = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_WRITE,
       RssMRConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
@@ -129,7 +124,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
   public RawKeyValueIterator run() throws IOException, InterruptedException {
 
     // get assigned RSS servers
-    Set<ShuffleServerInfo> serverInfoSet = MRRssUtils.getAssignedServers(jobConf,
+    Set<ShuffleServerInfo> serverInfoSet = RssMRUtils.getAssignedServers(jobConf,
         reduceId.getTaskID().getId());
     List<ShuffleServerInfo> serverInfoList = new ArrayList<>();
     for (ShuffleServerInfo server: serverInfoSet) {
@@ -137,7 +132,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
     }
 
     // just get blockIds from RSS servers
-    ShuffleWriteClient writeClient = MRRssUtils.createShuffleClient(jobConf);
+    ShuffleWriteClient writeClient = RssMRUtils.createShuffleClient(jobConf);
     Roaring64NavigableMap blockIdBitmap = writeClient.getShuffleResult(
       clientType, serverInfoSet, appId, 0, reduceId.getTaskID().getId());
     writeClient.close();
@@ -148,15 +143,15 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
         MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap taskIdBitmap = eventFetcher.fetchAllRssTaskIds();
 
-    // start shuffle fetcher
-    if (taskIdBitmap != null) {
+    // start fetcher to fetch blocks from RSS servers
+    if (!taskIdBitmap.isEmpty()) {
       CreateShuffleReadClientRequest request = new CreateShuffleReadClientRequest(
         appId, 0, reduceId.getTaskID().getId(), storageType, basePath, indexReadLimit, readBufferSize,
         partitionNumPerRange, partitionNum, blockIdBitmap, taskIdBitmap, serverInfoList, jobConf);
       ShuffleReadClient shuffleReadClient = ShuffleClientFactory.getInstance().createShuffleReadClient(request);
       RssFetcher fetcher = new RssFetcher(jobConf, reduceId, taskStatus, merger, copyPhase, reporter, metrics,
         this, shuffleReadClient, blockIdBitmap.getLongCardinality());
-      fetcher.fetchAllBlocks();
+      fetcher.fetchAllRssBlocks();
     }
 
     copyPhase.complete();

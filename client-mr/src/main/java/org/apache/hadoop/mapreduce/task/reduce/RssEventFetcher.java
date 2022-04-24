@@ -28,16 +28,13 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.MapTaskCompletionEventsUpdate;
 import org.apache.hadoop.mapred.TaskCompletionEvent;
 import org.apache.hadoop.mapred.TaskUmbilicalProtocol;
-import org.apache.hadoop.mapreduce.MRRssUtils;
+import org.apache.hadoop.mapreduce.RssMRUtils;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import com.tencent.rss.common.exception.RssException;
 
 public class RssEventFetcher<K,V> {
-  private static final long SLEEP_TIME = 1000;
-  private static final int MAX_RETRIES = 10;
-  private static final int RETRY_PERIOD = 5000;
   private static final Log LOG = LogFactory.getLog(RssEventFetcher.class);
 
   private final TaskAttemptID reduce;
@@ -46,7 +43,6 @@ public class RssEventFetcher<K,V> {
   private final int maxEventsToFetch;
   private final ExceptionReporter exceptionReporter;
   private JobConf jobConf;
-  private volatile boolean stopped = false;
 
   private Set<TaskAttemptID> successMaps = new HashSet<TaskAttemptID>();
   private Set<TaskAttemptID> obsoleteMaps = new HashSet<TaskAttemptID>();
@@ -75,13 +71,13 @@ public class RssEventFetcher<K,V> {
         + " fails to accept completion events due to: "
         + e.getMessage())
       );
-      return null;
+      return Roaring64NavigableMap.bitmapOf();
     }
 
     Roaring64NavigableMap taskIds = Roaring64NavigableMap.bitmapOf();
     for (TaskAttemptID mapTask: successMaps) {
       if (!obsoleteMaps.contains(mapTask)) {
-        long taskId = MRRssUtils.convertTaskAttemptIdToLong(mapTask);
+        long taskId = RssMRUtils.convertTaskAttemptIdToLong(mapTask);
         taskIds.addLong(taskId);
       }
     }
@@ -89,7 +85,7 @@ public class RssEventFetcher<K,V> {
       exceptionReporter.reportException(
         new IllegalStateException("TaskAttemptIDs are inconsistent with total map tasks")
       );
-      return null;
+      return Roaring64NavigableMap.bitmapOf();
     }
     return taskIds;
   }
