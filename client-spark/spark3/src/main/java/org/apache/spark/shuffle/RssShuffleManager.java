@@ -44,7 +44,6 @@ import org.apache.spark.shuffle.writer.AddBlockEvent;
 import org.apache.spark.shuffle.writer.BufferManagerOptions;
 import org.apache.spark.shuffle.writer.RssShuffleWriter;
 import org.apache.spark.shuffle.writer.WriteBufferManager;
-import org.apache.spark.shuffle.writer.WriterBuffer;
 import org.apache.spark.storage.BlockId;
 import org.apache.spark.storage.BlockManagerId;
 import org.apache.spark.util.EventLoop;
