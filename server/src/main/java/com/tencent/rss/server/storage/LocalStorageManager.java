@@ -129,7 +129,7 @@ public class LocalStorageManager extends SingleStorageManager {
     // delete shuffle data for application
     ShuffleDeleteHandler deleteHandler = ShuffleHandlerFactory.getInstance()
         .createShuffleDeleteHandler(
-            new CreateShuffleDeleteHandlerRequest(StorageType.LOCALFILE.name(), new Configuration()));
+            new CreateShuffleDeleteHandlerRequest(StorageType.MEMORY_LOCALFILE.name(), new Configuration()));
     deleteHandler.delete(storageBasePaths, appId);
   }
 
