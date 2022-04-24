@@ -87,7 +87,7 @@ public class DelegationRssShuffleManagerTest {
     conf.set(RssClientConfig.RSS_ACCESS_ID, "mockId");
     assertCreateSortShuffleManager(conf);
     conf.set(RssClientConfig.RSS_COORDINATOR_QUORUM, "m1:8001,m2:8002");
-    conf.set("spark.rss.storage.type", StorageType.LOCALFILE.name());
+    conf.set("spark.rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
     assertCreateRssShuffleManager(conf);
 
     conf = new SparkConf();

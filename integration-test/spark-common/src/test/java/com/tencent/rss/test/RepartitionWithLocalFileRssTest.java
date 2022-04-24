@@ -38,7 +38,7 @@ public class RepartitionWithLocalFileRssTest extends RepartitionTest {
     File dataDir1 = new File(tmpDir, "data1");
     File dataDir2 = new File(tmpDir, "data2");
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE.name());
+    shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
     createShuffleServer(shuffleServerConf);
     startServers();
@@ -46,6 +46,6 @@ public class RepartitionWithLocalFileRssTest extends RepartitionTest {
 
   @Override
   public void updateRssStorage(SparkConf sparkConf) {
-    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+    sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
   }
 }

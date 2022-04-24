@@ -22,9 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -160,17 +157,11 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     long s = System.currentTimeMillis();
     checkBlockSendResult(blockIds);
     final long checkDuration = System.currentTimeMillis() - s;
-    long commitDuration = 0;
-    if (!isMemoryShuffleEnabled) {
-      s = System.currentTimeMillis();
-      sendCommit();
-      commitDuration = System.currentTimeMillis() - s;
-    }
     long writeDurationMs = bufferManager.getWriteTime() + (System.currentTimeMillis() - start);
     shuffleWriteMetrics.incWriteTime(TimeUnit.MILLISECONDS.toNanos(writeDurationMs));
     LOG.info("Finish write shuffle for appId[" + appId + "], shuffleId[" + shuffleId
         + "], taskId[" + taskId + "] with write " + writeDurationMs + " ms, include checkSendResult["
-        + checkDuration + "], commit[" + commitDuration + "], " + bufferManager.getManagerCostInfo());
+        + checkDuration + "], " + bufferManager.getManagerCostInfo());
   }
 
   /**
@@ -221,34 +212,6 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
           + " blocks and " + totalSize + " bytes");
       shuffleManager.getEventLoop().post(
           new AddBlockEvent(taskId, shuffleBlockInfosPerEvent));
-    }
-  }
-
-  @VisibleForTesting
-  protected void sendCommit() {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Future<Boolean> future = executor.submit(
-        () -> shuffleWriteClient.sendCommit(shuffleServersForData, appId, shuffleId, numMaps));
-    long start = System.currentTimeMillis();
-    int currentWait = 200;
-    int maxWait = 5000;
-    while (!future.isDone()) {
-      LOG.info("Wait commit to shuffle server for task[" + taskAttemptId + "] cost "
-          + (System.currentTimeMillis() - start) + " ms");
-      Uninterruptibles.sleepUninterruptibly(currentWait, TimeUnit.MILLISECONDS);
-      currentWait = Math.min(currentWait * 2, maxWait);
-    }
-    try {
-      // check if commit/finish rpc is successful
-      if (!future.get()) {
-        throw new RssException("Failed to commit task to shuffle server");
-      }
-    } catch (InterruptedException ie) {
-      LOG.warn("Ignore the InterruptedException which should be caused by internal killed");
-    } catch (Exception e) {
-      throw new RuntimeException("Exception happened when get commit status", e);
-    } finally {
-      executor.shutdown();
     }
   }
 

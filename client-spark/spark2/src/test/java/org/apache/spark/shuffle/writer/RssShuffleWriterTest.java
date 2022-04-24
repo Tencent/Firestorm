@@ -77,7 +77,7 @@ public class RssShuffleWriterTest {
         .set(RssClientConfig.RSS_TEST_FLAG, "true")
         .set(RssClientConfig.RSS_WRITER_SEND_CHECK_TIMEOUT, "10000")
         .set(RssClientConfig.RSS_WRITER_SEND_CHECK_INTERVAL, "1000")
-        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name())
+        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name())
         .set(RssClientConfig.RSS_COORDINATOR_QUORUM, "127.0.0.1:12345,127.0.0.1:12346");
     // init SparkContext
     SparkContext sc = SparkContext.getOrCreate(conf);
@@ -144,7 +144,7 @@ public class RssShuffleWriterTest {
         .set(RssClientConfig.RSS_WRITER_BUFFER_SPILL_SIZE, "128")
         .set(RssClientConfig.RSS_WRITER_SEND_CHECK_TIMEOUT, "10000")
         .set(RssClientConfig.RSS_WRITER_SEND_CHECK_INTERVAL, "1000")
-        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name())
+        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name())
         .set(RssClientConfig.RSS_COORDINATOR_QUORUM, "127.0.0.1:12345,127.0.0.1:12346");
     // init SparkContext
     SparkContext sc = SparkContext.getOrCreate(conf);
@@ -211,7 +211,6 @@ public class RssShuffleWriterTest {
         bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle);
 
     RssShuffleWriter<String, String, String> rssShuffleWriterSpy = spy(rssShuffleWriter);
-    doNothing().when(rssShuffleWriterSpy).sendCommit();
 
     // case 1
     MutableList<Product2<String, String>> data = new MutableList();
@@ -280,7 +279,7 @@ public class RssShuffleWriterTest {
     ShuffleWriteClient mockWriteClient = mock(ShuffleWriteClient.class);
     SparkConf conf = new SparkConf();
     conf.set(RssClientConfig.RSS_CLIENT_SEND_SIZE_LIMIT, "64")
-        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+        .set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
 
     RssShuffleWriter writer = new RssShuffleWriter("appId", 0, "taskId", 1L,
         mockBufferManager, mockMetrics, mockShuffleManager, conf, mockWriteClient, mockHandle);

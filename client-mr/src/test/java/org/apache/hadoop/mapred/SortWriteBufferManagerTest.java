@@ -73,8 +73,7 @@ public class SortWriteBufferManagerTest {
         mapOutputRecordCounter,
         1,
         100,
-        1000,
-        true);
+        1000);
     Random random = new Random();
     for (int i = 0; i < 1000; i++) {
       byte[] key = new byte[20];
@@ -119,8 +118,7 @@ public class SortWriteBufferManagerTest {
         mapOutputRecordCounter,
         1,
         100,
-        1000,
-        true);
+        1000);
     byte[] key = new byte[20];
     byte[] value = new byte[1024];
     random.nextBytes(key);
@@ -164,8 +162,7 @@ public class SortWriteBufferManagerTest {
         mapOutputRecordCounter,
         1,
         100,
-        2000,
-        true);
+        2000);
     Random random = new Random();
     for (int i = 0; i < 1000; i++) {
       byte[] key = new byte[20];

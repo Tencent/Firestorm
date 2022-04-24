@@ -23,9 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -158,17 +155,12 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     }
     long checkStartTs = System.currentTimeMillis();
     checkBlockSendResult(blockIds);
-    long commitStartTs = System.currentTimeMillis();
-    long checkDuration = commitStartTs - checkStartTs;
-    if (!isMemoryShuffleEnabled) {
-      sendCommit();
-    }
+    long checkDuration = System.currentTimeMillis() - checkStartTs;
     long writeDurationMs = bufferManager.getWriteTime() + (System.currentTimeMillis() - start);
     shuffleWriteMetrics.incWriteTime(TimeUnit.MILLISECONDS.toNanos(writeDurationMs));
     LOG.info("Finish write shuffle for appId[" + appId + "], shuffleId[" + shuffleId
         + "], taskId[" + taskId + "] with write " + writeDurationMs + " ms, include checkSendResult["
-        + checkDuration + "], commit[" + (System.currentTimeMillis() - commitStartTs) + "], "
-        + bufferManager.getManagerCostInfo());
+        + checkDuration + "],  " + bufferManager.getManagerCostInfo());
   }
 
   // only push-based shuffle use this interface, but rss won't be used when push-based shuffle is enabled.
@@ -243,33 +235,6 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         LOG.error(errorMsg);
         throw new RssException(errorMsg);
       }
-    }
-  }
-
-  @VisibleForTesting
-  protected void sendCommit() {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    Future<Boolean> future = executor.submit(
-        () -> shuffleWriteClient.sendCommit(shuffleServersForData, appId, shuffleId, numMaps));
-    int maxWait = 5000;
-    int currentWait = 200;
-    long start = System.currentTimeMillis();
-    while (!future.isDone()) {
-      LOG.info("Wait commit to shuffle server for task[" + taskAttemptId + "] cost "
-          + (System.currentTimeMillis() - start) + " ms");
-      Uninterruptibles.sleepUninterruptibly(currentWait, TimeUnit.MILLISECONDS);
-      currentWait = Math.min(currentWait * 2, maxWait);
-    }
-    try {
-      if (!future.get()) {
-        throw new RssException("Failed to commit task to shuffle server");
-      }
-    } catch (InterruptedException ie) {
-      LOG.warn("Ignore the InterruptedException which should be caused by internal killed");
-    } catch (Exception e) {
-      throw new RuntimeException("Exception happened when get commit status", e);
-    } finally {
-      executor.shutdown();
     }
   }
 

@@ -40,7 +40,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.ByteUnit;
-import com.tencent.rss.storage.util.StorageType;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
     implements MapOutputCollector<K, V> {
@@ -116,8 +115,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         reporter.getCounter(TaskCounter.MAP_OUTPUT_RECORDS),
         bitmapSplitNum,
         maxSegmentSize,
-        numMaps,
-        isMemoryShuffleEnabled(storageType));
+        numMaps);
   }
 
   private Map<Integer, List<ShuffleServerInfo>> createAssignmentMap(JobConf jobConf) {
@@ -180,11 +178,5 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   public void flush() throws IOException, InterruptedException, ClassNotFoundException {
     reporter.progress();
     bufferManager.waitSendFinished();
-  }
-
-  private boolean isMemoryShuffleEnabled(String storageType) {
-    return StorageType.MEMORY_LOCALFILE.name().equals(storageType)
-        || StorageType.MEMORY_HDFS.name().equals(storageType)
-        || StorageType.MEMORY_LOCALFILE_HDFS.name().equals(storageType);
   }
 }

@@ -71,7 +71,7 @@ public class RssShuffleReaderTest extends AbstractRssReaderTest {
     when(dependencyMock.keyOrdering()).thenReturn(Option.empty());
 
     RssShuffleReader rssShuffleReaderSpy = spy(new RssShuffleReader<String, String>(0, 1, contextMock,
-        handleMock, basePath, 1000, conf, StorageType.HDFS.name(),
+        handleMock, basePath, 1000, conf, StorageType.MEMORY_HDFS.name(),
         1000, 2, 10, blockIdBitmap, taskIdBitmap));
 
     validateResult(rssShuffleReaderSpy.read(), expectedData, 10);

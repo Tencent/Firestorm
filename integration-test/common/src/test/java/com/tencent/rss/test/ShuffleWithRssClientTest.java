@@ -66,7 +66,7 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
     File dataDir1 = new File(tmpDir, "data1");
     File dataDir2 = new File(tmpDir, "data2");
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
-    shuffleServerConf.setString("rss.storage.type", StorageType.LOCALFILE.name());
+    shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_LOCALFILE.name());
     shuffleServerConf.setString("rss.storage.basePath", basePath);
     createShuffleServer(shuffleServerConf);
     File dataDir3 = new File(tmpDir, "data3");
@@ -222,7 +222,7 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
         .sendCommit(Sets.newHashSet(shuffleServerInfo1, shuffleServerInfo2), testAppId, 0, 2);
     assertTrue(commitResult);
 
-    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(), testAppId, 0, 0, 100, 1,
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(), testAppId, 0, 0, 100, 1,
         10, 1000, "", blockIdBitmap, taskIdBitmap,
         Lists.newArrayList(shuffleServerInfo1, shuffleServerInfo2), null);
 
@@ -238,7 +238,7 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
     commitResult = shuffleWriteClientImpl
         .sendCommit(Sets.newHashSet(shuffleServerInfo1, shuffleServerInfo2), testAppId, 0, 2);
     assertTrue(commitResult);
-    readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(), testAppId, 0, 0, 100, 1,
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(), testAppId, 0, 0, 100, 1,
         10, 1000, "", blockIdBitmap, taskIdBitmap,
         Lists.newArrayList(shuffleServerInfo1, shuffleServerInfo2), null);
     validateResult(readClient, expectedData);

@@ -66,7 +66,7 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
     createCoordinatorServer(coordinatorConf);
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
-    shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+    shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
     shuffleServerConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH,
         data1.getAbsolutePath() + "," + data2.getAbsolutePath());
     shuffleServerConf.setBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE, true);
@@ -107,7 +107,7 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
     shuffleServerClient.sendCommit(rc1);
     RssFinishShuffleRequest rf1 = new RssFinishShuffleRequest(appId, 0);
     shuffleServerClient.finishShuffle(rf1);
-    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
         appId, 0, 0, 100, 1, 10, 1000, null,
         blockIdBitmap1, Roaring64NavigableMap.bitmapOf(1), shuffleServerInfo, conf);
     validateResult(readClient, expectedData);
@@ -135,7 +135,7 @@ public class DiskErrorToleranceTest extends ShuffleReadWriteBase {
     shuffleServerClient.sendCommit(rc1);
     shuffleServerClient.finishShuffle(rf1);
 
-    readClient = new ShuffleReadClientImpl(StorageType.LOCALFILE.name(),
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
         appId, 0, 0, 100, 1, 10, 1000, null,
         blockIdBitmap2, Roaring64NavigableMap.bitmapOf(2), shuffleServerInfo, conf);
     validateResult(readClient, expectedData);
