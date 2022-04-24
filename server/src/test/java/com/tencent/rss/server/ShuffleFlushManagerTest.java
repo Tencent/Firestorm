@@ -70,7 +70,7 @@ public class ShuffleFlushManagerTest extends HdfsTestBase {
   @Before
   public void prepare() {
     shuffleServerConf.setString("rss.storage.basePath", storageBasePath);
-    shuffleServerConf.setString("rss.storage.type", "HDFS");
+    shuffleServerConf.setString("rss.storage.type", StorageType.MEMORY_HDFS.name());
     LogManager.getRootLogger().setLevel(Level.INFO);
   }
 
@@ -200,7 +200,7 @@ public class ShuffleFlushManagerTest extends HdfsTestBase {
     tmpDir.create();
     ShuffleServerConf serverConf = new ShuffleServerConf();
     serverConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, tmpDir.getRoot().getAbsolutePath());
-    serverConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+    serverConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
     serverConf.setLong(ShuffleServerConf.DISK_CAPACITY, 1024L * 1024L * 1024L);
     StorageManager storageManager =
         StorageManagerFactory.getInstance().createStorageManager("shuffleServerId", serverConf);
@@ -318,7 +318,7 @@ public class ShuffleFlushManagerTest extends HdfsTestBase {
     try {
       TemporaryFolder processEventsTmpdir = new TemporaryFolder();
       processEventsTmpdir.create();
-      shuffleServerConf.set(RssBaseConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.toString());
+      shuffleServerConf.set(RssBaseConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.toString());
       shuffleServerConf.set(RssBaseConf.RSS_STORAGE_BASE_PATH, processEventsTmpdir.getRoot().getAbsolutePath());
       shuffleServerConf.set(ShuffleServerConf.DISK_CAPACITY, 100L);
       shuffleServerConf.set(ShuffleServerConf.PENDING_EVENT_TIMEOUT_SEC, 5L);

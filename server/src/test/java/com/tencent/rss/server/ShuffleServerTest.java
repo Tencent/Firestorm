@@ -33,7 +33,7 @@ public class ShuffleServerTest {
     try {
       ShuffleServerConf serverConf = new ShuffleServerConf();
       serverConf.setInteger(ShuffleServerConf.RPC_SERVER_PORT, 9527);
-      serverConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+      serverConf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
       serverConf.setInteger(ShuffleServerConf.JETTY_HTTP_PORT, 9528);
       serverConf.setString(ShuffleServerConf.RSS_COORDINATOR_QUORUM, "localhost:0");
       serverConf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "/tmp/null");

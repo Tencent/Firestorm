@@ -59,7 +59,7 @@ public class ShuffleBufferManagerTest extends BufferTestBase {
     conf = new ShuffleServerConf();
     File tmpDir = Files.createTempDir();
     File dataDir = new File(tmpDir, "data");
-    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
     conf.setString(ShuffleServerConf.RSS_STORAGE_BASE_PATH, dataDir.getAbsolutePath());
     conf.set(ShuffleServerConf.SERVER_BUFFER_CAPACITY, 500L);
     conf.set(ShuffleServerConf.SERVER_MEMORY_SHUFFLE_LOWWATERMARK_PERCENTAGE, 20.0);

@@ -20,7 +20,6 @@ package com.tencent.rss.server;
 import com.google.common.collect.Lists;
 import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.util.StorageType;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -37,7 +36,7 @@ public class StorageCheckerTest {
   public void checkTest() throws Exception {
     ShuffleServerConf conf = new ShuffleServerConf();
     conf.setBoolean(ShuffleServerConf.HEALTH_CHECK_ENABLE, true);
-    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
+    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "st1,st2,st3");
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, 55.0);
     List<LocalStorage> storages = Lists.newArrayList();
