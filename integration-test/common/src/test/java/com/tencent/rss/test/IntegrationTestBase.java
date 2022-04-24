@@ -74,7 +74,7 @@ abstract public class IntegrationTestBase extends HdfsTestBase {
   protected static ShuffleServerConf getShuffleServerConf() {
     ShuffleServerConf serverConf = new ShuffleServerConf();
     serverConf.setInteger("rss.rpc.server.port", SHUFFLE_SERVER_PORT);
-    serverConf.setString("rss.storage.type", StorageType.HDFS.name());
+    serverConf.setString("rss.storage.type", StorageType.MEMORY_HDFS.name());
     serverConf.setString("rss.storage.basePath", HDFS_URI + "rss/test");
     serverConf.setString("rss.server.buffer.capacity", "671088640");
     serverConf.setString("rss.server.memory.shuffle.highWaterMark", "50.0");

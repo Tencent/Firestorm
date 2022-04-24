@@ -19,10 +19,8 @@
 package com.tencent.rss.storage.util;
 
 public enum StorageType {
-  HDFS,
   LOCALFILE,
   LOCALFILE_HDFS,
-  LOCALFILE_HDFS_2,
   MEMORY_LOCALFILE,
   MEMORY_HDFS,
   MEMORY_LOCALFILE_HDFS

@@ -37,7 +37,7 @@ public class HealthCheckTest {
     assertConf(conf);
     conf.setString(ShuffleServerConf.HEALTH_CHECKER_CLASS_NAMES, "com.tencent.rss.server.LocalStorageChecker");
     conf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, "s1");
-    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.HDFS.name());
+    conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_HDFS.name());
     assertConf(conf);
     conf.setString(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name());
     conf.set(ShuffleServerConf.HEALTH_MIN_STORAGE_PERCENTAGE, -1.0);

@@ -19,10 +19,8 @@
 package com.tencent.rss.server.storage;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +28,6 @@ import com.tencent.rss.server.Checker;
 import com.tencent.rss.server.ShuffleDataFlushEvent;
 import com.tencent.rss.server.ShuffleDataReadEvent;
 import com.tencent.rss.server.ShuffleServerConf;
-import com.tencent.rss.server.ShuffleUploader;
-import com.tencent.rss.storage.common.LocalStorage;
 import com.tencent.rss.storage.common.Storage;
 import com.tencent.rss.storage.handler.api.ShuffleWriteHandler;
 import com.tencent.rss.storage.request.CreateShuffleWriteHandlerRequest;
@@ -42,7 +38,6 @@ public class MultiStorageManager implements StorageManager {
 
   private final StorageManager warmStorageManager;
   private final StorageManager coldStorageManager;
-  private final List<ShuffleUploader> uploaders  = Lists.newArrayList();
   private final boolean uploadShuffleEnable;
   private final long flushColdStorageThresholdSize;
   private final long fallBackTimes;
@@ -53,19 +48,6 @@ public class MultiStorageManager implements StorageManager {
     uploadShuffleEnable = conf.get(ShuffleServerConf.UPLOADER_ENABLE);
     fallBackTimes = conf.get(ShuffleServerConf.FALLBACK_MAX_FAIL_TIMES);
     flushColdStorageThresholdSize = conf.getSizeAsBytes(ShuffleServerConf.FLUSH_COLD_STORAGE_THRESHOLD_SIZE);
-    if (uploadShuffleEnable) {
-      if (!(warmStorageManager instanceof LocalStorageManager)) {
-        throw new IllegalArgumentException("Only LOCALFILE type support upload shuffle");
-      }
-      LocalStorageManager localStorageManager = (LocalStorageManager) warmStorageManager;
-      for (LocalStorage storage :localStorageManager.getStorages()) {
-        uploaders.add(new ShuffleUploader.Builder()
-            .configuration(conf)
-            .serverId(shuffleServerId)
-            .localStorage(storage)
-            .build());
-      }
-    }
   }
 
   @Override
@@ -116,19 +98,11 @@ public class MultiStorageManager implements StorageManager {
   }
 
   public void start() {
-    if (uploadShuffleEnable) {
-      for (ShuffleUploader uploader : uploaders) {
-        uploader.start();
-      }
-    }
+    // no op
   }
 
   public void stop() {
-    if (uploadShuffleEnable) {
-      for (ShuffleUploader uploader : uploaders) {
-        uploader.stop();
-      }
-    }
+    // no op
   }
 
   @Override
