@@ -24,12 +24,10 @@ public class CompressedShuffleBlock {
 
   private ByteBuffer byteBuffer;
   private int uncompressLength;
-  private long blockId;
 
-  public CompressedShuffleBlock(ByteBuffer byteBuffer, int uncompressLength, long blockId) {
+  public CompressedShuffleBlock(ByteBuffer byteBuffer, int uncompressLength) {
     this.byteBuffer = byteBuffer;
     this.uncompressLength = uncompressLength;
-    this.blockId = blockId;
   }
 
   public int getUncompressLength() {
@@ -38,9 +36,5 @@ public class CompressedShuffleBlock {
 
   public ByteBuffer getByteBuffer() {
     return byteBuffer;
-  }
-
-  public long getBlockId() {
-    return blockId;
   }
 }

@@ -179,9 +179,8 @@ public class RssFetcher<K,V> {
         // let the merger knows this block is ready for merging
         mapOutput.commit();
         if (mapOutput instanceof OnDiskMapOutput) {
-          LOG.info("Reduce: " + reduceId + " allocates disk to accept block: "
-            + compressedBlock.getBlockId() + " with byte sizes: "
-            + uncompressedData.capacity());
+          LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
+            + " with byte sizes: " + uncompressedData.capacity());
         }
       } catch (Throwable t) {
         ioErrs.increment(1);
