@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.apache.hadoop.mapreduce;
+package com.tencent.rss.test;
 
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.server.ShuffleServerConf;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.LargeSorter;
 import org.apache.hadoop.util.Tool;
 import org.junit.BeforeClass;
 import org.junit.Test;
