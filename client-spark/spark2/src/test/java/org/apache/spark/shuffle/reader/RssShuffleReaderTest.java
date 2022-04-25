@@ -23,9 +23,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
+import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.storage.handler.impl.HdfsShuffleWriteHandler;
 import com.tencent.rss.storage.util.StorageType;
+
+import java.util.List;
 import java.util.Map;
 import org.apache.spark.ShuffleDependency;
 import org.apache.spark.SparkConf;
@@ -54,13 +58,15 @@ public class RssShuffleReaderTest extends AbstractRssReaderTest {
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
      writeTestData(writeHandler, 2, 5, expectedData,
         blockIdBitmap, "key", KRYO_SERIALIZER, 0);
-
+    Map<Integer, List<ShuffleServerInfo>> mockMap = Maps.newConcurrentMap();
+    mockMap.put(0, Lists.newArrayList());
     TaskContext contextMock = mock(TaskContext.class);
     RssShuffleHandle handleMock = mock(RssShuffleHandle.class);
     ShuffleDependency dependencyMock = mock(ShuffleDependency.class);
     when(handleMock.getAppId()).thenReturn("appId");
     when(handleMock.getShuffleId()).thenReturn(1);
     when(handleMock.getDependency()).thenReturn(dependencyMock);
+    when(handleMock.getPartitionToServers()).thenReturn(mockMap);
     when(dependencyMock.serializer()).thenReturn(KRYO_SERIALIZER);
     when(contextMock.taskAttemptId()).thenReturn(1L);
     when(contextMock.attemptNumber()).thenReturn(1);

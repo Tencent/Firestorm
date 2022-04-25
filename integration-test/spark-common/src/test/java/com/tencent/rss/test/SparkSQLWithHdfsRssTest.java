@@ -44,7 +44,7 @@ public class SparkSQLWithHdfsRssTest extends SparkSQLTest {
     File dataDir2 = new File(tmpDir, "data2");
     String basePath = dataDir1.getAbsolutePath() + "," + dataDir2.getAbsolutePath();
     shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_TYPE, StorageType.MEMORY_HDFS.name());
-    shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, basePath);
+    shuffleServerConf.set(ShuffleServerConf.RSS_STORAGE_BASE_PATH, HDFS_URI + "rss/test");
     shuffleServerConf.setString(ShuffleServerConf.SERVER_BUFFER_CAPACITY.key(), "512mb");
     createShuffleServer(shuffleServerConf);
     startServers();
@@ -53,6 +53,7 @@ public class SparkSQLWithHdfsRssTest extends SparkSQLTest {
   @Override
   public void updateRssStorage(SparkConf sparkConf) {
     sparkConf.set(RssClientConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_HDFS.name());
+    sparkConf.set(RssClientConfig.RSS_BASE_PATH, HDFS_URI + "rss/test");
   }
 
   @Override

@@ -18,9 +18,12 @@
 
 package org.apache.spark.shuffle.reader;
 
+import java.util.List;
 import java.util.Map;
 
+import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
+import com.tencent.rss.common.ShuffleServerInfo;
 import org.apache.spark.ShuffleDependency;
 import org.apache.spark.SparkConf;
 import org.apache.spark.TaskContext;
@@ -65,9 +68,13 @@ public class RssShuffleReaderTest extends AbstractRssReaderTest {
     TaskContext contextMock = mock(TaskContext.class);
     RssShuffleHandle handleMock = mock(RssShuffleHandle.class);
     ShuffleDependency dependencyMock = mock(ShuffleDependency.class);
+    Map<Integer, List<ShuffleServerInfo>> mockMap = Maps.newConcurrentMap();
+    mockMap.put(0, Lists.newArrayList());
+    mockMap.put(1, Lists.newArrayList());
     when(handleMock.getAppId()).thenReturn("appId");
     when(handleMock.getDependency()).thenReturn(dependencyMock);
     when(handleMock.getShuffleId()).thenReturn(1);
+    when(handleMock.getPartitionToServers()).thenReturn(mockMap);
     when(dependencyMock.serializer()).thenReturn(KRYO_SERIALIZER);
     when(contextMock.attemptNumber()).thenReturn(1);
     when(contextMock.taskAttemptId()).thenReturn(1L);

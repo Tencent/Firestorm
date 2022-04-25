@@ -202,7 +202,7 @@ public class RssShuffleUtils {
   }
 
   public static final Set<StorageType> getStorageTypeWithoutPath() {
-    return Sets.newHashSet(StorageType.LOCALFILE, StorageType.MEMORY_LOCALFILE);
+    return Sets.newHashSet(StorageType.MEMORY_LOCALFILE);
   }
 
   public static void validateRssClientConf(SparkConf sparkConf) {
