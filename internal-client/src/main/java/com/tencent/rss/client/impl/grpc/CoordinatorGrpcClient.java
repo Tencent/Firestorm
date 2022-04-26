@@ -304,7 +304,7 @@ public class CoordinatorGrpcClient extends GrpcClient implements CoordinatorClie
           rpcResponse.getRemoteStorage());
       return tt;
     } catch (Exception e) {
-      LOG.info(e.getMessage(), e);
+      LOG.info("Failed to fetch remote storage from coordinator, " + e.getMessage(), e);
       return new RssFetchRemoteStorageResponse(ResponseStatusCode.INTERNAL_ERROR, "");
     }
   }

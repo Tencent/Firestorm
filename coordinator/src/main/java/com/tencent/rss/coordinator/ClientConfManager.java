@@ -87,10 +87,10 @@ public class ClientConfManager implements Closeable {
         if (lastCandidatesUpdateMS.get() != modifiedMS) {
           updateClientConfInternal();
           lastCandidatesUpdateMS.set(modifiedMS);
-          LOG.info("Update client conf from " + path + " successfully.");
+          LOG.info("Update client conf from {} successfully.", path);
         }
       } else {
-        LOG.warn("Client conf file not found with " + path);
+        LOG.warn("Client conf file not found with {}", path);
       }
     } catch (Exception e) {
       LOG.warn("Error when update client conf with " + path, e);

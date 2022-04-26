@@ -252,22 +252,8 @@ public class RssShuffleManager implements ShuffleManager {
     }
     LOG.info("Generate application id used in rss: " + id.get());
 
-    String storageType = sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE);
-    if (StringUtils.isEmpty(remoteStorage) && RssShuffleUtils.requireRemoteStorage(storageType)) {
-      if (dynamicConfEnabled) {
-        // get from coordinator first
-        remoteStorage = shuffleWriteClient.fetchRemoteStorage(id.get());
-        if (StringUtils.isEmpty(remoteStorage)) {
-          // empty from coordinator, try local config
-          remoteStorage = sparkConf.get(RssClientConfig.RSS_BASE_PATH, "");
-        }
-      } else {
-        remoteStorage = sparkConf.get(RssClientConfig.RSS_BASE_PATH, "");
-      }
-      if (StringUtils.isEmpty(remoteStorage)) {
-        throw new RuntimeException("Can't find remoteStorage: with storageType[" + storageType + "]");
-      }
-    }
+    remoteStorage = RssShuffleUtils.fetchRemoteStorage(
+        id.get(), remoteStorage, dynamicConfEnabled, sparkConf, shuffleWriteClient);
 
     ShuffleAssignmentsInfo response = shuffleWriteClient.getShuffleAssignments(
         id.get(),

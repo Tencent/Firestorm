@@ -31,7 +31,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.ShuffleDependency;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkEnv;
@@ -206,22 +205,8 @@ public class RssShuffleManager implements ShuffleManager {
       LOG.info("Generate application id used in rss: " + appId);
     }
 
-    String storageType = sparkConf.get(RssClientConfig.RSS_STORAGE_TYPE);
-    if (StringUtils.isEmpty(remoteStorage) && RssShuffleUtils.requireRemoteStorage(storageType)) {
-      if (dynamicConfEnabled) {
-        // get from coordinator first
-        remoteStorage = shuffleWriteClient.fetchRemoteStorage(appId);
-        if (StringUtils.isEmpty(remoteStorage)) {
-          // empty from coordinator, try local config
-          remoteStorage = sparkConf.get(RssClientConfig.RSS_BASE_PATH, "");
-        }
-      } else {
-        remoteStorage = sparkConf.get(RssClientConfig.RSS_BASE_PATH, "");
-      }
-      if (StringUtils.isEmpty(remoteStorage)) {
-        throw new RuntimeException("Can't find remoteStorage: with storageType[" + storageType + "]");
-      }
-    }
+    remoteStorage = RssShuffleUtils.fetchRemoteStorage(
+        appId, remoteStorage, dynamicConfEnabled, sparkConf, shuffleWriteClient);
 
     int partitionNumPerRange = sparkConf.getInt(RssClientConfig.RSS_PARTITION_NUM_PER_RANGE,
         RssClientConfig.RSS_PARTITION_NUM_PER_RANGE_DEFAULT_VALUE);
