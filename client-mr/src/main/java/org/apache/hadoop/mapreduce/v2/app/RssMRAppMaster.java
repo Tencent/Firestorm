@@ -110,7 +110,7 @@ public class RssMRAppMaster {
     long start = System.currentTimeMillis();
     serverToPartitionRanges.entrySet().forEach(entry -> {
       client.registerShuffle(
-          entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue());
+          entry.getKey(), applicationAttemptId.toString(), 0, entry.getValue(), "");
     });
     LOG.info("Finish register shuffle with " + (System.currentTimeMillis() - start) + " ms");
 
