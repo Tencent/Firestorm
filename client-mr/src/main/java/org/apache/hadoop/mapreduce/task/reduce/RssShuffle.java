@@ -86,7 +86,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
     this.copyPhase = context.getCopyPhase();
     this.taskStatus = context.getStatus();
     this.reduceTask = context.getReduceTask();
-    merger = createMergeManager(context);
+    this.merger = createMergeManager(context);
 
     // rss init
     this.appId = RssMRUtils.getApplicationAttemptId().toString();
@@ -139,8 +139,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
     // get map-completion events to generate RSS taskIDs
     final RssEventFetcher<K,V> eventFetcher =
-      new RssEventFetcher<K,V>(reduceId, umbilical, jobConf, this,
-        MAX_EVENTS_TO_FETCH);
+      new RssEventFetcher<K,V>(reduceId, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap taskIdBitmap = eventFetcher.fetchAllRssTaskIds();
 
     // start fetcher to fetch blocks from RSS servers
@@ -150,7 +149,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
         partitionNumPerRange, partitionNum, blockIdBitmap, taskIdBitmap, serverInfoList, jobConf);
       ShuffleReadClient shuffleReadClient = ShuffleClientFactory.getInstance().createShuffleReadClient(request);
       RssFetcher fetcher = new RssFetcher(jobConf, reduceId, taskStatus, merger, copyPhase, reporter, metrics,
-        this, shuffleReadClient, blockIdBitmap.getLongCardinality());
+        shuffleReadClient, blockIdBitmap.getLongCardinality());
       fetcher.fetchAllRssBlocks();
     }
 
@@ -174,13 +173,6 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
       }
     }
     return kvIter;
-  }
-
-  private void sanityCheck() throws IOException {
-    if (throwable != null) {
-      throw new Shuffle.ShuffleError("error in shuffle in " + throwingThreadName,
-        throwable);
-    }
   }
 
   @Override

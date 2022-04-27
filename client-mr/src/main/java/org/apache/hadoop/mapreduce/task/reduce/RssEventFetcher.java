@@ -41,7 +41,6 @@ public class RssEventFetcher<K,V> {
   private final TaskUmbilicalProtocol umbilical;
   private int fromEventIdx = 0;
   private final int maxEventsToFetch;
-  private final ExceptionReporter exceptionReporter;
   private JobConf jobConf;
 
   private Set<TaskAttemptID> successMaps = new HashSet<TaskAttemptID>();
@@ -52,13 +51,11 @@ public class RssEventFetcher<K,V> {
   public RssEventFetcher(TaskAttemptID reduce,
                          TaskUmbilicalProtocol umbilical,
                          JobConf jobConf,
-                         ExceptionReporter reporter,
                          int maxEventsToFetch) {
     this.jobConf = jobConf;
     this.totalMapsCount = jobConf.getNumMapTasks();
     this.reduce = reduce;
     this.umbilical = umbilical;
-    exceptionReporter = reporter;
     this.maxEventsToFetch = maxEventsToFetch;
   }
 
@@ -66,28 +63,34 @@ public class RssEventFetcher<K,V> {
     try {
       acceptMapCompletionEvents();
     } catch (Exception e) {
-      exceptionReporter.reportException(
-        new RssException("Reduce: " + reduce
+      throw new RssException("Reduce: " + reduce
         + " fails to accept completion events due to: "
-        + e.getMessage())
-      );
-      return Roaring64NavigableMap.bitmapOf();
+        + e.getMessage());
     }
 
-    Roaring64NavigableMap taskIds = Roaring64NavigableMap.bitmapOf();
-    for (TaskAttemptID mapTask: successMaps) {
-      if (!obsoleteMaps.contains(mapTask)) {
-        long taskId = RssMRUtils.convertTaskAttemptIdToLong(mapTask);
-        taskIds.addLong(taskId);
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap mapIndexBitmap = Roaring64NavigableMap.bitmapOf();
+    String errMsg = "TaskAttemptIDs are inconsistent with map tasks";
+    for (TaskAttemptID taskAttemptID: successMaps) {
+      if (!obsoleteMaps.contains(taskAttemptID)) {
+        long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID);
+        taskIdBitmap.addLong(rssTaskId);
+        int mapIndex = taskAttemptID.getTaskID().getId();
+        if (mapIndex < totalMapsCount) {
+          mapIndexBitmap.addLong(mapIndex);
+        } else {
+          throw new IllegalStateException(errMsg);
+        }
       }
     }
-    if (taskIds.getLongCardinality() + tipFailedCount != totalMapsCount) {
-      exceptionReporter.reportException(
-        new IllegalStateException("TaskAttemptIDs are inconsistent with total map tasks")
-      );
-      return Roaring64NavigableMap.bitmapOf();
+    // each map should have only one success attempt
+    if (mapIndexBitmap.getLongCardinality() != mapIndexBitmap.getLongCardinality()) {
+      throw new IllegalStateException(errMsg);
     }
-    return taskIds;
+    if (taskIdBitmap.getLongCardinality() + tipFailedCount != totalMapsCount) {
+      throw new IllegalStateException(errMsg);
+    }
+    return taskIdBitmap;
   }
 
   public void resolve(TaskCompletionEvent event) {

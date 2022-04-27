@@ -66,7 +66,6 @@ public class RssFetcher<K,V> {
   private final MergeManager<K,V> merger;
   private final Progress progress;
   private final ShuffleClientMetrics metrics;
-  private final ExceptionReporter exceptionReporter;
   private long totalBlockCount;
   private long copyBlockCount = 0;
 
@@ -86,7 +85,6 @@ public class RssFetcher<K,V> {
              MergeManager<K,V> merger,
              Progress progress,
              Reporter reporter, ShuffleClientMetrics metrics,
-             ExceptionReporter exceptionReporter,
              ShuffleReadClient shuffleReadClient,
              long totalBlockCount) {
     this.jobConf = job;
@@ -95,7 +93,6 @@ public class RssFetcher<K,V> {
     this.merger = merger;
     this.progress = progress;
     this.metrics = metrics;
-    this.exceptionReporter = exceptionReporter;
     this.reduceId = reduceId;
     ioErrs = reporter.getCounter(SHUFFLE_ERR_GRP_NAME,
       RssFetcher.ShuffleErrors.IO_ERROR.toString());
@@ -114,7 +111,7 @@ public class RssFetcher<K,V> {
     this.totalBlockCount = totalBlockCount;
   }
 
-  public void fetchAllRssBlocks() {
+  public void fetchAllRssBlocks() throws IOException, InterruptedException {
     while (!stopped) {
       try {
         // If merge is on, block
@@ -123,7 +120,7 @@ public class RssFetcher<K,V> {
         metrics.threadBusy();
         copyFromRssServer();
       } catch (Exception e) {
-        stopFetchAfterException(e);
+        throw e;
       } finally {
         metrics.threadFree();
       }
@@ -145,8 +142,8 @@ public class RssFetcher<K,V> {
     // uncompress the block
     if (compressedData != null) {
       final long startDecompress = System.currentTimeMillis();
-      ByteBuffer uncompressedData = RssShuffleUtils.decompressData(
-        compressedData, compressedBlock.getUncompressLength());
+      byte[] uncompressedData = RssShuffleUtils.decompressData(
+        compressedData.array(), compressedBlock.getUncompressLength());
       unCompressionLength += compressedBlock.getUncompressLength();
       long decompressDuration = System.currentTimeMillis() - startDecompress;
       decompressTime += decompressDuration;
@@ -180,13 +177,13 @@ public class RssFetcher<K,V> {
         mapOutput.commit();
         if (mapOutput instanceof OnDiskMapOutput) {
           LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
-            + " with byte sizes: " + uncompressedData.capacity());
+            + " with byte sizes: " + uncompressedData.length);
         }
       } catch (Throwable t) {
         ioErrs.increment(1);
         mapOutput.abort();
         throw new RssException("Reduce: " + reduceId + " cannot write block to "
-          + mapOutput.getClass().getCanonicalName() + " due to: " + t.getMessage());
+          + mapOutput.getClass().getSimpleName() + " due to: " + t.getClass().getName());
       }
       long serializationDuration = System.currentTimeMillis() - startSerialization;
       serializeTime += serializationDuration;
@@ -212,11 +209,6 @@ public class RssFetcher<K,V> {
   private TaskAttemptID getNextUniqueTaskAttemptID() {
     TaskID taskID = new TaskID(reduceId.getJobID(), TaskType.MAP, uniqueMapId++);
     return new TaskAttemptID(taskID, 0);
-  }
-
-  private void stopFetchAfterException(Exception e) {
-    stopFetch();
-    exceptionReporter.reportException(e);
   }
 
   private void stopFetch() {

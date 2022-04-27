@@ -21,7 +21,6 @@ package org.apache.hadoop.mapreduce.task.reduce;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +33,7 @@ import com.tencent.rss.common.exception.RssException;
 public class RssBypassWriter {
   private static final Log LOG = LogFactory.getLog(RssBypassWriter.class);
 
-  public static void write(MapOutput mapOutput, ByteBuffer buffer) {
+  public static void write(MapOutput mapOutput, byte[] buffer) {
     // Write and commit uncompressed data to MapOutput.
     // In the majority of cases, merger allocates memory to accept data,
     // but when data size exceeds the threshold, merger can also allocate disk.
@@ -49,12 +48,12 @@ public class RssBypassWriter {
     }
   }
 
-  private static void write(InMemoryMapOutput inMemoryMapOutput, ByteBuffer buffer) {
+  private static void write(InMemoryMapOutput inMemoryMapOutput, byte[] buffer) {
     byte[] memory = inMemoryMapOutput.getMemory();
-    System.arraycopy(buffer.array(),0, memory, 0, buffer.capacity());
+    System.arraycopy(buffer, 0, memory, 0, buffer.length);
   }
 
-  private static void write(OnDiskMapOutput onDiskMapOutput, ByteBuffer buffer) {
+  private static void write(OnDiskMapOutput onDiskMapOutput, byte[] buffer) {
     OutputStream disk = null;
     try {
       Class clazz = Class.forName(OnDiskMapOutput.class.getName());
@@ -71,7 +70,7 @@ public class RssBypassWriter {
 
     // Copy data to local-disk
     try {
-      disk.write(buffer.array(), 0, buffer.capacity());
+      disk.write(buffer, 0, buffer.length);
       disk.close();
     } catch (IOException ioe) {
       // Close the streams
