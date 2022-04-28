@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RawKeyValueIterator;
 import org.apache.hadoop.mapred.Reporter;
@@ -43,6 +45,9 @@ import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.util.UnitConverter;
 
 public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionReporter {
+
+  private static final Log LOG = LogFactory.getLog(RssShuffle.class);
+
   private static final int MAX_EVENTS_TO_FETCH = 10000;
 
   private ShuffleConsumerPlugin.Context context;
@@ -142,8 +147,13 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
       new RssEventFetcher<K,V>(reduceId, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap taskIdBitmap = eventFetcher.fetchAllRssTaskIds();
 
+    LOG.info("In reduce: " + reduceId
+      + ", RSS MR client has fetched blockIds and taskIds successfully");
+
     // start fetcher to fetch blocks from RSS servers
     if (!taskIdBitmap.isEmpty()) {
+      LOG.info("In reduce: " + reduceId
+        + ", Rss MR client starts to fetch blocks from RSS server");
       CreateShuffleReadClientRequest request = new CreateShuffleReadClientRequest(
         appId, 0, reduceId.getTaskID().getId(), storageType, basePath, indexReadLimit, readBufferSize,
         partitionNumPerRange, partitionNum, blockIdBitmap, taskIdBitmap, serverInfoList, jobConf);
@@ -151,6 +161,8 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
       RssFetcher fetcher = new RssFetcher(jobConf, reduceId, taskStatus, merger, copyPhase, reporter, metrics,
         shuffleReadClient, blockIdBitmap.getLongCardinality());
       fetcher.fetchAllRssBlocks();
+      LOG.info("In reduce: " + reduceId
+        + ", Rss MR client fetches blocks from RSS server successfully");
     }
 
     copyPhase.complete();
@@ -172,6 +184,10 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
           throwable);
       }
     }
+
+    LOG.info("In reduce: " + reduceId
+      + ", Rss MR client returns sorted data to reduce successfully");
+
     return kvIter;
   }
 
