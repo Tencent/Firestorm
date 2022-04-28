@@ -142,6 +142,7 @@
                                     <include>com.fasterxml.jackson.core:jackson-annotations</include>
                                     <include>org.roaringbitmap:RoaringBitmap</include>
                                     <include>org.roaringbitmap:shims</include>
+                                    <indlude>org.openjdk.jol:jol-core</indlude>
                                 </includes>
                             </artifactSet>
                             <finalName>${project.artifactId}-${project.version}</finalName>
