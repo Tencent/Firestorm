@@ -35,6 +35,12 @@
     <dependencies>
         <dependency>
             <groupId>com.tencent.rss</groupId>
+            <artifactId>rss-client-mr</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.tencent.rss</groupId>
             <artifactId>rss-integration-common-test</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

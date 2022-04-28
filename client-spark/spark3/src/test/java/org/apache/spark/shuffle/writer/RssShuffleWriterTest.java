@@ -235,11 +235,11 @@ public class RssShuffleWriterTest {
     assertTrue(shuffleWriteMetrics.writeTime() > 0);
     assertEquals(6, shuffleWriteMetrics.recordsWritten());
     // Spark3 and Spark2 use different version lz4, their length is different
-    assertEquals(120, shuffleWriteMetrics.bytesWritten());
+    assertEquals(144, shuffleWriteMetrics.bytesWritten());
 
     assertEquals(6, shuffleBlockInfos.size());
     for (ShuffleBlockInfo shuffleBlockInfo : shuffleBlockInfos) {
-      assertEquals(20, shuffleBlockInfo.getLength());
+      assertEquals(24, shuffleBlockInfo.getLength());
       assertEquals(22, shuffleBlockInfo.getUncompressLength());
       assertEquals(0, shuffleBlockInfo.getShuffleId());
       if (shuffleBlockInfo.getPartitionId() == 0) {
