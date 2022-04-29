@@ -118,6 +118,12 @@
             <artifactId>lz4</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.openjdk.jol</groupId>
+            <artifactId>jol-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
