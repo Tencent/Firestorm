@@ -260,6 +260,24 @@ public class ShuffleWithRssClientTest extends ShuffleReadWriteBase {
   }
 
   @Test
+  public void writeReadBigRecord() {
+    String testAppId = "writeReadBigRecord";
+    shuffleWriteClientImpl.registerShuffle(shuffleServerInfo1,
+        testAppId, 0, Lists.newArrayList(new PartitionRange(0, 0)));
+    Map<Long, byte[]> expectedData = Maps.newHashMap();
+    Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
+    List<ShuffleBlockInfo> blocks = createShuffleBlockList(
+        0, 0, 0, 1, 1024 * 1024 * 100, blockIdBitmap,
+        expectedData, Lists.newArrayList(shuffleServerInfo1, shuffleServerInfo2));
+    shuffleWriteClientImpl.sendShuffleData(testAppId, blocks);
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(), testAppId, 0, 0, 100, 1,
+        10, 1000, "", blockIdBitmap, taskIdBitmap,
+        Lists.newArrayList(shuffleServerInfo1, shuffleServerInfo2), null);
+    validateResult(readClient, expectedData);
+  }
+
+  @Test
   public void emptyTaskTest() {
     String testAppId = "emptyTaskTest";
     shuffleWriteClientImpl.registerShuffle(shuffleServerInfo1,

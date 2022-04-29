@@ -122,8 +122,9 @@ public class MRIntegrationTestBase extends IntegrationTestBase {
       throw new RuntimeException("We must set JAVA_HOME");
     }
     jobConf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "-XX:+TraceClassLoading org.apache.hadoop.mapreduce.v2.app.RssMRAppMaster");
+    // jobConf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp");
     jobConf.setInt(MRJobConfig.MAP_MEMORY_MB, 2048);
-    jobConf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 2048);
+    jobConf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 3096);
     jobConf.setInt(MRJobConfig.IO_SORT_MB, 128);
     jobConf.set("mapreduce.rss.storage.type", StorageType.MEMORY_HDFS.name());
     jobConf.set(MRJobConfig.MAP_OUTPUT_COLLECTOR_CLASS_ATTR, "org.apache.hadoop.mapred.RssMapOutputCollector");
