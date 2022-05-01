@@ -22,12 +22,15 @@ import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
@@ -54,12 +57,13 @@ public class SortWriteBufferTest {
     valSerializer.open(buffer);
     long start = buffer.getDataLength();
     keySerializer.serialize(key);
+    long middle = buffer.getDataLength();
     valSerializer.serialize(value);
     long end = buffer.getDataLength();
     assertEquals(16, end);
     assertEquals(0, start);
-    buffer.addRecord(key, 0, 16);
-    assertEquals(16, buffer.getData().length);
+    buffer.addRecord(key, 0, 16, (middle -start), (end - middle));
+    assertEquals(20, buffer.getData().length);
     assertEquals(1, buffer.getPartitionId());
     byte[] result = buffer.getData();
     Deserializer<BytesWritable> keyDeserializer = serializationFactory.getDeserializer(BytesWritable.class);
@@ -67,6 +71,12 @@ public class SortWriteBufferTest {
     ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(result);
     keyDeserializer.open(byteArrayInputStream);
     valDeserializer.open(byteArrayInputStream);
+
+    DataInputStream dStream = new DataInputStream(byteArrayInputStream);
+    int keyLen = readInt(dStream);
+    int valueLen = readInt(dStream);
+    assertEquals(keyLen, middle - start);
+    assertEquals(valueLen, end - middle);
     BytesWritable keyRead = keyDeserializer.deserialize(null);
     assertEquals(key, keyRead);
     BytesWritable valueRead = keyDeserializer.deserialize(null);
@@ -83,13 +93,18 @@ public class SortWriteBufferTest {
     keySerializer.serialize(key);
     byte[] valueBytes = new byte[200];
     Map<String, BytesWritable> valueMap = Maps.newConcurrentMap();
+    Map<String, Long> keyLenMap = Maps.newConcurrentMap();
+    Map<String, Long> valueLenMap = Maps.newConcurrentMap();
     Random random = new Random();
     random.nextBytes(valueBytes);
     value = new BytesWritable(valueBytes);
     valueMap.putIfAbsent(keyStr, value);
     valSerializer.serialize(value);
     end = buffer.getDataLength();
-    buffer.addRecord(key, start, end);
+    buffer.addRecord(key, start, end, middle - start, end - middle);
+    keyLenMap.putIfAbsent(keyStr, middle - start);
+    valueLenMap.putIfAbsent(keyStr, end - middle);
+
     keyStr = "key1";
     key = new BytesWritable(keyStr.getBytes());
     valueBytes = new byte[2032];
@@ -98,9 +113,13 @@ public class SortWriteBufferTest {
     valueMap.putIfAbsent(keyStr, value);
     start = buffer.getDataLength();
     keySerializer.serialize(key);
+    middle = buffer.getDataLength();
     valSerializer.serialize(value);
     end = buffer.getDataLength();
-    buffer.addRecord(key, start, end);
+    buffer.addRecord(key, start, end, middle - start, end - middle);
+    keyLenMap.putIfAbsent(keyStr, middle - start);
+    valueLenMap.putIfAbsent(keyStr, end - middle);
+
     keyStr = "key2";
     key = new BytesWritable(keyStr.getBytes());
     valueBytes = new byte[3100];
@@ -108,20 +127,33 @@ public class SortWriteBufferTest {
     valueMap.putIfAbsent(keyStr, value);
     start = buffer.getDataLength();
     keySerializer.serialize(key);
+    middle = buffer.getDataLength();
     valSerializer.serialize(value);
     end = buffer.getDataLength();
-    buffer.addRecord(key, start, end);
+    buffer.addRecord(key, start, end, middle - start, end - middle);
+    keyLenMap.putIfAbsent(keyStr, middle - start);
+    valueLenMap.putIfAbsent(keyStr, end - middle);
+
     result = buffer.getData();
     byteArrayInputStream = new ByteArrayInputStream(result);
     keyDeserializer.open(byteArrayInputStream);
     valDeserializer.open(byteArrayInputStream);
     for (int i = 1; i <= 3; i++) {
+      dStream = new DataInputStream(byteArrayInputStream);
+      long keyLenTmp = readInt(dStream);
+      long valueLenTmp = readInt(dStream);
+      String tmpStr = "key" + i;
+      assertEquals(keyLenMap.get(tmpStr).longValue(), keyLenTmp);
+      assertEquals(valueLenMap.get(tmpStr).longValue(), valueLenTmp);
       keyRead = keyDeserializer.deserialize(null);
       valueRead = valDeserializer.deserialize(null);
-      String tmpStr = "key" + i;
       BytesWritable bytesWritable = new BytesWritable(tmpStr.getBytes());
       assertEquals(bytesWritable, keyRead);
       assertEquals(valueMap.get(tmpStr), valueRead);
     }
+  }
+
+  int readInt(DataInputStream dStream) throws IOException {
+    return WritableUtils.readVInt(dStream);
   }
 }

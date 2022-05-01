@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
@@ -85,7 +86,16 @@ public class RssMRAppMaster {
         applicationAttemptId.toString(), 0, numReduceTasks,
         1, Sets.newHashSet(Constants.SHUFFLE_SERVER_VERSION));
     Map<ShuffleServerInfo, List<PartitionRange>> serverToPartitionRanges = response.getServerToPartitionRanges();
-    final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactory() {
+          @Override
+          public Thread newThread(Runnable r) {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+          }
+        }
+    );
     if (serverToPartitionRanges == null || serverToPartitionRanges.isEmpty()) {
       return;
     }
@@ -154,6 +164,5 @@ public class RssMRAppMaster {
     // remove org.apache.hadoop.mapreduce.v2.app.MRAppMaster
     ArrayUtils.remove(args, 0);
     MRAppMaster.main(args);
-    scheduledExecutorService.shutdown();
   }
 }

@@ -158,10 +158,14 @@ public class SortWriteBufferManager<K, V> {
     keySerializer.open(buffer);
     valSerializer.open(buffer);
     long start = buffer.getDataLength();
+    keySerializer.serialize(key);
+    long keyEnd = buffer.getDataLength();
     valSerializer.serialize(value);
-    long end = buffer.getDataLength();
-    long keyLength = buffer.addRecord(key, start, end);
-    long length = end - start + keyLength;
+    long valueEnd = buffer.getDataLength();
+    long keyLength = keyEnd - start;
+    long valueLength = valueEnd - keyEnd;
+    long rawKeyLength = buffer.addRecord(key, start, valueEnd, keyLength, valueLength);
+    long length = valueEnd - start + rawKeyLength;
     if (length > maxMemSize) {
       throw new RssException("record is too big");
     }

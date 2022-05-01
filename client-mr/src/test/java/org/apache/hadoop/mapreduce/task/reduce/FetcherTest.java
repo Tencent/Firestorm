@@ -34,12 +34,10 @@ import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.*;
 import com.tencent.rss.common.exception.RssException;
-import com.tencent.rss.common.util.RssUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -50,7 +48,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.util.Progress;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.tencent.rss.client.api.ShuffleReadClient;
@@ -72,22 +69,19 @@ public class FetcherTest {
   static List<byte[]> data;
   static MergeManagerImpl<Text, Text> merger;
 
-  @BeforeClass
-  public static void setup() throws IOException, InterruptedException {
-    fs = FileSystem.getLocal(conf);
-    initData();
-    merger = new MergeManagerImpl<Text, Text>(
-      reduceId1, jobConf, fs, lda, Reporter.NULL, null, null, null, null, null,
-      null, null, new Progress(), new MROutputFiles());
-    ReduceTask task  = new ReduceTask();
-  }
-
   @Test
-  public void writeAndReadDataTest() throws Throwable {
+  public void writeAndReadDataTestWithRss() throws Throwable {
+    fs = FileSystem.getLocal(conf);
+    initRssData();
+    merger = new MergeManagerImpl<Text, Text>(
+        reduceId1, jobConf, fs, lda, Reporter.NULL, null, null, null, null, null,
+        null, null, new Progress(), new MROutputFiles());
     ShuffleReadClient shuffleReadClient = new MockedShuffleReadClient(data);
     RssFetcher fetcher = new RssFetcher(jobConf, reduceId1, taskStatus, merger, new Progress(),
       reporter, metrics, shuffleReadClient, 3);
     fetcher.fetchAllRssBlocks();
+
+
     RawKeyValueIterator iterator = merger.close();
     // the final output of merger.close() must be sorted
     List<String> allKeysExpected = Lists.newArrayList("k11", "k22", "k22", "k33", "k44", "k55", "k55");
@@ -102,9 +96,41 @@ public class FetcherTest {
       allKeys.add(new Text(key).toString().trim());
       allValues.add(new Text(value).toString().trim());
     }
-    // validate(allKeysExpected, allKeys);
-   // validate(allValuesExpected, allValues);
+    validate(allKeysExpected, allKeys);
+    validate(allValuesExpected, allValues);
   }
+
+  @Test
+  public void writeAndReadDataTestWithoutRss() throws Throwable {
+    fs = FileSystem.getLocal(conf);
+    initLocalData();
+    merger = new MergeManagerImpl<Text, Text>(
+        reduceId1, jobConf, fs, lda, Reporter.NULL, null, null, null, null, null,
+        null, null, new Progress(), new MROutputFiles());
+    ShuffleReadClient shuffleReadClient = new MockedShuffleReadClient(data);
+    RssFetcher fetcher = new RssFetcher(jobConf, reduceId1, taskStatus, merger, new Progress(),
+        reporter, metrics, shuffleReadClient, 3);
+    fetcher.fetchAllRssBlocks();
+
+
+    RawKeyValueIterator iterator = merger.close();
+    // the final output of merger.close() must be sorted
+    List<String> allKeysExpected = Lists.newArrayList("k11", "k22", "k22", "k33", "k44", "k55", "k55");
+    List<String> allValuesExpected = Lists.newArrayList("v11", "v22", "v22", "v33", "v44", "v55", "v55");
+    List<String> allKeys = Lists.newArrayList();
+    List<String> allValues = Lists.newArrayList();
+    while(iterator.next()){
+      byte[] key = new byte[iterator.getKey().getLength()];
+      byte[] value = new byte[iterator.getValue().getLength()];
+      System.arraycopy(iterator.getKey().getData(), 0, key, 0, key.length);
+      System.arraycopy(iterator.getValue().getData(), 0, value, 0, value.length);
+      allKeys.add(new Text(key).toString().trim());
+      allValues.add(new Text(value).toString().trim());
+    }
+    validate(allKeysExpected, allKeys);
+    validate(allValuesExpected, allValues);
+  }
+
 
   private void validate(List<String> expected, List<String> actual) {
     assert(expected.size() == actual.size());
@@ -113,7 +139,7 @@ public class FetcherTest {
     }
   }
 
-  private static void initData() throws IOException, InterruptedException {
+  private static void initRssData() throws Exception {
     data = new LinkedList<>();
     Map<String, String> map1 = new TreeMap<>();
     map1.put("k11", "v11");
@@ -128,6 +154,23 @@ public class FetcherTest {
     map3.put("k22", "v22");
     map3.put("k55", "v55");
     data.add(writeMapOutputRss(conf, map3));
+  }
+
+  private static void initLocalData() throws Exception {
+    data = new LinkedList<>();
+    Map<String, String> map1 = new TreeMap<>();
+    map1.put("k11", "v11");
+    map1.put("k22", "v22");
+    map1.put("k44", "v44");
+    data.add(writeMapOutput(conf, map1));
+    Map<String, String> map2 = new TreeMap<>();
+    map2.put("k33", "v33");
+    map2.put("k55", "v55");
+    data.add(writeMapOutput(conf, map2));
+    Map<String, String> map3 = new TreeMap<>();
+    map3.put("k22", "v22");
+    map3.put("k55", "v55");
+    data.add(writeMapOutput(conf, map3));
   }
 
   private static byte[] writeMapOutputRss(Configuration conf, Map<String, String> keysToValues)
@@ -167,7 +210,6 @@ public class FetcherTest {
       manager.addRecord(0, new Text(key), new Text(value));
     }
     manager.waitSendFinished();
-    // manager.freeAllResources();
     return client.data.get(0);
   }
 
@@ -208,7 +250,7 @@ public class FetcherTest {
           successBlockIds.add(blockInfo.getBlockId());
         }
         shuffleBlockInfoList.forEach( block -> {
-          data.add(block.getData());
+          data.add(RssShuffleUtils.decompressData(block.getData(), block.getUncompressLength()));
           System.out.println("A block is sent");
         });
         return new SendShuffleDataResult(successBlockIds, Sets.newHashSet());

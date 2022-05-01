@@ -25,6 +25,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.io.WritableUtils;
 import org.openjdk.jol.info.GraphLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,15 +49,22 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
     this.maxSegmentSize = maxSegmentSize;
   }
 
-  public synchronized long addRecord(K key, long start, long end) {
-    long keyLength = GraphLayout.parseInstance(key).totalSize();
-    records.add(new Record<K>(key, start, end));
-    totalKeyLength += keyLength;
-    return keyLength;
+  public synchronized long addRecord(K key, long start, long end, long keyLength, long valueLength) {
+    long rawLength = GraphLayout.parseInstance(key).totalSize();
+    records.add(new Record<K>(key, start, end, keyLength, valueLength));
+    totalKeyLength += rawLength;
+    return rawLength;
   }
 
   public synchronized byte[] getData() {
-    byte[] data = new byte[dataLength];
+    int extraSize = 0;
+    for (Record<K> record : records) {
+      extraSize += WritableUtils.getVIntSize(record.getKeyLength());
+      extraSize += WritableUtils.getVIntSize(record.getValueLength());
+    }
+    extraSize += WritableUtils.getVIntSize(-1);
+    extraSize += WritableUtils.getVIntSize(-1);
+    byte[] data = new byte[dataLength + extraSize];
     int offset = 0;
     long startSort = System.currentTimeMillis();
     records.sort(new Comparator<Record<K>>() {
@@ -69,6 +77,8 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
     long startCopy =  System.currentTimeMillis();
     sortTime += startCopy - startSort;
     for (Record<K> record : records) {
+      offset = writeDataInt(data, offset, record.getKeyLength());
+      offset = writeDataInt(data, offset, record.getValueLength());
       int beginIndex = (int) (record.getStart() / maxSegmentSize);
       int beginOffSet = (int) (record.getStart() % maxSegmentSize);
       int endIndex = (int) (record.getEnd() / maxSegmentSize);
@@ -88,9 +98,39 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
         }
       }
     }
-
+    offset = writeDataInt(data, offset, -1);
+    writeDataInt(data, offset, -1);
     copyTime += System.currentTimeMillis() - startCopy;
     return data;
+  }
+
+  private int writeDataInt(byte[] data, int offset, long dataInt) {
+    if (dataInt >= -112L && dataInt <= 127L) {
+      data[offset] = (byte)((int)dataInt);
+      offset++;
+    } else {
+      int len = -112;
+      if (dataInt < 0L) {
+        dataInt = ~dataInt;
+        len = -120;
+      }
+
+      for (long tmp = dataInt; tmp != 0L; --len) {
+        tmp >>= 8;
+      }
+
+      data[offset] = (byte)len;
+      offset++;
+      len = len < -120 ? -(len + 120) : -(len + 112);
+
+      for (int idx = len; idx != 0; --idx) {
+        int shiftBits = (idx - 1) * 8;
+        long mask = 255L << shiftBits;
+        data[offset] = ((byte)((int)((dataInt & mask) >> shiftBits)));
+        offset++;
+      }
+    }
+    return offset;
   }
 
   public int getDataLength() {
@@ -160,14 +200,18 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
 
   private static final class Record<K> {
 
-    private K key;
-    private long start;
-    private long end;
+    private final K key;
+    private final long start;
+    private final long end;
+    private final long keyLength;
+    private final long valueLength;
 
-    Record(K key, long start, long end) {
+    Record(K key, long start, long end, long keyLength, long valueLength) {
       this.key = key;
       this.start = start;
       this.end = end;
+      this.keyLength = keyLength;
+      this.valueLength = valueLength;
     }
 
     public K getKey() {
@@ -180,6 +224,14 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
 
     public long getEnd() {
       return end;
+    }
+
+    public long getKeyLength() {
+      return keyLength;
+    }
+
+    public long getValueLength() {
+      return valueLength;
     }
   }
 
