@@ -150,22 +150,13 @@ public class SortWriteBufferManager<K, V> {
     }
 
     if (!buffers.containsKey(partitionId)) {
-      SortWriteBuffer<K, V> sortWriterBuffer = new SortWriteBuffer(partitionId, comparator, maxSegmentSize);
+      SortWriteBuffer<K, V> sortWriterBuffer = new SortWriteBuffer(
+          partitionId, comparator, maxSegmentSize, keySerializer, valSerializer);
       buffers.putIfAbsent(partitionId, sortWriterBuffer);
       waitSendBuffers.add(sortWriterBuffer);
     }
     SortWriteBuffer<K, V> buffer = buffers.get(partitionId);
-    keySerializer.open(buffer);
-    valSerializer.open(buffer);
-    long start = buffer.getDataLength();
-    keySerializer.serialize(key);
-    long keyEnd = buffer.getDataLength();
-    valSerializer.serialize(value);
-    long valueEnd = buffer.getDataLength();
-    long keyLength = keyEnd - start;
-    long valueLength = valueEnd - keyEnd;
-    long rawKeyLength = buffer.addRecord(key, start, valueEnd, keyLength, valueLength);
-    long length = valueEnd - start + rawKeyLength;
+    long length = buffer.addRecord(key, value);
     if (length > maxMemSize) {
       throw new RssException("record is too big");
     }

@@ -52,18 +52,15 @@ public class SortWriteBufferTest {
     Serializer<BytesWritable> valSerializer = serializationFactory.getSerializer(BytesWritable.class);
     SortWriteBuffer<BytesWritable, BytesWritable> buffer =
         new SortWriteBuffer<BytesWritable, BytesWritable>(
-            1, WritableComparator.get(BytesWritable.class), 1024L);
-    keySerializer.open(buffer);
-    valSerializer.open(buffer);
-    long start = buffer.getDataLength();
-    keySerializer.serialize(key);
-    long middle = buffer.getDataLength();
-    valSerializer.serialize(value);
-    long end = buffer.getDataLength();
-    assertEquals(16, end);
-    assertEquals(0, start);
-    buffer.addRecord(key, 0, 16, (middle -start), (end - middle));
+            1,
+            WritableComparator.get(BytesWritable.class),
+            1024L,
+            keySerializer,
+            valSerializer);
+
+    long recordLength = buffer.addRecord(key, value);
     assertEquals(20, buffer.getData().length);
+    assertEquals(16, recordLength);
     assertEquals(1, buffer.getPartitionId());
     byte[] result = buffer.getData();
     Deserializer<BytesWritable> keyDeserializer = serializationFactory.getDeserializer(BytesWritable.class);
@@ -75,35 +72,33 @@ public class SortWriteBufferTest {
     DataInputStream dStream = new DataInputStream(byteArrayInputStream);
     int keyLen = readInt(dStream);
     int valueLen = readInt(dStream);
-    assertEquals(keyLen, middle - start);
-    assertEquals(valueLen, end - middle);
+    assertEquals(recordLength, keyLen + valueLen);
     BytesWritable keyRead = keyDeserializer.deserialize(null);
     assertEquals(key, keyRead);
     BytesWritable valueRead = keyDeserializer.deserialize(null);
     assertEquals(value, valueRead);
 
     buffer = new SortWriteBuffer<BytesWritable, BytesWritable>(
-        1, WritableComparator.get(BytesWritable.class), 528L);
-    keySerializer.open(buffer);
-    valSerializer.open(buffer);
-    start = buffer.getDataLength();
+        1,
+        WritableComparator.get(BytesWritable.class),
+        528L,
+        keySerializer,
+        valSerializer);
+    long start = buffer.getDataLength();
     assertEquals(0, start);
     keyStr = "key3";
     key = new BytesWritable(keyStr.getBytes());
     keySerializer.serialize(key);
     byte[] valueBytes = new byte[200];
     Map<String, BytesWritable> valueMap = Maps.newConcurrentMap();
-    Map<String, Long> keyLenMap = Maps.newConcurrentMap();
-    Map<String, Long> valueLenMap = Maps.newConcurrentMap();
+    Map<String, Long> recordLenMap = Maps.newConcurrentMap();
     Random random = new Random();
     random.nextBytes(valueBytes);
     value = new BytesWritable(valueBytes);
     valueMap.putIfAbsent(keyStr, value);
     valSerializer.serialize(value);
-    end = buffer.getDataLength();
-    buffer.addRecord(key, start, end, middle - start, end - middle);
-    keyLenMap.putIfAbsent(keyStr, middle - start);
-    valueLenMap.putIfAbsent(keyStr, end - middle);
+    recordLength = buffer.addRecord(key, value);
+    recordLenMap.putIfAbsent(keyStr, recordLength);
 
     keyStr = "key1";
     key = new BytesWritable(keyStr.getBytes());
@@ -111,28 +106,28 @@ public class SortWriteBufferTest {
     random.nextBytes(valueBytes);
     value = new BytesWritable(valueBytes);
     valueMap.putIfAbsent(keyStr, value);
-    start = buffer.getDataLength();
-    keySerializer.serialize(key);
-    middle = buffer.getDataLength();
-    valSerializer.serialize(value);
-    end = buffer.getDataLength();
-    buffer.addRecord(key, start, end, middle - start, end - middle);
-    keyLenMap.putIfAbsent(keyStr, middle - start);
-    valueLenMap.putIfAbsent(keyStr, end - middle);
+    recordLength = buffer.addRecord(key, value);
+    recordLenMap.putIfAbsent(keyStr, recordLength);
+
+    byte[] bigKey = new byte[555];
+    random.nextBytes(bigKey);
+    bigKey[0] = 'k';
+    bigKey[1] = 'e';
+    bigKey[2] = 'y';
+    bigKey[3] = '4';
+    BytesWritable bigWritableKey = new BytesWritable(bigKey);
+    valueBytes = new byte[253];
+    random.nextBytes(valueBytes);
+    BytesWritable bigWritableValue = new BytesWritable(valueBytes);
+    long bigRecordLength = buffer.addRecord(bigWritableKey, bigWritableValue);
 
     keyStr = "key2";
     key = new BytesWritable(keyStr.getBytes());
     valueBytes = new byte[3100];
     value = new BytesWritable(valueBytes);
     valueMap.putIfAbsent(keyStr, value);
-    start = buffer.getDataLength();
-    keySerializer.serialize(key);
-    middle = buffer.getDataLength();
-    valSerializer.serialize(value);
-    end = buffer.getDataLength();
-    buffer.addRecord(key, start, end, middle - start, end - middle);
-    keyLenMap.putIfAbsent(keyStr, middle - start);
-    valueLenMap.putIfAbsent(keyStr, end - middle);
+    recordLength = buffer.addRecord(key, value);
+    recordLenMap.putIfAbsent(keyStr, recordLength);
 
     result = buffer.getData();
     byteArrayInputStream = new ByteArrayInputStream(result);
@@ -143,14 +138,22 @@ public class SortWriteBufferTest {
       long keyLenTmp = readInt(dStream);
       long valueLenTmp = readInt(dStream);
       String tmpStr = "key" + i;
-      assertEquals(keyLenMap.get(tmpStr).longValue(), keyLenTmp);
-      assertEquals(valueLenMap.get(tmpStr).longValue(), valueLenTmp);
+      assertEquals(recordLenMap.get(tmpStr).longValue(), keyLenTmp + valueLenTmp);
       keyRead = keyDeserializer.deserialize(null);
       valueRead = valDeserializer.deserialize(null);
       BytesWritable bytesWritable = new BytesWritable(tmpStr.getBytes());
       assertEquals(bytesWritable, keyRead);
       assertEquals(valueMap.get(tmpStr), valueRead);
     }
+
+    dStream = new DataInputStream(byteArrayInputStream);
+    long keyLenTmp = readInt(dStream);
+    long valueLenTmp = readInt(dStream);
+    assertEquals(bigRecordLength, keyLenTmp + valueLenTmp);
+    keyRead = keyDeserializer.deserialize(null);
+    valueRead = valDeserializer.deserialize(null);
+    assertEquals(bigWritableKey, keyRead);
+    assertEquals(bigWritableValue, valueRead);
   }
 
   int readInt(DataInputStream dStream) throws IOException {
