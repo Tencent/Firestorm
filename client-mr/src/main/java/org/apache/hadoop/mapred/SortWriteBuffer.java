@@ -136,7 +136,8 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
 
   private boolean compact(int lastIndex, int lastOffset, int dataLength) {
     if (lastIndex != currentIndex) {
-      LOG.info("compact index {} and indexLength {}", lastIndex, dataLength);
+      LOG.info("compact lastIndex {}, currentIndex {}, lastOffset {} currentOffset {} dataLength {}",
+          lastIndex, currentIndex, lastOffset, currentOffset, dataLength);
       WrappedBuffer buffer = new WrappedBuffer(lastOffset + dataLength);
       // copy data
       int offset = 0;
@@ -217,6 +218,7 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
     if (1 + currentOffset > maxSegmentSize) {
       currentIndex++;
       currentOffset = 0;
+      buffers.add(new WrappedBuffer((int) maxSegmentSize));
     }
     WrappedBuffer buffer = buffers.get(currentIndex);
     buffer.getBuffer()[currentOffset] = (byte) b;
@@ -246,7 +248,7 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
     int srcPos = 0;
     while (len > 0) {
       int copyLength = 0;
-      if (offset + len > maxSegmentSize) {
+      if (offset + len >= maxSegmentSize) {
         copyLength = (int) (maxSegmentSize - offset);
         currentOffset = 0;
       } else {
