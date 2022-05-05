@@ -117,6 +117,14 @@ public class QuorumTest extends ShuffleReadWriteBase {
     for (ShuffleServer shuffleServer : shuffleServers) {
       shuffleServer.start();
     }
+
+    // simulator of failed servers
+    fakedShuffleServerInfo0 =
+      new ShuffleServerInfo("127.0.0.1-20001", shuffleServers.get(0).getIp(), SHUFFLE_SERVER_PORT + 100);
+    fakedShuffleServerInfo1 =
+      new ShuffleServerInfo("127.0.0.1-20002", shuffleServers.get(1).getIp(), SHUFFLE_SERVER_PORT + 200);
+    fakedShuffleServerInfo2 =
+      new ShuffleServerInfo("127.0.0.1-20003", shuffleServers.get(2).getIp(), SHUFFLE_SERVER_PORT + 300);
     Thread.sleep(2000);
   }
 
@@ -182,14 +190,6 @@ public class QuorumTest extends ShuffleReadWriteBase {
     registerShuffleServer(testAppId);
     Map<Long, byte[]> expectedData = Maps.newHashMap();
     Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
-
-    // simulator of failed servers
-    fakedShuffleServerInfo0 =
-      new ShuffleServerInfo("127.0.0.1-20001", shuffleServers.get(0).getIp(), SHUFFLE_SERVER_PORT + 100);
-    fakedShuffleServerInfo1 =
-      new ShuffleServerInfo("127.0.0.1-20002", shuffleServers.get(1).getIp(), SHUFFLE_SERVER_PORT + 200);
-    fakedShuffleServerInfo2 =
-      new ShuffleServerInfo("127.0.0.1-20003", shuffleServers.get(2).getIp(), SHUFFLE_SERVER_PORT + 300);
 
     // case1: When only 1 server is failed, the block sending should success
     List<ShuffleBlockInfo> blocks = createShuffleBlockList(
@@ -532,6 +532,91 @@ public class QuorumTest extends ShuffleReadWriteBase {
      assertTrue(e.getMessage().startsWith("Quorum check of report shuffle result is failed"));
     }
   }
+
+  @Test
+  public void case7() throws Exception {
+    String testAppId = "case7";
+    registerShuffleServer(testAppId);
+
+    Map<Long, byte[]> expectedData = Maps.newHashMap();
+    Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
+
+    // attempt to send data to "all servers", but only the server 0,1 receive data actually
+    for (int i = 0; i < 5; i++) {
+      List<ShuffleBlockInfo> blocks = createShuffleBlockList(
+        0, 0, 0, 3, 25, blockIdBitmap,
+        expectedData, Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2));
+      SendShuffleDataResult result = shuffleWriteClientImpl.sendShuffleData(testAppId, blocks);
+      assertTrue(result.getSuccessBlockIds().size() == 3);
+      assertTrue(result.getFailedBlockIds().size() == 0);
+    }
+
+    // we cannot read any blocks from server 2
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo2), null);
+    assertTrue(readClient.readShuffleBlockData() == null);
+
+    // we can read blocks from server 0,1
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1), null);
+    validateResult(readClient, expectedData);
+
+    // we can also read blocks from server 0,1,2
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo0, shuffleServerInfo1, shuffleServerInfo2), null);
+    validateResult(readClient, expectedData);
+  }
+
+  @Test
+  public void case8() throws Exception {
+    String testAppId = "case8";
+    registerShuffleServer(testAppId);
+
+    Map<Long, byte[]> expectedData = Maps.newHashMap();
+    Roaring64NavigableMap blockIdBitmap = Roaring64NavigableMap.bitmapOf();
+    Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf(0);
+
+    // attempt to send data to "all servers", but only the server 0,2 receive data actually
+    // primary round: server 0/1
+    // secondary round: server 2
+    for (int i = 0; i < 5; i++) {
+      List<ShuffleBlockInfo> blocks = createShuffleBlockList(
+        0, 0, 0, 3, 10 * (i + 1), blockIdBitmap,
+        expectedData, Lists.newArrayList(shuffleServerInfo0, fakedShuffleServerInfo1, shuffleServerInfo2));
+      SendShuffleDataResult result = shuffleWriteClientImpl.sendShuffleData(testAppId, blocks);
+      assertTrue(result.getSuccessBlockIds().size() == 3);
+      assertTrue(result.getFailedBlockIds().size() == 0);
+    }
+
+    // we cannot read any blocks from server 1
+    ShuffleReadClientImpl readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo1), null);
+    assertTrue(readClient.readShuffleBlockData() == null);
+
+    // we can read blocks from server 2, which is sent in to secondary round
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo2), null);
+    validateResult(readClient, expectedData);
+
+    // we can read blocks from server 0,1,2
+    readClient = new ShuffleReadClientImpl(StorageType.MEMORY_LOCALFILE.name(),
+      testAppId, 0, 0, 100, 1,
+      10, 1000, "", blockIdBitmap, taskIdBitmap,
+      Lists.newArrayList(shuffleServerInfo0, fakedShuffleServerInfo1, shuffleServerInfo2), null);
+    validateResult(readClient, expectedData);
+  }
+
 
   protected void validateResult(ShuffleReadClientImpl readClient, Map<Long, byte[]> expectedData,
                                 Roaring64NavigableMap blockIdBitmap) {
