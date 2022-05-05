@@ -97,12 +97,12 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
       @Override
       public int compare(Record<K> o1, Record<K> o2) {
         return comparator.compare(
-            buffers.get(o1.keyIndex).getBuffer(),
-            o1.keyOffSet,
-            o1.keyLength,
-            buffers.get(o2.keyIndex).getBuffer(),
-            o2.keyOffSet,
-            o2.keyLength);
+            buffers.get(o1.getKeyIndex()).getBuffer(),
+            o1.getKeyOffSet(),
+            o1.getKeyLength(),
+            buffers.get(o2.getKeyIndex()).getBuffer(),
+            o2.getKeyOffSet(),
+            o2.getKeyLength());
       }
     });
     long startCopy =  System.currentTimeMillis();
@@ -112,8 +112,8 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
       offset = writeDataInt(data, offset, record.getKeyLength());
       offset = writeDataInt(data, offset, record.getValueLength());
       int recordLength = record.getKeyLength() + record.getValueLength();
-      int copyOffset = record.keyOffSet;
-      int copyIndex = record.keyIndex;
+      int copyOffset = record.getKeyOffSet();
+      int copyIndex = record.getKeyIndex();
       while (recordLength > 0) {
         byte[] srcBytes = buffers.get(copyIndex).getBuffer();
         int length = copyOffset + recordLength;
@@ -280,6 +280,14 @@ public class SortWriteBuffer<K, V> extends OutputStream  {
       this.keyOffSet = keyOffset;
       this.keyLength = keyLength;
       this.valueLength = valueLength;
+    }
+
+    public int getKeyIndex() {
+      return keyIndex;
+    }
+
+    public int getKeyOffSet() {
+      return keyOffSet;
     }
 
     public int getKeyLength() {
