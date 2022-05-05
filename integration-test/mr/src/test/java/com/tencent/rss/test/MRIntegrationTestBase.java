@@ -124,7 +124,7 @@ public class MRIntegrationTestBase extends IntegrationTestBase {
     jobConf.set(MRJobConfig.MR_AM_COMMAND_OPTS, "-XX:+TraceClassLoading org.apache.hadoop.mapreduce.v2.app.RssMRAppMaster");
     // jobConf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp");
     // jobConf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005");
-    jobConf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-XX:MaxDirectMemorySize=419430400");
+    jobConf.set(MRJobConfig.REDUCE_JAVA_OPTS, "-XX:+TraceClassLoading -XX:MaxDirectMemorySize=419430400");
     jobConf.setInt(MRJobConfig.MAP_MEMORY_MB, 2048);
     jobConf.setInt(MRJobConfig.REDUCE_MEMORY_MB, 2048);
     jobConf.setInt(MRJobConfig.IO_SORT_MB, 128);
@@ -146,7 +146,8 @@ public class MRIntegrationTestBase extends IntegrationTestBase {
     String newProps = "";
     String[] splittedProps = props.split(":");
     for (String prop : splittedProps)  {
-      if (!prop.contains("classes") && !prop.contains("grpc") && !prop.contains("rss-")) {
+      if (!prop.contains("classes") && !prop.contains("grpc") && !prop.contains("rss-")
+        && !prop.contains("shuffle-storage")) {
         newProps = newProps + ":" + prop;
       }
     }
