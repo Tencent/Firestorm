@@ -18,8 +18,10 @@
 
 package com.tencent.rss.test;
 
+import com.google.common.collect.Maps;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.server.ShuffleServerConf;
+import com.tencent.rss.storage.util.StorageType;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.examples.SecondarySort;
@@ -35,6 +37,7 @@ import org.apache.hadoop.util.Tool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Random;
 
 public class SecondarySortTest extends MRIntegrationTestBase {
@@ -44,6 +47,10 @@ public class SecondarySortTest extends MRIntegrationTestBase {
   @BeforeClass
   public static void setupServers() throws Exception {
     CoordinatorConf coordinatorConf = getCoordinatorConf();
+    Map<String, String> dynamicConf = Maps.newHashMap();
+    dynamicConf.put(CoordinatorConf.COORDINATOR_REMOTE_STORAGE_PATH.key(), HDFS_URI + "rss/test");
+    dynamicConf.put("mapreduce.rss.storage.type", StorageType.HDFS.name());
+    addDynamicConf(coordinatorConf, dynamicConf);
     createCoordinatorServer(coordinatorConf);
     ShuffleServerConf shuffleServerConf = getShuffleServerConf();
     createShuffleServer(shuffleServerConf);
