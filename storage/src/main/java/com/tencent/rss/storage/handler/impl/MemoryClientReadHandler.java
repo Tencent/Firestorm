@@ -63,7 +63,6 @@ public class MemoryClientReadHandler extends AbstractClientReadHandler {
       result = new ShuffleDataResult(response.getData(), response.getBufferSegments());
     } catch (Exception e) {
       // todo: fault tolerance solution should be added
-      e.printStackTrace();
       throw new RssException("Failed to read in memory shuffle data with "
           + shuffleServerClient.getClientInfo() + " due to " + e);
     }
