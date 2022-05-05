@@ -263,7 +263,12 @@ public class FetcherTest {
     }
 
     @Override
-    public void registerShuffle(ShuffleServerInfo shuffleServerInfo, String appId, int shuffleId, List<PartitionRange> partitionRanges) {
+    public void registerShuffle(
+        ShuffleServerInfo shuffleServerInfo,
+        String appId,
+        int shuffleId,
+        List<PartitionRange> partitionRanges,
+        String storageType) {
 
     }
 
