@@ -18,6 +18,9 @@
 
 package com.tencent.rss.coordinator;
 
+import java.util.Map;
+
+import com.google.common.collect.Maps;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
@@ -33,6 +36,7 @@ public class CoordinatorMetrics {
   private static final String TOTAL_ACCESS_REQUEST = "total_access_request";
   private static final String TOTAL_CANDIDATES_DENIED_REQUEST = "total_candidates_denied_request";
   private static final String TOTAL_LOAD_DENIED_REQUEST = "total_load_denied_request";
+  public static final String REMOTE_STORAGE_IN_USED_PREFIX = "remote_storage_";
 
   static Gauge gaugeTotalServerNum;
   static Gauge gaugeExcludeServerNum;
@@ -41,6 +45,7 @@ public class CoordinatorMetrics {
   static Counter counterTotalAccessRequest;
   static Counter counterTotalCandidatesDeniedRequest;
   static Counter counterTotalLoadDeniedRequest;
+  static Map<String, Gauge> gaugeInUsedRemoteStorage = Maps.newConcurrentMap();
 
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
@@ -59,6 +64,10 @@ public class CoordinatorMetrics {
 
   public static CollectorRegistry getCollectorRegistry() {
     return metricsManager.getCollectorRegistry();
+  }
+
+  public static Gauge addDynamicGauge(String metricsName) {
+    return metricsManager.addGauge(metricsName);
   }
 
   private static void setUpMetrics() {
