@@ -77,7 +77,8 @@ public class RssSparkConfig {
       SPARK_RSS_CONFIG_PREFIX + RssClientConfig.RSS_CLIENT_RETRY_INTERVAL_MAX;
   public static final long RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE =
       RssClientConfig.RSS_CLIENT_RETRY_INTERVAL_MAX_DEFAULT_VALUE;
-  public static final String RSS_CLIENT_HEARTBEAT_THREAD_NUM = SPARK_RSS_CONFIG_PREFIX + "rss.client.heartBeat.threadNum";
+  public static final String RSS_CLIENT_HEARTBEAT_THREAD_NUM =
+      SPARK_RSS_CONFIG_PREFIX + "rss.client.heartBeat.threadNum";
   public static final int RSS_CLIENT_HEARTBEAT_THREAD_NUM_DEFAULT_VALUE = 4;
   public static final String RSS_CLIENT_SEND_SIZE_LIMIT = SPARK_RSS_CONFIG_PREFIX + "rss.client.send.size.limit";
   public static final String RSS_CLIENT_SEND_SIZE_LIMIT_DEFAULT_VALUE = "16m";
@@ -109,7 +110,8 @@ public class RssSparkConfig {
   public static final String RSS_OZONE_FS_HDFS_IMPL_DEFAULT_VALUE = "org.apache.hadoop.odfs.HdfsOdfsFilesystem";
   public static final String RSS_OZONE_FS_ABSTRACT_FILE_SYSTEM_HDFS_IMPL =
       SPARK_RSS_CONFIG_PREFIX + "rss.ozone.fs.AbstractFileSystem.hdfs.impl";
-  public static final String RSS_OZONE_FS_ABSTRACT_FILE_SYSTEM_HDFS_IMPL_DEFAULT_VALUE = "org.apache.hadoop.odfs.HdfsOdfs";
+  public static final String RSS_OZONE_FS_ABSTRACT_FILE_SYSTEM_HDFS_IMPL_DEFAULT_VALUE =
+      "org.apache.hadoop.odfs.HdfsOdfs";
   // todo: remove unnecessary configuration
   public static final String RSS_CLIENT_BITMAP_SPLIT_NUM =
       SPARK_RSS_CONFIG_PREFIX + "rss.client.bitmap.splitNum";
