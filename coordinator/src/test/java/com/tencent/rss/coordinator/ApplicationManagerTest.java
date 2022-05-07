@@ -81,6 +81,10 @@ public class ApplicationManagerTest {
     applicationManager.refreshRemoteStorage(remoteStoragePath);
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath1).get());
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
+    String metricsName1 = CoordinatorMetrics.REMOTE_STORAGE_IN_USED_PREFIX + "path1";
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName1).get(), 0.5);
+    String metricsName2 = CoordinatorMetrics.REMOTE_STORAGE_IN_USED_PREFIX + "path2";
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName2).get(), 0.5);
 
     // do inc for remotePath1 to make sure pick storage will be remotePath2 in next call
     applicationManager.incRemoteStorageCounter(remotePath1);
@@ -94,9 +98,15 @@ public class ApplicationManagerTest {
     assertEquals(remotePath2, applicationManager.pickRemoteStoragePath(testApp1));
     assertEquals(1, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
 
+    // check before app expired, the metrics should be updated
+    Thread.sleep(appExpiredTime - 1000);
+    assertEquals(2.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName1).get(), 0.5);
+    assertEquals(1.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName2).get(), 0.5);
+
     Thread.sleep(appExpiredTime + 2000);
     assertNull(applicationManager.getAppIdToRemoteStoragePath().get(testApp1));
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName2).get(), 0.5);
 
     // refresh app1, got remotePath2, then remove remotePath2,
     // it should be existed in counter until it expired

@@ -141,6 +141,7 @@ public class ClientConfManagerTest {
     String remotePath2 = "hdfs://path2";
     String remotePath3 = "hdfs://path3";
     File cfgFile = Files.createTempFile("dynamicConf", ".conf").toFile();
+    cfgFile.deleteOnExit();
     writeRemoteStorageConf(cfgFile, remotePath1);
 
     CoordinatorConf conf = new CoordinatorConf();

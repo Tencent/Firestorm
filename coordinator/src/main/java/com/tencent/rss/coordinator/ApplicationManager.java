@@ -247,12 +247,18 @@ public class ApplicationManager {
     try {
       String metricsName = getRemoteStorageMetricsName(remoteStoragePath);
       if (!StringUtils.isEmpty(metricsName)) {
-        Gauge gauge = CoordinatorMetrics.addDynamicGauge(metricsName);
-        CoordinatorMetrics.gaugeInUsedRemoteStorage.putIfAbsent(metricsName, gauge);
+        // it's target to the following case:
+        // 1. have remoteStorage1 at start
+        // 2. remove remoteStorage1 from conf
+        // 3. add remoteStorage1 to conf again
+        if (!CoordinatorMetrics.gaugeInUsedRemoteStorage.containsKey(metricsName)) {
+          Gauge gauge = CoordinatorMetrics.addDynamicGauge(metricsName);
+          CoordinatorMetrics.gaugeInUsedRemoteStorage.putIfAbsent(metricsName, gauge);
+        }
         LOG.info("Add remote storage metrics for {} successfully ", remoteStoragePath);
       }
     } catch (Exception e) {
-      LOG.warn("Add remote storage metrics for {} failed ", remoteStoragePath);
+      LOG.warn("Add remote storage metrics for {} failed ", remoteStoragePath, e);
     }
   }
 
