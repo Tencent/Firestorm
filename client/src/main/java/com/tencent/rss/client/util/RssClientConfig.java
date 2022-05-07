@@ -54,4 +54,6 @@ public class RssClientConfig {
 
   public static String RSS_ACCESS_TIMEOUT_MS = "rss.access.timeout.ms";
   public static int RSS_ACCESS_TIMEOUT_MS_DEFAULT_VALUE = 10000;
+  public static final String RSS_DYNAMIC_CLIENT_CONF_ENABLED = "rss.dynamicClientConf.enabled";
+  public static final boolean RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE = true;
 }

@@ -26,7 +26,7 @@ import com.tencent.rss.client.util.RssClientConfig;
 
 public class RssSparkConfig {
 
-  public static String SPARK_RSS_CONFIG_PREFIX = "spark.";
+  public final static String SPARK_RSS_CONFIG_PREFIX = "spark.";
   public static String RSS_PARTITION_NUM_PER_RANGE =
       SPARK_RSS_CONFIG_PREFIX + RssClientConfig.RSS_PARTITION_NUM_PER_RANGE;
   public static int RSS_PARTITION_NUM_PER_RANGE_DEFAULT_VALUE =
@@ -120,8 +120,9 @@ public class RssSparkConfig {
   public static String RSS_ENABLED = SPARK_RSS_CONFIG_PREFIX + "rss.enabled";
   public static boolean RSS_USE_RSS_SHUFFLE_MANAGER_DEFAULT_VALUE = false;
   public static String RSS_DYNAMIC_CLIENT_CONF_ENABLED =
-      SPARK_RSS_CONFIG_PREFIX + "rss.dynamicClientConf.enabled";
-  public static boolean RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE = true;
+      SPARK_RSS_CONFIG_PREFIX + RssClientConfig.RSS_DYNAMIC_CLIENT_CONF_ENABLED;
+  public static boolean RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE =
+      RssClientConfig.RSS_DYNAMIC_CLIENT_CONF_ENABLED_DEFAULT_VALUE;
 
   public static Set<String> RSS_MANDATORY_CLUSTER_CONF =
       Sets.newHashSet(RSS_STORAGE_TYPE, RSS_REMOTE_STORAGE_PATH);
