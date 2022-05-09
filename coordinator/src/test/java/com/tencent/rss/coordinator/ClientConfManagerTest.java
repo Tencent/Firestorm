@@ -21,7 +21,6 @@ package com.tencent.rss.coordinator;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.net.URI;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.Objects;
@@ -204,14 +203,5 @@ public class ClientConfManagerTest {
       }
       attempt++;
     }
-  }
-
-  @Test
-  public void ttt() throws Exception {
-    URI p = new URI("hdfs://abc:99/a/b");
-    System.out.println("colinmjj:getAuthority:" + p.getAuthority());
-    System.out.println("colinmjj:getScheme:" + p.getScheme());
-    System.out.println("colinmjj:getHost:" + p.getHost());
-    System.out.println("colinmjj:getFragment:" + p.getFragment());
   }
 }
