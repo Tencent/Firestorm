@@ -79,6 +79,7 @@ public class RssShuffleManager implements ShuffleManager {
   private final int dataReplica;
   private final int dataReplicaWrite;
   private final int dataReplicaRead;
+  private final boolean dataReplicaSkip;
   private boolean heartbeatStarted = false;
   private boolean dynamicConfEnabled = false;
   private String remoteStorage = "";
@@ -136,13 +137,15 @@ public class RssShuffleManager implements ShuffleManager {
 
     // set & check replica config
     this.dataReplica = sparkConf.getInt(RssSparkConfig.RSS_DATA_REPLICA,
-      RssSparkConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
+        RssSparkConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
     this.dataReplicaWrite =  sparkConf.getInt(RssSparkConfig.RSS_DATA_REPLICA_WRITE,
-      RssSparkConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
+        RssSparkConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
     this.dataReplicaRead =  sparkConf.getInt(RssSparkConfig.RSS_DATA_REPLICA_READ,
-      RssSparkConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
+        RssSparkConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
+    this.dataReplicaSkip = sparkConf.getBoolean(RssSparkConfig.RSS_DATA_REPLICA_SKIP,
+        RssSparkConfig.RSS_DATA_REPLICA_SKIP_DEFAULT_VALUE);
     LOG.info("Check quorum config ["
-      + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + "]");
+        + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + ":" + dataReplicaSkip + "]");
     RssUtils.checkQuorumSetting(dataReplica, dataReplicaWrite, dataReplicaRead);
 
     this.clientType = sparkConf.get(RssSparkConfig.RSS_CLIENT_TYPE,
@@ -162,7 +165,7 @@ public class RssShuffleManager implements ShuffleManager {
     shuffleWriteClient = ShuffleClientFactory
         .getInstance()
         .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum,
-          dataReplica, dataReplicaWrite, dataReplicaRead);
+          dataReplica, dataReplicaWrite, dataReplicaRead, dataReplicaSkip);
     registerCoordinator();
     // fetch client conf and apply them if necessary and disable ESS
     if (isDriver && dynamicConfEnabled) {

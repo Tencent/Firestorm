@@ -85,9 +85,10 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   private int replica;
   private int replicaWrite;
   private int replicaRead;
+  private boolean replicaSkip;
 
   public ShuffleWriteClientImpl(String clientType, int retryMax, long retryIntervalMax, int heartBeatThreadNum,
-                                int replica, int replicaWrite, int replicaRead) {
+                                int replica, int replicaWrite, int replicaRead, boolean replicaSkip) {
     this.clientType = clientType;
     this.retryMax = retryMax;
     this.retryIntervalMax = retryIntervalMax;
@@ -97,6 +98,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
     this.replica = replica;
     this.replicaWrite = replicaWrite;
     this.replicaRead = replicaRead;
+    this.replicaSkip = replicaSkip;
   }
 
   private boolean sendShuffleDataAsync(
@@ -188,10 +190,16 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
     // which is minimum number when there is at most *replicaWrite - replica* sending server failures.
     for (ShuffleBlockInfo sbi : shuffleBlockInfoList) {
       List<ShuffleServerInfo> allServers = sbi.getShuffleServerInfos();
-      genServerToBlocks(sbi, allServers.subList(0, replicaWrite),
-        primaryServerToBlocks, primaryServerToBlockIds);
-      genServerToBlocks(sbi, allServers.subList(replicaWrite, replica),
-        secondaryServerToBlocks, secondaryServerToBlockIds);
+      if (replicaSkip) {
+        genServerToBlocks(sbi, allServers.subList(0, replicaWrite),
+          primaryServerToBlocks, primaryServerToBlockIds);
+        genServerToBlocks(sbi, allServers.subList(replicaWrite, replica),
+          secondaryServerToBlocks, secondaryServerToBlockIds);
+      } else {
+        // When replicaSkip is disabled, we send data to all replicas within one round.
+        genServerToBlocks(sbi, allServers,
+          primaryServerToBlocks, primaryServerToBlockIds);
+      }
     }
 
     // maintain the count of blocks that have been sent to the server
@@ -214,7 +222,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
 
     // The secondary round of blocks is sent only when the primary group issues failed sending.
     // This should be infrequent.
-    if (!isAllSuccess) {
+    if (!isAllSuccess && replicaSkip) {
       LOG.info("The sending of primary round is failed partially, so start the secondary round");
       sendShuffleDataAsync(appId, secondaryServerToBlocks, secondaryServerToBlockIds, blockIdsTracker);
     }
