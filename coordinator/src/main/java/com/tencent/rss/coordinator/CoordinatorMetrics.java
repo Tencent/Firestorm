@@ -20,6 +20,7 @@ package com.tencent.rss.coordinator;
 
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
@@ -45,21 +46,29 @@ public class CoordinatorMetrics {
   static Counter counterTotalAccessRequest;
   static Counter counterTotalCandidatesDeniedRequest;
   static Counter counterTotalLoadDeniedRequest;
-  static Map<String, Gauge> gaugeInUsedRemoteStorage = Maps.newConcurrentMap();
+  static Map<String, Gauge> gaugeInUsedRemoteStorage;
 
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
 
   public static synchronized void register(CollectorRegistry collectorRegistry) {
     if (!isRegister) {
+      gaugeInUsedRemoteStorage = Maps.newConcurrentMap();
       metricsManager = new MetricsManager(collectorRegistry);
       isRegister = true;
       setUpMetrics();
     }
   }
 
+  @VisibleForTesting
   public static void register() {
     register(CollectorRegistry.defaultRegistry);
+  }
+
+  @VisibleForTesting
+  public static void clear() {
+    isRegister = false;
+    CollectorRegistry.defaultRegistry.clear();
   }
 
   public static CollectorRegistry getCollectorRegistry() {

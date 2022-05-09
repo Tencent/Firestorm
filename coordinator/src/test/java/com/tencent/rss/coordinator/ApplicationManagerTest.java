@@ -21,7 +21,9 @@ package com.tencent.rss.coordinator;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.tencent.rss.common.util.Constants;
@@ -31,15 +33,21 @@ import static org.junit.Assert.assertNull;
 
 public class ApplicationManagerTest {
 
-  static {
-    CoordinatorMetrics.register();
-  }
-
   private ApplicationManager applicationManager;
   private long appExpiredTime = 2000L;
   private String remotePath1 = "hdfs://path1";
   private String remotePath2 = "hdfs://path2";
   private String remotePath3 = "hdfs://path3";
+
+  @BeforeClass
+  public static void setup() {
+    CoordinatorMetrics.register();
+  }
+
+  @AfterClass
+  public static void clear() {
+    CoordinatorMetrics.clear();
+  }
 
   @Before
   public void setUp() {
@@ -97,11 +105,6 @@ public class ApplicationManagerTest {
     // return the same value if did the assignment already
     assertEquals(remotePath2, applicationManager.pickRemoteStoragePath(testApp1));
     assertEquals(1, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
-
-    // check before app expired, the metrics should be updated
-    Thread.sleep(appExpiredTime - 1000);
-    assertEquals(2.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName1).get(), 0.5);
-    assertEquals(1.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName2).get(), 0.5);
 
     Thread.sleep(appExpiredTime + 2000);
     assertNull(applicationManager.getAppIdToRemoteStoragePath().get(testApp1));

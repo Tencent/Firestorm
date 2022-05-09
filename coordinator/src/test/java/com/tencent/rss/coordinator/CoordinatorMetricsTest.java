@@ -45,7 +45,7 @@ public class CoordinatorMetricsTest {
   @BeforeClass
   public static void setUp() throws Exception {
     String remotePath1 = "hdfs://path1";
-    File cfgFile = Files.createTempFile("dynamicConf", ".conf").toFile();
+    File cfgFile = Files.createTempFile("coordinatorMetricsTest", ".conf").toFile();
     cfgFile.deleteOnExit();
     writeRemoteStorageConf(cfgFile, remotePath1);
 
