@@ -25,6 +25,7 @@ import com.google.common.collect.Maps;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
+import org.apache.commons.lang3.StringUtils;
 
 import com.tencent.rss.common.metrics.MetricsManager;
 
@@ -37,7 +38,7 @@ public class CoordinatorMetrics {
   private static final String TOTAL_ACCESS_REQUEST = "total_access_request";
   private static final String TOTAL_CANDIDATES_DENIED_REQUEST = "total_candidates_denied_request";
   private static final String TOTAL_LOAD_DENIED_REQUEST = "total_load_denied_request";
-  public static final String REMOTE_STORAGE_IN_USED_PREFIX = "remote_storage_";
+  public static final String REMOTE_STORAGE_IN_USED_PREFIX = "remote_storage_in_used";
 
   static Gauge gaugeTotalServerNum;
   static Gauge gaugeExcludeServerNum;
@@ -75,8 +76,21 @@ public class CoordinatorMetrics {
     return metricsManager.getCollectorRegistry();
   }
 
-  public static Gauge addDynamicGauge(String metricsName) {
-    return metricsManager.addGauge(metricsName);
+  public static void addDynamicGaugeForRemoteStorage(String storageHost) {
+    if (!StringUtils.isEmpty(storageHost)) {
+      String metricName = REMOTE_STORAGE_IN_USED_PREFIX + storageHost;
+      if (!gaugeInUsedRemoteStorage.containsKey(metricName)) {
+        gaugeInUsedRemoteStorage.putIfAbsent(storageHost,
+            metricsManager.addGauge(metricName));
+      }
+    }
+  }
+
+  public static void updateDynamicGaugeForRemoteStorage(String storageHost, double value) {
+    String metricName = REMOTE_STORAGE_IN_USED_PREFIX + storageHost;
+    if (gaugeInUsedRemoteStorage.containsKey(metricName)) {
+      gaugeInUsedRemoteStorage.get(metricName).set(value);
+    }
   }
 
   private static void setUpMetrics() {

@@ -33,7 +33,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.prometheus.client.Gauge;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +49,7 @@ public class ApplicationManager {
   private Map<String, String> appIdToRemoteStoragePath = Maps.newConcurrentMap();
   // store remote path -> application count for assignment strategy
   private Map<String, AtomicInteger> remoteStoragePathCounter = Maps.newConcurrentMap();
+  private Map<String, String> remoteStorageToHost = Maps.newConcurrentMap();
   private Set<String> availableRemoteStoragePath = Sets.newConcurrentHashSet();
   private ScheduledExecutorService scheduledExecutorService;
 
@@ -232,11 +232,9 @@ public class ApplicationManager {
   private void updateRemoteStorageMetrics() {
     for (String remoteStoragePath : availableRemoteStoragePath) {
       try {
-        String metricsName = getRemoteStorageMetricsName(remoteStoragePath);
-        if (!StringUtils.isEmpty(metricsName)) {
-          Gauge gauge = CoordinatorMetrics.gaugeInUsedRemoteStorage.get(metricsName);
-          gauge.set(remoteStoragePathCounter.get(remoteStoragePath).get());
-        }
+        String storageHost = getStorageHost(remoteStoragePath);
+        CoordinatorMetrics.updateDynamicGaugeForRemoteStorage(storageHost,
+            remoteStoragePathCounter.get(remoteStoragePath).get());
       } catch (Exception e) {
         LOG.warn("Update remote storage metrics for {} failed ", remoteStoragePath);
       }
@@ -244,32 +242,25 @@ public class ApplicationManager {
   }
 
   private void addRemoteStorageMetrics(String remoteStoragePath) {
-    try {
-      String metricsName = getRemoteStorageMetricsName(remoteStoragePath);
-      if (!StringUtils.isEmpty(metricsName)) {
-        // it's target to the following case:
-        // 1. have remoteStorage1 at start
-        // 2. remove remoteStorage1 from conf
-        // 3. add remoteStorage1 to conf again
-        if (!CoordinatorMetrics.gaugeInUsedRemoteStorage.containsKey(metricsName)) {
-          Gauge gauge = CoordinatorMetrics.addDynamicGauge(metricsName);
-          CoordinatorMetrics.gaugeInUsedRemoteStorage.putIfAbsent(metricsName, gauge);
-        }
-        LOG.info("Add remote storage metrics for {} successfully ", remoteStoragePath);
-      }
-    } catch (Exception e) {
-      LOG.warn("Add remote storage metrics for {} failed ", remoteStoragePath, e);
+    String storageHost = getStorageHost(remoteStoragePath);
+    if (!StringUtils.isEmpty(storageHost)) {
+      CoordinatorMetrics.addDynamicGaugeForRemoteStorage(getStorageHost(remoteStoragePath));
+      LOG.info("Add remote storage metrics for {} successfully ", remoteStoragePath);
     }
   }
 
-  private String getRemoteStorageMetricsName(String remoteStoragePath) {
-    String metricsName = "";
-    try {
-      URI p = new URI(remoteStoragePath);
-      metricsName = CoordinatorMetrics.REMOTE_STORAGE_IN_USED_PREFIX + p.getHost();
-    } catch (URISyntaxException e) {
-      LOG.warn("Invalid format of remoteStoragePath for metrics update, {}", remoteStoragePath);
+  private String getStorageHost(String remoteStoragePath) {
+    if (remoteStorageToHost.containsKey(remoteStoragePath)) {
+      return remoteStorageToHost.get(remoteStoragePath);
     }
-    return metricsName;
+    String storageHost = "";
+    try {
+      URI uri = new URI(remoteStoragePath);
+      storageHost = uri.getHost();
+      remoteStorageToHost.put(remoteStoragePath, storageHost);
+    } catch (URISyntaxException e) {
+      LOG.warn("Invalid format of remoteStoragePath to get host, {}", remoteStoragePath);
+    }
+    return storageHost;
   }
 }

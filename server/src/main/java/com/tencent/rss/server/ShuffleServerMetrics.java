@@ -18,11 +18,17 @@
 
 package com.tencent.rss.server;
 
+import java.util.Map;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
+import org.apache.commons.lang3.StringUtils;
 
 import com.tencent.rss.common.metrics.MetricsManager;
+import com.tencent.rss.storage.common.LocalStorage;
 
 public class ShuffleServerMetrics {
 
@@ -59,6 +65,14 @@ public class ShuffleServerMetrics {
   private static final String TOTAL_HDFS_WRITE_DATA = "total_hdfs_write_data";
   private static final String TOTAL_LOCALFILE_WRITE_DATA = "total_localfile_write_data";
   private static final String TOTAL_REQUIRE_BUFFER_FAILED = "total_require_buffer_failed";
+  private static final String LOCAL_STORAGE_TOTAL_WRITE = "local_storage_total_write";
+  private static final String LOCAL_STORAGE_RETRY_WRITE = "local_storage_retry_write";
+  private static final String LOCAL_STORAGE_FAILED_WRITE = "local_storage_failed_write";
+  private static final String LOCAL_STORAGE_SUCCESS_WRITE = "local_storage_success_write";
+  public static final String REMOTE_STORAGE_TOTAL_WRITE_PREFIX = "remote_storage_total_write_";
+  public static final String REMOTE_STORAGE_RETRY_WRITE_PREFIX = "remote_storage_retry_write_";
+  public static final String REMOTE_STORAGE_FAILED_WRITE_PREFIX = "remote_storage_failed_write_";
+  public static final String REMOTE_STORAGE_SUCCESS_WRITE_PREFIX = "remote_storage_success_write_";
 
   public static Counter counterTotalReceivedDataSize;
   public static Counter counterTotalWriteDataSize;
@@ -82,6 +96,10 @@ public class ShuffleServerMetrics {
   public static Counter counterTotalHdfsWriteDataSize;
   public static Counter counterTotalLocalFileWriteDataSize;
   public static Counter counterTotalRequireBufferFailed;
+  public static Counter counterLocalStorageTotalWrite;
+  public static Counter counterLocalStorageRetryWrite;
+  public static Counter counterLocalStorageFailedWrite;
+  public static Counter counterLocalStorageSuccessWrite;
 
   public static Gauge gaugeRegisteredShuffle;
   public static Gauge gaugeRegisteredShuffleEngine;
@@ -93,16 +111,31 @@ public class ShuffleServerMetrics {
   public static Gauge gaugeEventQueueSize;
   public static Gauge gaugeAppNum;
   public static Gauge gaugeTotalPartitionNum;
+  public static Map<String, Counter> counterRemoteStorageTotalWrite;
+  public static Map<String, Counter> counterRemoteStorageRetryWrite;
+  public static Map<String, Counter> counterRemoteStorageFailedWrite;
+  public static Map<String, Counter> counterRemoteStorageSuccessWrite;
 
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
 
+  @VisibleForTesting
   public static void register() {
     register(CollectorRegistry.defaultRegistry);
   }
 
+  @VisibleForTesting
+  public static void clear() {
+    isRegister = false;
+    CollectorRegistry.defaultRegistry.clear();
+  }
+
   public static synchronized void register(CollectorRegistry collectorRegistry) {
     if (!isRegister) {
+      counterRemoteStorageTotalWrite = Maps.newConcurrentMap();
+      counterRemoteStorageRetryWrite = Maps.newConcurrentMap();
+      counterRemoteStorageFailedWrite = Maps.newConcurrentMap();
+      counterRemoteStorageSuccessWrite = Maps.newConcurrentMap();
       metricsManager = new MetricsManager(collectorRegistry);
       isRegister = true;
       setUpMetrics();
@@ -111,6 +144,67 @@ public class ShuffleServerMetrics {
 
   public static CollectorRegistry getCollectorRegistry() {
     return metricsManager.getCollectorRegistry();
+  }
+
+  public static void addDynamicCounterForRemoteStorage(String storageHost) {
+    if (!StringUtils.isEmpty(storageHost)) {
+      String totalWriteMetricName = REMOTE_STORAGE_TOTAL_WRITE_PREFIX + storageHost;
+      String retryWriteMetricName = REMOTE_STORAGE_RETRY_WRITE_PREFIX + storageHost;
+      String failedWriteMetricName = REMOTE_STORAGE_FAILED_WRITE_PREFIX + storageHost;
+      String successWriteMetricName = REMOTE_STORAGE_SUCCESS_WRITE_PREFIX + storageHost;
+      if (!counterRemoteStorageTotalWrite.containsKey(totalWriteMetricName)) {
+        counterRemoteStorageTotalWrite.putIfAbsent(storageHost,
+            metricsManager.addCounter(totalWriteMetricName));
+      }
+      if (!counterRemoteStorageRetryWrite.containsKey(retryWriteMetricName)) {
+        counterRemoteStorageRetryWrite.putIfAbsent(storageHost,
+            metricsManager.addCounter(retryWriteMetricName));
+      }
+      if (!counterRemoteStorageFailedWrite.containsKey(failedWriteMetricName)) {
+        counterRemoteStorageFailedWrite.putIfAbsent(storageHost,
+            metricsManager.addCounter(failedWriteMetricName));
+      }
+      if (!counterRemoteStorageSuccessWrite.containsKey(successWriteMetricName)) {
+        counterRemoteStorageSuccessWrite.putIfAbsent(storageHost,
+            metricsManager.addCounter(successWriteMetricName));
+      }
+    }
+  }
+
+  public static void incStorageRetryCounter(String storageHost) {
+    if (LocalStorage.STORAGE_HOST.equals(storageHost)) {
+      counterLocalStorageTotalWrite.inc();
+      counterLocalStorageRetryWrite.inc();
+    } else {
+      if (!StringUtils.isEmpty(storageHost)) {
+        counterRemoteStorageTotalWrite.get(storageHost).inc();
+        counterRemoteStorageRetryWrite.get(storageHost).inc();
+      }
+    }
+  }
+
+  public static void incStorageSuccessCounter(String storageHost) {
+    if (LocalStorage.STORAGE_HOST.equals(storageHost)) {
+      counterLocalStorageTotalWrite.inc();
+      counterLocalStorageSuccessWrite.inc();
+    } else {
+      if (!StringUtils.isEmpty(storageHost)) {
+        counterRemoteStorageTotalWrite.get(storageHost).inc();
+        counterRemoteStorageSuccessWrite.get(storageHost).inc();
+      }
+    }
+  }
+
+  public static void incStorageFailedCounter(String storageHost) {
+    if (LocalStorage.STORAGE_HOST.equals(storageHost)) {
+      counterLocalStorageTotalWrite.inc();
+      counterLocalStorageFailedWrite.inc();
+    } else {
+      if (!StringUtils.isEmpty(storageHost)) {
+        counterRemoteStorageTotalWrite.get(storageHost).inc();
+        counterRemoteStorageFailedWrite.get(storageHost).inc();
+      }
+    }
   }
 
   private static void setUpMetrics() {
@@ -136,6 +230,10 @@ public class ShuffleServerMetrics {
     counterTotalHdfsWriteDataSize = metricsManager.addCounter(TOTAL_HDFS_WRITE_DATA);
     counterTotalLocalFileWriteDataSize = metricsManager.addCounter(TOTAL_LOCALFILE_WRITE_DATA);
     counterTotalRequireBufferFailed = metricsManager.addCounter(TOTAL_REQUIRE_BUFFER_FAILED);
+    counterLocalStorageTotalWrite = metricsManager.addCounter(LOCAL_STORAGE_TOTAL_WRITE);
+    counterLocalStorageRetryWrite = metricsManager.addCounter(LOCAL_STORAGE_RETRY_WRITE);
+    counterLocalStorageFailedWrite = metricsManager.addCounter(LOCAL_STORAGE_FAILED_WRITE);
+    counterLocalStorageSuccessWrite = metricsManager.addCounter(LOCAL_STORAGE_SUCCESS_WRITE);
 
     gaugeRegisteredShuffle = metricsManager.addGauge(REGISTERED_SHUFFLE);
     gaugeRegisteredShuffleEngine = metricsManager.addGauge(REGISTERED_SHUFFLE_ENGINE);
