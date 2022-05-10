@@ -119,17 +119,6 @@ public class ShuffleServerMetrics {
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
 
-  @VisibleForTesting
-  public static void register() {
-    register(CollectorRegistry.defaultRegistry);
-  }
-
-  @VisibleForTesting
-  public static void clear() {
-    isRegister = false;
-    CollectorRegistry.defaultRegistry.clear();
-  }
-
   public static synchronized void register(CollectorRegistry collectorRegistry) {
     if (!isRegister) {
       counterRemoteStorageTotalWrite = Maps.newConcurrentMap();
@@ -142,6 +131,17 @@ public class ShuffleServerMetrics {
     }
   }
 
+  @VisibleForTesting
+  public static void register() {
+    register(CollectorRegistry.defaultRegistry);
+  }
+
+  @VisibleForTesting
+  public static void clear() {
+    isRegister = false;
+    CollectorRegistry.defaultRegistry.clear();
+  }
+
   public static CollectorRegistry getCollectorRegistry() {
     return metricsManager.getCollectorRegistry();
   }
@@ -149,21 +149,21 @@ public class ShuffleServerMetrics {
   public static void addDynamicCounterForRemoteStorage(String storageHost) {
     if (!StringUtils.isEmpty(storageHost)) {
       String totalWriteMetricName = REMOTE_STORAGE_TOTAL_WRITE_PREFIX + storageHost;
-      String retryWriteMetricName = REMOTE_STORAGE_RETRY_WRITE_PREFIX + storageHost;
-      String failedWriteMetricName = REMOTE_STORAGE_FAILED_WRITE_PREFIX + storageHost;
-      String successWriteMetricName = REMOTE_STORAGE_SUCCESS_WRITE_PREFIX + storageHost;
       if (!counterRemoteStorageTotalWrite.containsKey(totalWriteMetricName)) {
         counterRemoteStorageTotalWrite.putIfAbsent(storageHost,
             metricsManager.addCounter(totalWriteMetricName));
       }
+      String retryWriteMetricName = REMOTE_STORAGE_RETRY_WRITE_PREFIX + storageHost;
       if (!counterRemoteStorageRetryWrite.containsKey(retryWriteMetricName)) {
         counterRemoteStorageRetryWrite.putIfAbsent(storageHost,
             metricsManager.addCounter(retryWriteMetricName));
       }
+      String failedWriteMetricName = REMOTE_STORAGE_FAILED_WRITE_PREFIX + storageHost;
       if (!counterRemoteStorageFailedWrite.containsKey(failedWriteMetricName)) {
         counterRemoteStorageFailedWrite.putIfAbsent(storageHost,
             metricsManager.addCounter(failedWriteMetricName));
       }
+      String successWriteMetricName = REMOTE_STORAGE_SUCCESS_WRITE_PREFIX + storageHost;
       if (!counterRemoteStorageSuccessWrite.containsKey(successWriteMetricName)) {
         counterRemoteStorageSuccessWrite.putIfAbsent(storageHost,
             metricsManager.addCounter(successWriteMetricName));
