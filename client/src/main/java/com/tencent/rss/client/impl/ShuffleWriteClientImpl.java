@@ -85,10 +85,10 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   private int replica;
   private int replicaWrite;
   private int replicaRead;
-  private boolean replicaSkip;
+  private boolean replicaSkipEnabled;
 
   public ShuffleWriteClientImpl(String clientType, int retryMax, long retryIntervalMax, int heartBeatThreadNum,
-                                int replica, int replicaWrite, int replicaRead, boolean replicaSkip) {
+                                int replica, int replicaWrite, int replicaRead, boolean replicaSkipEnabled) {
     this.clientType = clientType;
     this.retryMax = retryMax;
     this.retryIntervalMax = retryIntervalMax;
@@ -98,7 +98,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
     this.replica = replica;
     this.replicaWrite = replicaWrite;
     this.replicaRead = replicaRead;
-    this.replicaSkip = replicaSkip;
+    this.replicaSkipEnabled = replicaSkipEnabled;
   }
 
   private boolean sendShuffleDataAsync(
@@ -190,7 +190,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
     // which is minimum number when there is at most *replicaWrite - replica* sending server failures.
     for (ShuffleBlockInfo sbi : shuffleBlockInfoList) {
       List<ShuffleServerInfo> allServers = sbi.getShuffleServerInfos();
-      if (replicaSkip) {
+      if (replicaSkipEnabled) {
         genServerToBlocks(sbi, allServers.subList(0, replicaWrite),
           primaryServerToBlocks, primaryServerToBlockIds);
         genServerToBlocks(sbi, allServers.subList(replicaWrite, replica),
@@ -222,7 +222,7 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
 
     // The secondary round of blocks is sent only when the primary group issues failed sending.
     // This should be infrequent.
-    if (!isAllSuccess && replicaSkip) {
+    if (!isAllSuccess && !secondaryServerToBlocks.isEmpty()) {
       LOG.info("The sending of primary round is failed partially, so start the secondary round");
       sendShuffleDataAsync(appId, secondaryServerToBlocks, secondaryServerToBlockIds, blockIdsTracker);
     }

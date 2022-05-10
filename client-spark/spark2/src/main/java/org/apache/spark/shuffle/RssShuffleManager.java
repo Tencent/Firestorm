@@ -79,7 +79,7 @@ public class RssShuffleManager implements ShuffleManager {
   private final int dataReplica;
   private final int dataReplicaWrite;
   private final int dataReplicaRead;
-  private final boolean dataReplicaSkip;
+  private final boolean dataReplicaSkipEnabled;
   private boolean heartbeatStarted = false;
   private boolean dynamicConfEnabled = false;
   private String remoteStorage = "";
@@ -142,10 +142,10 @@ public class RssShuffleManager implements ShuffleManager {
         RssSparkConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
     this.dataReplicaRead =  sparkConf.getInt(RssSparkConfig.RSS_DATA_REPLICA_READ,
         RssSparkConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
-    this.dataReplicaSkip = sparkConf.getBoolean(RssSparkConfig.RSS_DATA_REPLICA_SKIP,
-        RssSparkConfig.RSS_DATA_REPLICA_SKIP_DEFAULT_VALUE);
+    this.dataReplicaSkipEnabled = sparkConf.getBoolean(RssSparkConfig.RSS_DATA_REPLICA_SKIP_ENABLED,
+        RssSparkConfig.RSS_DATA_REPLICA_SKIP_ENABLED_DEFAULT_VALUE);
     LOG.info("Check quorum config ["
-        + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + ":" + dataReplicaSkip + "]");
+        + dataReplica + ":" + dataReplicaWrite + ":" + dataReplicaRead + ":" + dataReplicaSkipEnabled + "]");
     RssUtils.checkQuorumSetting(dataReplica, dataReplicaWrite, dataReplicaRead);
 
     this.clientType = sparkConf.get(RssSparkConfig.RSS_CLIENT_TYPE,
@@ -165,7 +165,7 @@ public class RssShuffleManager implements ShuffleManager {
     shuffleWriteClient = ShuffleClientFactory
         .getInstance()
         .createShuffleWriteClient(clientType, retryMax, retryIntervalMax, heartBeatThreadNum,
-          dataReplica, dataReplicaWrite, dataReplicaRead, dataReplicaSkip);
+          dataReplica, dataReplicaWrite, dataReplicaRead, dataReplicaSkipEnabled);
     registerCoordinator();
     // fetch client conf and apply them if necessary and disable ESS
     if (isDriver && dynamicConfEnabled) {
