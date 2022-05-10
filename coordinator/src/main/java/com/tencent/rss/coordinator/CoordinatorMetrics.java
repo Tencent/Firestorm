@@ -38,7 +38,7 @@ public class CoordinatorMetrics {
   private static final String TOTAL_ACCESS_REQUEST = "total_access_request";
   private static final String TOTAL_CANDIDATES_DENIED_REQUEST = "total_candidates_denied_request";
   private static final String TOTAL_LOAD_DENIED_REQUEST = "total_load_denied_request";
-  public static final String REMOTE_STORAGE_IN_USED_PREFIX = "remote_storage_in_used";
+  public static final String REMOTE_STORAGE_IN_USED_PREFIX = "remote_storage_in_used_";
 
   static Gauge gaugeTotalServerNum;
   static Gauge gaugeExcludeServerNum;
@@ -69,6 +69,7 @@ public class CoordinatorMetrics {
   @VisibleForTesting
   public static void clear() {
     isRegister = false;
+    gaugeInUsedRemoteStorage.clear();
     CollectorRegistry.defaultRegistry.clear();
   }
 
@@ -78,8 +79,8 @@ public class CoordinatorMetrics {
 
   public static void addDynamicGaugeForRemoteStorage(String storageHost) {
     if (!StringUtils.isEmpty(storageHost)) {
-      String metricName = REMOTE_STORAGE_IN_USED_PREFIX + storageHost;
-      if (!gaugeInUsedRemoteStorage.containsKey(metricName)) {
+      if (!gaugeInUsedRemoteStorage.containsKey(storageHost)) {
+        String metricName = REMOTE_STORAGE_IN_USED_PREFIX + storageHost;
         gaugeInUsedRemoteStorage.putIfAbsent(storageHost,
             metricsManager.addGauge(metricName));
       }
@@ -87,9 +88,8 @@ public class CoordinatorMetrics {
   }
 
   public static void updateDynamicGaugeForRemoteStorage(String storageHost, double value) {
-    String metricName = REMOTE_STORAGE_IN_USED_PREFIX + storageHost;
-    if (gaugeInUsedRemoteStorage.containsKey(metricName)) {
-      gaugeInUsedRemoteStorage.get(metricName).set(value);
+    if (gaugeInUsedRemoteStorage.containsKey(storageHost)) {
+      gaugeInUsedRemoteStorage.get(storageHost).set(value);
     }
   }
 
