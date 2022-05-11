@@ -146,7 +146,7 @@ public class ShuffleServerMetrics {
     return metricsManager.getCollectorRegistry();
   }
 
-  public static void addDynamicCounterForRemoteStorage(String storageHost) {
+  public static synchronized void addDynamicCounterForRemoteStorage(String storageHost) {
     if (!StringUtils.isEmpty(storageHost)) {
       String totalWriteMetricName = REMOTE_STORAGE_TOTAL_WRITE_PREFIX + storageHost;
       if (!counterRemoteStorageTotalWrite.containsKey(totalWriteMetricName)) {

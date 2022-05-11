@@ -47,14 +47,13 @@ public class CoordinatorMetrics {
   static Counter counterTotalAccessRequest;
   static Counter counterTotalCandidatesDeniedRequest;
   static Counter counterTotalLoadDeniedRequest;
-  static Map<String, Gauge> gaugeInUsedRemoteStorage;
+  static final Map<String, Gauge> gaugeInUsedRemoteStorage = Maps.newConcurrentMap();
 
   private static MetricsManager metricsManager;
   private static boolean isRegister = false;
 
   public static synchronized void register(CollectorRegistry collectorRegistry) {
     if (!isRegister) {
-      gaugeInUsedRemoteStorage = Maps.newConcurrentMap();
       metricsManager = new MetricsManager(collectorRegistry);
       isRegister = true;
       setUpMetrics();
