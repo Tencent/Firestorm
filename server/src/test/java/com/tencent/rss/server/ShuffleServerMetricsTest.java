@@ -88,10 +88,10 @@ public class ShuffleServerMetricsTest {
     assertEquals(40, metricsNode.size());
 
     List<String> expectedMetricNames = Lists.newArrayList(
-        ShuffleServerMetrics.REMOTE_STORAGE_TOTAL_WRITE_PREFIX + STORAGE_HOST,
-        ShuffleServerMetrics.REMOTE_STORAGE_SUCCESS_WRITE_PREFIX + STORAGE_HOST,
-        ShuffleServerMetrics.REMOTE_STORAGE_FAILED_WRITE_PREFIX + STORAGE_HOST,
-        ShuffleServerMetrics.REMOTE_STORAGE_RETRY_WRITE_PREFIX + STORAGE_HOST);
+        ShuffleServerMetrics.STORAGE_TOTAL_WRITE_REMOTE_PREFIX + STORAGE_HOST,
+        ShuffleServerMetrics.STORAGE_SUCCESS_WRITE_REMOTE_PREFIX + STORAGE_HOST,
+        ShuffleServerMetrics.STORAGE_FAILED_WRITE_REMOTE_PREFIX + STORAGE_HOST,
+        ShuffleServerMetrics.STORAGE_RETRY_WRITE_REMOTE_PREFIX + STORAGE_HOST);
     for (String expectMetricName : expectedMetricNames) {
       validateMetrics(metricsNode, expectMetricName);
     }
