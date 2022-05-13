@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -108,9 +109,12 @@ public class RssUtils {
       if (!ni.isUp() || ni.isLoopback() || ni.isPointToPoint() || ni.isVirtual()) {
         continue;
       }
-      Enumeration<InetAddress> ad = ni.getInetAddresses();
-      while (ad.hasMoreElements()) {
-        InetAddress ia = ad.nextElement();
+      for (InterfaceAddress ifa : ni.getInterfaceAddresses()) {
+        InetAddress ia = ifa.getAddress();
+        InetAddress brd = ifa.getBroadcast();
+        if (brd == null || brd.isAnyLocalAddress()) {
+          continue;
+        }
         if (!ia.isLinkLocalAddress() && !ia.isAnyLocalAddress() && !ia.isLoopbackAddress()
             && ia instanceof Inet4Address && ia.isReachable(5000)) {
           if (!ia.isSiteLocalAddress()) {
