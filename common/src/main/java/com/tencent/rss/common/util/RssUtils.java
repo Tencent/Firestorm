@@ -113,6 +113,7 @@ public class RssUtils {
         InetAddress ia = ifa.getAddress();
         InetAddress brd = ifa.getBroadcast();
         if (brd == null || brd.isAnyLocalAddress()) {
+          LOGGER.info("ip {} was filtered, because it don't have effective broadcast address", ia.getHostAddress());
           continue;
         }
         if (!ia.isLinkLocalAddress() && !ia.isAnyLocalAddress() && !ia.isLoopbackAddress()
@@ -120,8 +121,13 @@ public class RssUtils {
           if (!ia.isSiteLocalAddress()) {
             return ia.getHostAddress();
           } else if (siteLocalAddress == null) {
+            LOGGER.info("ip {} was candidate, if there is no better choice, we will choose it", ia.getHostAddress());
             siteLocalAddress = ia.getHostAddress();
+          } else {
+            LOGGER.info("ip {} was filtered, because it's not first effect site local address", ia.getHostAddress());
           }
+        } else {
+          LOGGER.info("ip {} was filtered, because it's just a local address or loop address", ia.getHostAddress());
         }
       }
     }
