@@ -21,25 +21,34 @@ package com.tencent.rss.coordinator;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.tencent.rss.common.util.Constants;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
 public class ApplicationManagerTest {
-
-  static {
-    CoordinatorMetrics.register();
-  }
 
   private ApplicationManager applicationManager;
   private long appExpiredTime = 2000L;
   private String remotePath1 = "hdfs://path1";
   private String remotePath2 = "hdfs://path2";
   private String remotePath3 = "hdfs://path3";
+
+  @BeforeClass
+  public static void setup() {
+    CoordinatorMetrics.register();
+  }
+
+  @AfterClass
+  public static void clear() {
+    CoordinatorMetrics.clear();
+  }
 
   @Before
   public void setUp() {
@@ -73,6 +82,7 @@ public class ApplicationManagerTest {
     applicationManager.refreshRemoteStorage(remoteStoragePath);
     assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStoragePath());
     assertEquals(expectedAvailablePath, applicationManager.getRemoteStoragePathCounter().keySet());
+    assertFalse(applicationManager.hasErrorInStatusCheck());
   }
 
   @Test
@@ -81,6 +91,10 @@ public class ApplicationManagerTest {
     applicationManager.refreshRemoteStorage(remoteStoragePath);
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath1).get());
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
+    String storageHost1 = "path1";
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(storageHost1).get(), 0.5);
+    String storageHost2 = "path2";
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(storageHost2).get(), 0.5);
 
     // do inc for remotePath1 to make sure pick storage will be remotePath2 in next call
     applicationManager.incRemoteStorageCounter(remotePath1);
@@ -97,6 +111,7 @@ public class ApplicationManagerTest {
     Thread.sleep(appExpiredTime + 2000);
     assertNull(applicationManager.getAppIdToRemoteStoragePath().get(testApp1));
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
+    assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(storageHost2).get(), 0.5);
 
     // refresh app1, got remotePath2, then remove remotePath2,
     // it should be existed in counter until it expired
@@ -119,6 +134,21 @@ public class ApplicationManagerTest {
     applicationManager.refreshRemoteStorage("");
     assertEquals(0, applicationManager.getAvailableRemoteStoragePath().size());
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().size());
+    assertFalse(applicationManager.hasErrorInStatusCheck());
+  }
+
+  @Test
+  public void clearWithoutRemoteStorageTest() throws Exception {
+    // test case for storage type without remote storage,
+    // NPE shouldn't happen when clear the resource
+    String testApp = "clearWithoutRemoteStorageTest";
+    applicationManager.refreshAppId(testApp);
+    // just set a value != 0, it should be reset to 0 if everything goes well
+    CoordinatorMetrics.gaugeRunningAppNum.set(100.0);
+    assertEquals(1, applicationManager.getAppIds().size());
+    Thread.sleep(appExpiredTime + 2000);
+    assertEquals(0, applicationManager.getAppIds().size());
+    assertFalse(applicationManager.hasErrorInStatusCheck());
   }
 
   @Test
@@ -162,5 +192,6 @@ public class ApplicationManagerTest {
     applicationManager.refreshRemoteStorage("");
     assertEquals(0, applicationManager.getAvailableRemoteStoragePath().size());
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().size());
+    assertFalse(applicationManager.hasErrorInStatusCheck());
   }
 }
