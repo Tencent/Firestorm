@@ -126,8 +126,16 @@ public class RssUtils {
           } else {
             LOGGER.info("ip {} was filtered, because it's not first effect site local address", ia.getHostAddress());
           }
+        } else if(!(ia instanceof Inet4Address)) {
+          LOGGER.info("ip {} was filtered, because it's just a ipv6 address", ia.getHostAddress());
+        } else if (ia.isLinkLocalAddress()) {
+          LOGGER.info("ip {} was filtered, because it's just a link local address", ia.getHostAddress());
+        } else if (ia.isAnyLocalAddress()) {
+          LOGGER.info("ip {} was filtered, because it's just a any local address", ia.getHostAddress());
+        } else if (ia.isLoopbackAddress()) {
+          LOGGER.info("ip {} was filtered, because it's just a loop back address", ia.getHostAddress());
         } else {
-          LOGGER.info("ip {} was filtered, because it's just a local address or loop address", ia.getHostAddress());
+          LOGGER.info("ip {} was filtered, because it's just not reachable address", ia.getHostAddress());
         }
       }
     }
