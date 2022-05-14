@@ -18,6 +18,10 @@
 
 package org.apache.hadoop.mapreduce.v2.app;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -27,8 +31,10 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -58,8 +64,7 @@ public class RssMRAppMaster {
 
   public static void main(String[] args) {
 
-    JobConf conf = new JobConf(new YarnConfiguration());
-    conf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
+    JobConf conf = new JobConf(new Path(MRJobConfig.JOB_CONF_FILE));
     int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
     String clientType = conf.get(RssMRConfig.RSS_CLIENT_TYPE, RssMRConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
     int heartBeatThreadNum = conf.getInt(RssMRConfig.RSS_CLIENT_HEARTBEAT_THREAD_NUM,
@@ -160,10 +165,11 @@ public class RssMRAppMaster {
     });
 
     // close slow start
-    if (conf.getFloat(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 0.05f) != 1) {
-      conf.set(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, "1");
-      LOG.warn("close slow start, because RSS does not support it yet");
-    }
+    conf.setFloat(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 1.0f);
+    LOG.warn("close slow start, because RSS does not support it yet");
+
+    conf.setBoolean(MRJobConfig.MR_AM_JOB_RECOVERY_ENABLE, false);
+    LOG.warn("close recovery enable, because RSS doesn't support it yet");
 
     String jobDirStr = conf.get(MRJobConfig.MAPREDUCE_JOB_DIR);
     if (jobDirStr == null) {
@@ -177,6 +183,12 @@ public class RssMRAppMaster {
              FileSystem.create(fs, jobConfFile,
                  new FsPermission(JobSubmissionFiles.JOB_FILE_PERMISSION))) {
           conf.writeXml(out);
+      }
+      File file = new File(MRJobConfig.JOB_CONF_FILE);
+      file.delete();
+      try (InputStream input = fs.open(jobConfFile);
+           OutputStream output = new FileOutputStream(file)) {
+        IOUtils.copy(input, output);
       }
     } catch (Exception e) {
       LOG.error("Modify job conf exception", e);
