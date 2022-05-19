@@ -36,7 +36,6 @@ import org.apache.hadoop.util.Progress;
 
 import com.tencent.rss.client.api.ShuffleReadClient;
 import com.tencent.rss.client.response.CompressedShuffleBlock;
-import com.tencent.rss.common.RssShuffleUtils;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.ByteUnit;
 
@@ -141,19 +140,11 @@ public class RssFetcher<K,V> {
 
     // uncompress the block
     if (compressedData != null) {
-      final long startDecompress = System.currentTimeMillis();
-      byte[] uncompressedData = RssShuffleUtils.decompressData(
-        compressedData, compressedBlock.getUncompressLength(), false).array();
-      unCompressionLength += compressedBlock.getUncompressLength();
-      long decompressDuration = System.currentTimeMillis() - startDecompress;
-      decompressTime += decompressDuration;
-
       // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
       // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
       // treat each "block" as a faked "mapout".
       // To avoid name conflicts, we use getNextUniqueTaskAttemptID instead.
       // It will generate a unique TaskAttemptID(increased_seq++, 0).
-      final long startSerialization = System.currentTimeMillis();
       TaskAttemptID mapId = getNextUniqueTaskAttemptID();
       MapOutput<K, V> mapOutput = null;
       try {
@@ -169,15 +160,16 @@ public class RssFetcher<K,V> {
         //Not an error but wait to process data.
         return;
       }
-
       // write data to mapOutput
+      final long startDecompress = System.currentTimeMillis();
       try {
-        RssBypassWriter.write(mapOutput, uncompressedData);
+        RssBypassWriter.write(mapOutput, compressedData.array(),
+          compressedBlock.getUncompressLength());
         // let the merger knows this block is ready for merging
         mapOutput.commit();
         if (mapOutput instanceof OnDiskMapOutput) {
           LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
-            + " with byte sizes: " + uncompressedData.length);
+            + " with byte sizes: " + compressedBlock.getUncompressLength());
         }
       } catch (Throwable t) {
         ioErrs.increment(1);
@@ -185,12 +177,13 @@ public class RssFetcher<K,V> {
         throw new RssException("Reduce: " + reduceId + " cannot write block to "
           + mapOutput.getClass().getSimpleName() + " due to: " + t.getClass().getName());
       }
-      long serializationDuration = System.currentTimeMillis() - startSerialization;
-      serializeTime += serializationDuration;
+      unCompressionLength += compressedBlock.getUncompressLength();
+      long decompressDuration = System.currentTimeMillis() - startDecompress;
+      decompressTime += decompressDuration;
 
       // update some status
       copyBlockCount++;
-      copyTime += readTime + decompressTime + serializeTime;
+      copyTime += readTime + decompressTime;
       updateStatus();
       reporter.progress();
     } else {
@@ -199,9 +192,9 @@ public class RssFetcher<K,V> {
       shuffleReadClient.checkProcessedBlockIds();
       shuffleReadClient.logStatics();
       metrics.inputBytes(unCompressionLength);
-      LOG.info("reduce task " + reduceId.toString() + " cost " + readTime + " ms and "
+      LOG.info("reduce task " + reduceId.toString() + " costs " + readTime + " ms and "
         + decompressTime + " ms to decompress with unCompressionLength["
-        + unCompressionLength + "] and " + serializeTime + " ms to serialize");
+        + unCompressionLength + "]");
       stopFetch();
     }
   }

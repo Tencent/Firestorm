@@ -57,4 +57,9 @@ public class RssShuffleUtils {
     fastDecompressor.decompress(data, data.position(), uncompressData, 0, uncompressLength);
     return uncompressData;
   }
+
+  public static void inplaceDecompressData(ByteBuffer desc, ByteBuffer src, int uncompressLength) {
+    LZ4FastDecompressor fastDecompressor = LZ4Factory.fastestInstance().fastDecompressor();
+    fastDecompressor.decompress(src, src.position(), desc, 0, uncompressLength);
+  }
 }
