@@ -41,6 +41,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +55,9 @@ import com.tencent.rss.common.ShuffleIndexResult;
 public class RssUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RssUtils.class);
+
+  private static final String CLUSTER_CONF_DELIMITER = ";";
+  private static final String CLUSTER_CONF_KV_DELIMITER = "=";
 
   private RssUtils() {
   }
@@ -276,5 +282,46 @@ public class RssUtils {
       return "";
     }
     return hostName.replaceAll("[\\.-]", "_");
+  }
+
+  public static Map<String, Map<String, String>> extractClusterConf(String confString) {
+    Map<String, Map<String, String>> res = Maps.newHashMap();
+    if (StringUtils.isEmpty(confString)) {
+      return res;
+    }
+
+    String[] clusterConfItems = confString.split(Constants.SEMICOLON_SPLIT_CHAR);
+    String msg = "Cluster specific conf[{}] format[cluster,k1=v1;...] is wrong.";
+    if (ArrayUtils.isEmpty(clusterConfItems)) {
+      LOGGER.warn(msg, confString);
+      return res;
+    }
+
+    for (String s : clusterConfItems) {
+      String[] item = s.split(Constants.COMMA_SPLIT_CHAR);
+      if (ArrayUtils.isEmpty(item) || item.length < 2) {
+        LOGGER.warn(msg, s);
+        return Maps.newHashMap();
+      }
+
+      String clusterId = item[0];
+      Map<String, String> curClusterConf = Maps.newHashMap();
+      for (int i = 1; i < item.length; ++i) {
+        String[] kv = item[i].split(Constants.EQUAL_SPLIT_CHAR);
+        if (ArrayUtils.isEmpty(item) || kv.length != 2) {
+          LOGGER.warn(msg, s);
+          return Maps.newHashMap();
+        }
+        String key = kv[0].trim();
+        String value = kv[1].trim();
+        if (StringUtils.isEmpty((key)) || StringUtils.isEmpty(value)) {
+          LOGGER.warn("This cluster conf[{}] format is wrong[k=v]", s);
+          return Maps.newHashMap();
+        }
+        curClusterConf.put(key, value);
+      }
+      res.put(clusterId, curClusterConf);
+    }
+    return res;
   }
 }

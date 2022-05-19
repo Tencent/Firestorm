@@ -155,7 +155,7 @@ public class ClientConfManagerTest {
     ClientConfManager clientConfManager = new ClientConfManager(conf, new Configuration(), applicationManager);
     Thread.sleep(500);
     Set<String> expectedAvailablePath = Sets.newHashSet(remotePath1);
-    assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStoragePath());
+    assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
     assertEquals(remotePath1, applicationManager.pickRemoteStoragePath("testAppId1"));
 
     writeRemoteStorageConf(cfgFile, remotePath3);
@@ -199,7 +199,7 @@ public class ClientConfManagerTest {
       }
       Thread.sleep(1000);
       try {
-        assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStoragePath());
+        assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
         break;
       } catch (Throwable e) {
         // ignore

@@ -21,6 +21,7 @@ package com.tencent.rss.server;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 
 import com.tencent.rss.common.config.ConfigOption;
@@ -32,6 +33,7 @@ import com.tencent.rss.common.util.RssUtils;
 public class ShuffleServerConf extends RssBaseConf {
 
   public static final String PREFIX_HADOOP_CONF = "rss.server.hadoop";
+  public static final String PREFIX_CLUSTER_HADOOP_CONF = "rss.server.cluster.hadoop";
 
   public static final ConfigOption<Long> SERVER_BUFFER_CAPACITY = ConfigOptions
       .key("rss.server.buffer.capacity")
@@ -381,8 +383,24 @@ public class ShuffleServerConf extends RssBaseConf {
       if (k.startsWith(PREFIX_HADOOP_CONF)) {
         setString(k, v);
       }
+
+      if (k.startsWith(PREFIX_CLUSTER_HADOOP_CONF)) {
+        setString(k, v);
+      }
     });
 
     return true;
+  }
+
+  public Map<String, String> getClusterSpecificConf() {
+    Map<String, String> conf = Maps.newHashMap();
+    for (String key : getKeySet()) {
+      if (key.startsWith(ShuffleServerConf.PREFIX_CLUSTER_HADOOP_CONF)) {
+        String value = getString(key, "");
+        String clusterConfKey = key.substring(ShuffleServerConf.PREFIX_CLUSTER_HADOOP_CONF.length() + 1);
+        conf.put(clusterConfKey, value);
+      }
+    }
+    return conf;
   }
 }

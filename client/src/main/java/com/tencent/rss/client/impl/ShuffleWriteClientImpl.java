@@ -67,6 +67,7 @@ import com.tencent.rss.client.response.RssSendCommitResponse;
 import com.tencent.rss.client.response.RssSendShuffleDataResponse;
 import com.tencent.rss.client.response.SendShuffleDataResult;
 import com.tencent.rss.common.PartitionRange;
+import com.tencent.rss.common.RemoteStorageInfo;
 import com.tencent.rss.common.ShuffleAssignmentsInfo;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;
@@ -290,9 +291,10 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
       String appId,
       int shuffleId,
       List<PartitionRange> partitionRanges,
-      String remoteStorage) {
+      RemoteStorageInfo remoteStorage) {
     RssRegisterShuffleRequest request =
-        new RssRegisterShuffleRequest(appId, shuffleId, partitionRanges, remoteStorage);
+        new RssRegisterShuffleRequest(
+            appId, shuffleId, partitionRanges, remoteStorage.getPath(), remoteStorage.getConfItems());
     RssRegisterShuffleResponse response = getShuffleServerClient(shuffleServerInfo).registerShuffle(request);
 
     String msg = "Error happened when registerShuffle with appId[" + appId + "], shuffleId[" + shuffleId
@@ -324,13 +326,13 @@ public class ShuffleWriteClientImpl implements ShuffleWriteClient {
   }
 
   @Override
-  public String fetchRemoteStorage(String appId) {
-    String remoteStorage = "";
+  public RemoteStorageInfo fetchRemoteStorage(String appId) {
+    RemoteStorageInfo remoteStorage = new RemoteStorageInfo("");
     for (CoordinatorClient coordinatorClient : coordinatorClients) {
       RssFetchRemoteStorageResponse response =
           coordinatorClient.fetchRemoteStorage(new RssFetchRemoteStorageRequest(appId));
       if (response.getStatusCode() == ResponseStatusCode.SUCCESS) {
-        remoteStorage = response.getRemoteStorage();
+        remoteStorage = response.getRemoteStorageInfo();
         LOG.info("Success to get storage {} from {}", remoteStorage, coordinatorClient.getDesc());
         break;
       } else {

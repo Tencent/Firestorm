@@ -112,7 +112,7 @@ public class FetchClientConfTest extends CoordinatorTestBase {
     String appId = "testFetchRemoteStorageApp";
     RssFetchRemoteStorageRequest request = new RssFetchRemoteStorageRequest(appId);
     RssFetchRemoteStorageResponse response = coordinatorClient.fetchRemoteStorage(request);
-    assertEquals(remotePath1, response.getRemoteStorage());
+    assertEquals(remotePath1, response.getRemoteStorageInfo().getPath());
 
     // update remote storage info
     dynamicConf.put(CoordinatorConf.COORDINATOR_REMOTE_STORAGE_PATH.key(), remotePath2);
@@ -121,12 +121,12 @@ public class FetchClientConfTest extends CoordinatorTestBase {
     request = new RssFetchRemoteStorageRequest(appId);
     response = coordinatorClient.fetchRemoteStorage(request);
     // remotePath1 will be return because (appId -> remote storage path) is in cache
-    assertEquals(remotePath1, response.getRemoteStorage());
+    assertEquals(remotePath1, response.getRemoteStorageInfo().getPath());
 
     request = new RssFetchRemoteStorageRequest(appId + "another");
     response = coordinatorClient.fetchRemoteStorage(request);
     // got the remotePath2 for new appId
-    assertEquals(remotePath2, response.getRemoteStorage());
+    assertEquals(remotePath2, response.getRemoteStorageInfo().getPath());
   }
 
   private void waitForUpdate(
@@ -140,7 +140,7 @@ public class FetchClientConfTest extends CoordinatorTestBase {
       }
       Thread.sleep(1000);
       try {
-        assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStoragePath());
+        assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
         break;
       } catch (Throwable e) {
         // ignore

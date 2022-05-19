@@ -68,6 +68,8 @@ import com.tencent.rss.proto.RssProtos.GetMemoryShuffleDataResponse;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.GetShuffleResultResponse;
 import com.tencent.rss.proto.RssProtos.PartitionToBlockIds;
+import com.tencent.rss.proto.RssProtos.RemoteStorage;
+import com.tencent.rss.proto.RssProtos.RemoteStorageConfItem;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultRequest;
 import com.tencent.rss.proto.RssProtos.ReportShuffleResultResponse;
 import com.tencent.rss.proto.RssProtos.RequireBufferRequest;
@@ -116,15 +118,26 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
       String appId,
       int shuffleId,
       List<PartitionRange> partitionRanges,
-      String remoteStorage) {
-    ShuffleRegisterRequest request = ShuffleRegisterRequest
-        .newBuilder()
+      String remoteStoragePath,
+      Map<String, String> remoteStorageConf) {
+    ShuffleRegisterRequest.Builder reqBuilder = ShuffleRegisterRequest.newBuilder();
+    reqBuilder
         .setAppId(appId)
         .setShuffleId(shuffleId)
-        .setRemoteStorage(remoteStorage)
-        .addAllPartitionRanges(toShufflePartitionRanges(partitionRanges))
-        .build();
-    return blockingStub.registerShuffle(request);
+        .addAllPartitionRanges(toShufflePartitionRanges(partitionRanges));
+    RemoteStorage.Builder rsBuilder = RemoteStorage.newBuilder();
+    rsBuilder.setPath(remoteStoragePath);
+    if (remoteStorageConf.isEmpty()) {
+      RemoteStorageConfItem.Builder rsConfBuilder = RemoteStorageConfItem.newBuilder();
+      for (Map.Entry<String, String> entry : remoteStorageConf.entrySet()) {
+        rsConfBuilder.setKey(entry.getKey()).setValue(entry.getValue());
+      }
+      rsBuilder.addRemoteStorageConf(rsConfBuilder.build());
+    }
+    reqBuilder.setRemoteStorage(rsBuilder.build());
+
+    return blockingStub.registerShuffle(reqBuilder.build());
+
   }
 
   private ShuffleCommitResponse doSendCommit(String appId, int shuffleId) {
@@ -187,7 +200,8 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         request.getAppId(),
         request.getShuffleId(),
         request.getPartitionRanges(),
-        request.getRemoteStorage());
+        request.getRemoteStorage(),
+        request.getRemoteStorageConf());
 
     RssRegisterShuffleResponse response;
     StatusCode statusCode = rpcResponse.getStatus();
