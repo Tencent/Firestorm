@@ -25,7 +25,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.junit.Test;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -41,6 +41,6 @@ public class RssMRAppMasterTest {
     File file = new File(MRJobConfig.JOB_CONF_FILE);
     assertTrue(file.exists());
     JobConf newJobConf = new JobConf(new Path(MRJobConfig.JOB_CONF_FILE));
-    assertNotNull(newJobConf.get("A"));
+    assertEquals("B", newJobConf.get("A"));
   }
 }
