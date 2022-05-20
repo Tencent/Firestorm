@@ -180,6 +180,10 @@ public class RssMRAppMaster {
     MRAppMaster.main(args);
   }
 
+  // After we modify some configurations, we should update configuration for Application
+  // So we update the modify the configuration in the HDFS and local disk. It's a little
+  // tricky to delete the local configuration. But we hope guarantee the integrity for file.
+  // We choose to delete it and override with the new configuration in the HDFS.
   static void updateConf(JobConf conf, Path jobConfFile) {
     try {
       FileSystem fs = new Cluster(conf).getFileSystem();
