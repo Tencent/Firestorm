@@ -174,6 +174,13 @@ public class RssMRAppMaster {
       throw new RuntimeException("jobDir is empty");
     }
     Path jobConfFile = new Path(jobDirStr, MRJobConfig.JOB_CONF_FILE);
+    updateConf(conf, jobConfFile);
+    // remove org.apache.hadoop.mapreduce.v2.app.MRAppMaster
+    ArrayUtils.remove(args, 0);
+    MRAppMaster.main(args);
+  }
+
+  static void updateConf(JobConf conf, Path jobConfFile) {
     try {
       FileSystem fs = new Cluster(conf).getFileSystem();
       fs.delete(jobConfFile, true);
@@ -192,8 +199,5 @@ public class RssMRAppMaster {
       LOG.error("Modify job conf exception", e);
       throw new RuntimeException("Modify job conf exception ", e);
     }
-    // remove org.apache.hadoop.mapreduce.v2.app.MRAppMaster
-    ArrayUtils.remove(args, 0);
-    MRAppMaster.main(args);
   }
 }
