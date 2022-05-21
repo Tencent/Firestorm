@@ -50,6 +50,7 @@
     <junit.version>4.13.1</junit.version>
     <junit.jupiter.version>5.8.2</junit.jupiter.version>
     <junit.platform.version>1.8.2</junit.platform.version>
+    <system.stubs.version>2.0.1</system.stubs.version>
     <log4j.core.version>2.17.1</log4j.core.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -129,6 +130,11 @@
     <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -477,6 +483,12 @@
         <groupId>org.junit.platform</groupId>
         <artifactId>junit-platform-launcher</artifactId>
         <version>${junit.platform.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>uk.org.webcompere</groupId>
+        <artifactId>system-stubs-jupiter</artifactId>
+        <version>${system.stubs.version}</version>
         <scope>test</scope>
       </dependency>
 
