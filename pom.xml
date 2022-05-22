@@ -54,7 +54,7 @@
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <metrics.version>3.1.0</metrics.version>
-    <mockito.inline.version>3.5.15</mockito.inline.version>
+    <mockito.version>3.12.4</mockito.version>
     <netty.version>4.1.68.Final</netty.version>
     <picocli.version>4.5.2</picocli.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -483,7 +483,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-inline</artifactId>
-        <version>${mockito.inline.version}</version>
+        <version>${mockito.version}</version>
         <scope>test</scope>
       </dependency>
 
@@ -552,7 +552,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>3.5.15</version>
+        <version>${mockito.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
