@@ -769,11 +769,9 @@
         <configuration>
           <sourceDirectories>
             <directory>${basedir}/src/main/java</directory>
-            <directory>${basedir}/src/main/scala</directory>
           </sourceDirectories>
           <testSourceDirectories>
             <directory>${basedir}/src/test/java</directory>
-            <directory>${basedir}/src/main/scala</directory>
           </testSourceDirectories>
           <configLocation>checkstyle.xml</configLocation>
           <encoding>UTF-8</encoding>
