@@ -33,7 +33,6 @@ jobs:
         check:
           - checkstyle
           - rat
-          - spotbugs
       fail-fast: false
 
     steps:
@@ -45,7 +44,7 @@ jobs:
         distribution: 'adopt'
         cache: maven
     - name: Execute tests
-      run: checks/${{ matrix.check }}.sh
+      run: checks/${{ matrix.check }}.sh -Pspark2,spark3,mr
 
   build:
 
@@ -75,3 +74,27 @@ jobs:
       with:
         name: test-results-of-rss-${{ matrix.profile }}
         path: "**/target/surefire-reports/*.txt"
+
+  spotbugs:
+
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        profile:
+          - spark2
+          - spark3
+          - mr
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: '8'
+        distribution: 'adopt'
+        cache: maven
+    - name: Run spotbugs
+      run: mvn -B -fae test-compile spotbugs:check -P${{ matrix.profile }}
+      continue-on-error: true
