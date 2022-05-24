@@ -38,13 +38,13 @@ import com.tencent.rss.common.exception.RssException;
 public class RssMRUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(RssMRUtils.class);
-  private static int MAX_TASK_LENGTH = 17;
-  private static int MAX_ATTEMPT_LENGTH = 3;
+  private static int MAX_TASK_LENGTH = 19;
+  private static int MAX_ATTEMPT_LENGTH = 2;
   private static long MAX_TASK_ID = (1 << MAX_TASK_LENGTH) - 1;
-  private static long MAX_ATTEMPT_ID = ( 1 << MAX_ATTEMPT_LENGTH) - 1;
+  private static long MAX_ATTEMPT_ID = (1 << MAX_ATTEMPT_LENGTH) - 1;
 
-  // Class TaskAttemptId have two field id and mapId, rss taskAttemptID have 20 bits,
-  // mapId is 17 bits, id is 3 bits.
+  // Class TaskAttemptId have two field id and mapId, rss taskAttemptID have 21 bits,
+  // mapId is 19 bits, id is 2 bits.
   public static long convertTaskAttemptIdToLong(TaskAttemptID taskAttemptID) {
     long lowBytes = taskAttemptID.getTaskID().getId();
     if (lowBytes > MAX_TASK_ID) {

@@ -29,7 +29,7 @@ import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.storage.util.StorageType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions..assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RssMRUtilsTest {
 
@@ -44,11 +44,11 @@ public class RssMRUtilsTest {
       isException = true;
     }
     assertTrue(isException);
-    taskAttemptId = (1 << 18) + 0x123;
+    taskAttemptId = (1 << 20) + 0x123;
     mrTaskAttemptId = RssMRUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, taskAttemptId);
     long testId = RssMRUtils.convertTaskAttemptIdToLong(mrTaskAttemptId);
     assertEquals(taskAttemptId, testId);
-    TaskID taskID = new TaskID(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, (int)(1 << 17));
+    TaskID taskID = new TaskID(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, (int)(1 << 19));
     mrTaskAttemptId = new TaskAttemptID(taskID, 2);
     isException = false;
     try {
