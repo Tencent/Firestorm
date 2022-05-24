@@ -48,6 +48,8 @@ jobs:
 
   build:
 
+    needs: basic
+
     runs-on: ubuntu-20.04
 
     strategy:
@@ -76,6 +78,8 @@ jobs:
         path: "**/target/surefire-reports/*.txt"
 
   spotbugs:
+
+    needs: basic
 
     runs-on: ubuntu-20.04
 
