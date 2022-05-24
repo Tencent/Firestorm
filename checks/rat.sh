@@ -20,6 +20,7 @@ mvn -B -fae org.apache.rat:apache-rat-plugin:check
 
 rc=$?
 
+echo 'Files with unapproved/unknown license:'
 grep -r '!?????' --include='rat.txt' | awk '{print $3}'
 
 exit $rc
