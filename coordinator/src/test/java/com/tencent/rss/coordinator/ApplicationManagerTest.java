@@ -18,6 +18,7 @@
 
 package com.tencent.rss.coordinator;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -26,11 +27,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.tencent.rss.common.RemoteStorageInfo;
 import com.tencent.rss.common.util.Constants;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ApplicationManagerTest {
 
@@ -73,13 +76,23 @@ public class ApplicationManagerTest {
 
     remoteStoragePath = remotePath1 + Constants.COMMA_SPLIT_CHAR + remotePath3;
     expectedAvailablePath = Sets.newHashSet(remotePath1, remotePath3);
-    applicationManager.refreshRemoteStorage(remoteStoragePath, "");
+    applicationManager.refreshRemoteStorage(remoteStoragePath, "path1,k1=v1,k2=v2;path2,k3=v3");
     assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
     assertEquals(expectedAvailablePath, applicationManager.getRemoteStoragePathCounter().keySet());
+    Map<String, RemoteStorageInfo> storages = applicationManager.getAvailableRemoteStorageInfo();
+    RemoteStorageInfo remoteStorageInfo = storages.get(remotePath1);
+    assertEquals(2, remoteStorageInfo.getConfItems().size());
+    assertEquals("v1", remoteStorageInfo.getConfItems().get("k1"));
+    assertEquals("v2", remoteStorageInfo.getConfItems().get("k2"));
+    remoteStorageInfo = storages.get(remotePath3);
+    assertTrue(remoteStorageInfo.getConfItems().isEmpty());
 
     remoteStoragePath = remotePath1 + Constants.COMMA_SPLIT_CHAR + remotePath2;
     expectedAvailablePath = Sets.newHashSet(remotePath1, remotePath2);
-    applicationManager.refreshRemoteStorage(remoteStoragePath, "");
+    applicationManager.refreshRemoteStorage(remoteStoragePath, "path1,k1=v1,k2=v2;path2,k3=v3");
+    remoteStorageInfo = storages.get(remotePath2);
+    assertEquals(1, remoteStorageInfo.getConfItems().size());
+    assertEquals("v3", remoteStorageInfo.getConfItems().get("k3"));
     assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
     assertEquals(expectedAvailablePath, applicationManager.getRemoteStoragePathCounter().keySet());
     assertFalse(applicationManager.hasErrorInStatusCheck());
@@ -101,22 +114,22 @@ public class ApplicationManagerTest {
     applicationManager.incRemoteStorageCounter(remotePath1);
     String testApp1 = "testApp1";
     applicationManager.refreshAppId(testApp1);
-    assertEquals(remotePath2, applicationManager.pickRemoteStoragePath(testApp1));
-    assertEquals(remotePath2, applicationManager.getAppIdToRemoteStoragePath().get(testApp1));
+    assertEquals(remotePath2, applicationManager.pickRemoteStorage(testApp1).getPath());
+    assertEquals(remotePath2, applicationManager.getAppIdToRemoteStorageInfo().get(testApp1).getPath());
     assertEquals(1, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
     // return the same value if did the assignment already
-    assertEquals(remotePath2, applicationManager.pickRemoteStoragePath(testApp1));
+    assertEquals(remotePath2, applicationManager.pickRemoteStorage(testApp1).getPath());
     assertEquals(1, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
 
     Thread.sleep(appExpiredTime + 2000);
-    assertNull(applicationManager.getAppIdToRemoteStoragePath().get(testApp1));
+    assertNull(applicationManager.getAppIdToRemoteStorageInfo().get(testApp1));
     assertEquals(0, applicationManager.getRemoteStoragePathCounter().get(remotePath2).get());
     assertEquals(0.0, CoordinatorMetrics.gaugeInUsedRemoteStorage.get(storageHost2).get(), 0.5);
 
     // refresh app1, got remotePath2, then remove remotePath2,
     // it should be existed in counter until it expired
     applicationManager.refreshAppId(testApp1);
-    assertEquals(remotePath2, applicationManager.pickRemoteStoragePath(testApp1));
+    assertEquals(remotePath2, applicationManager.pickRemoteStorage(testApp1).getPath());
     remoteStoragePath = remotePath1;
     applicationManager.refreshRemoteStorage(remoteStoragePath, "");
     assertEquals(Sets.newConcurrentHashSet(Sets.newHashSet(remotePath1, remotePath2)),
@@ -162,7 +175,7 @@ public class ApplicationManagerTest {
       for (int i = 0; i < 1000; i++) {
         String appId = appPrefix + i;
         applicationManager.refreshAppId(appId);
-        applicationManager.pickRemoteStoragePath(appId);
+        applicationManager.pickRemoteStorage(appId);
       }
     });
 
@@ -170,7 +183,7 @@ public class ApplicationManagerTest {
       for (int i = 1000; i < 2000; i++) {
         String appId = appPrefix + i;
         applicationManager.refreshAppId(appId);
-        applicationManager.pickRemoteStoragePath(appId);
+        applicationManager.pickRemoteStorage(appId);
       }
     });
 
@@ -178,7 +191,7 @@ public class ApplicationManagerTest {
       for (int i = 2000; i < 3000; i++) {
         String appId = appPrefix + i;
         applicationManager.refreshAppId(appId);
-        applicationManager.pickRemoteStoragePath(appId);
+        applicationManager.pickRemoteStorage(appId);
       }
     });
     pickThread1.start();

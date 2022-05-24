@@ -394,7 +394,7 @@ public class RssShuffleManager implements ShuffleManager {
     final int indexReadLimit = sparkConf.getInt(RssSparkConfig.RSS_INDEX_READ_LIMIT,
         RssSparkConfig.RSS_INDEX_READ_LIMIT_DEFAULT_VALUE);
     RssShuffleHandle rssShuffleHandle = (RssShuffleHandle) handle;
-    final String shuffleRemoteStoragePath = rssShuffleHandle.getRemoteStorage().getUriStr();
+    final String shuffleRemoteStoragePath = rssShuffleHandle.getRemoteStorage().getPath();
     final int partitionNum = rssShuffleHandle.getDependency().partitioner().numPartitions();
     long readBufferSize = sparkConf.getSizeAsBytes(RssSparkConfig.RSS_CLIENT_READ_BUFFER_SIZE,
         RssSparkConfig.RSS_CLIENT_READ_BUFFER_SIZE_DEFAULT_VALUE);

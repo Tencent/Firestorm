@@ -260,18 +260,14 @@ public class CoordinatorGrpcService extends CoordinatorServerGrpc.CoordinatorSer
       StreamObserver<FetchRemoteStorageResponse> responseObserver) {
     FetchRemoteStorageResponse response;
     StatusCode status = StatusCode.SUCCESS;
-    String remoteStoragePath = "";
     String appId = request.getAppId();
     try {
       RemoteStorage.Builder rsBuilder = RemoteStorage.newBuilder();
-      remoteStoragePath = coordinatorServer.getApplicationManager().pickRemoteStoragePath(appId);
-      rsBuilder.setPath(remoteStoragePath);
-      RemoteStorageInfo rsInfo = coordinatorServer
-          .getApplicationManager().getAvailableRemoteStorageInfo().get(remoteStoragePath);
+      RemoteStorageInfo rsInfo = coordinatorServer.getApplicationManager().pickRemoteStorage(appId);
       if (rsInfo == null) {
-        LOG.error("Remote storage [{}] is picked but it does not exist in "
-            + "the available storage info map", remoteStoragePath);
+        LOG.error("Remote storage of {} do not exist.", appId);
       } else {
+        rsBuilder.setPath(rsInfo.getPath());
         for (Map.Entry<String, String> entry : rsInfo.getConfItems().entrySet()) {
           rsBuilder.addRemoteStorageConf(
               RemoteStorageConfItem.newBuilder().setKey(entry.getKey()).setValue(entry.getValue()).build());

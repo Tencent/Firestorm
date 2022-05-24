@@ -107,8 +107,8 @@ public class ClientConfManager implements Closeable {
     }
 
     boolean hasRemoteStorageConf = false;
-    String remoteStoragePathStr = "";
-    String remoteStorageConfStr = "";
+    String remoteStoragePath = "";
+    String remoteStorageConf = "";
     for (String item : content.split(IOUtils.LINE_SEPARATOR_UNIX)) {
       String confItem = item.trim();
       if (!StringUtils.isEmpty(confItem)) {
@@ -116,9 +116,9 @@ public class ClientConfManager implements Closeable {
         if (confKV.length == 2) {
           if (CoordinatorConf.COORDINATOR_REMOTE_STORAGE_PATH.key().equals(confKV[0])) {
             hasRemoteStorageConf = true;
-            remoteStoragePathStr = confKV[1];
+            remoteStoragePath = confKV[1];
           } else if (CoordinatorConf.COORDINATOR_REMOTE_STORAGE_CLUSTER_CONF.key().equals(confKV[0])) {
-            remoteStorageConfStr = confKV[1];
+            remoteStorageConf = confKV[1];
           } else {
             newClientConf.put(confKV[0], confKV[1]);
           }
@@ -126,7 +126,7 @@ public class ClientConfManager implements Closeable {
       }
     }
     if (hasRemoteStorageConf) {
-      applicationManager.refreshRemoteStorage(remoteStoragePathStr, remoteStorageConfStr);
+      applicationManager.refreshRemoteStorage(remoteStoragePath, remoteStorageConf);
     }
 
     clientConf = newClientConf;
