@@ -121,4 +121,9 @@ public class HdfsStorageManager extends SingleStorageManager {
   public Map<String, HdfsStorage> getAppIdToStorages() {
     return appIdToStorages;
   }
+
+  @VisibleForTesting
+  public Map<String, HdfsStorage> getPathToStorages() {
+    return pathToStorages;
+  }
 }

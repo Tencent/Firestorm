@@ -454,4 +454,9 @@ public class RssShuffleManager implements ShuffleManager {
   public SparkConf getSparkConf() {
     return sparkConf;
   }
+
+  @VisibleForTesting
+  public void setAppId(String appId) {
+    this.appId = appId;
+  }
 }

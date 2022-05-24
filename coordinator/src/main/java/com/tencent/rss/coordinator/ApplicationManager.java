@@ -76,7 +76,7 @@ public class ApplicationManager {
     if (!StringUtils.isEmpty(remoteStoragePath)) {
       LOG.info("Refresh remote storage with {}", remoteStoragePath);
       Set<String> paths = Sets.newHashSet(remoteStoragePath.split(Constants.COMMA_SPLIT_CHAR));
-      Map<String, Map<String, String>> confKVs = CoordinatorUtils.extractClusterConf(remoteStorageConf);
+      Map<String, Map<String, String>> confKVs = CoordinatorUtils.extractRemoteStorageConf(remoteStorageConf);
       // add remote path if not exist
       for (String path : paths) {
         if (!availableRemoteStorageInfo.containsKey(path)) {

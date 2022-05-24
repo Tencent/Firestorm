@@ -42,6 +42,7 @@ public class ApplicationManagerTest {
   private String remotePath1 = "hdfs://path1";
   private String remotePath2 = "hdfs://path2";
   private String remotePath3 = "hdfs://path3";
+  private String remoteStorageConf = "path1,k1=v1,k2=v2;path2,k3=v3";
 
   @BeforeAll
   public static void setup() {
@@ -76,7 +77,7 @@ public class ApplicationManagerTest {
 
     remoteStoragePath = remotePath1 + Constants.COMMA_SPLIT_CHAR + remotePath3;
     expectedAvailablePath = Sets.newHashSet(remotePath1, remotePath3);
-    applicationManager.refreshRemoteStorage(remoteStoragePath, "path1,k1=v1,k2=v2;path2,k3=v3");
+    applicationManager.refreshRemoteStorage(remoteStoragePath, remoteStorageConf);
     assertEquals(expectedAvailablePath, applicationManager.getAvailableRemoteStorageInfo().keySet());
     assertEquals(expectedAvailablePath, applicationManager.getRemoteStoragePathCounter().keySet());
     Map<String, RemoteStorageInfo> storages = applicationManager.getAvailableRemoteStorageInfo();
@@ -89,7 +90,7 @@ public class ApplicationManagerTest {
 
     remoteStoragePath = remotePath1 + Constants.COMMA_SPLIT_CHAR + remotePath2;
     expectedAvailablePath = Sets.newHashSet(remotePath1, remotePath2);
-    applicationManager.refreshRemoteStorage(remoteStoragePath, "path1,k1=v1,k2=v2;path2,k3=v3");
+    applicationManager.refreshRemoteStorage(remoteStoragePath, remoteStorageConf);
     remoteStorageInfo = storages.get(remotePath2);
     assertEquals(1, remoteStorageInfo.getConfItems().size());
     assertEquals("v3", remoteStorageInfo.getConfItems().get("k3"));

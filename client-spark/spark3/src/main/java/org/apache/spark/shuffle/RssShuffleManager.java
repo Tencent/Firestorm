@@ -678,4 +678,9 @@ public class RssShuffleManager implements ShuffleManager {
       reporter.incWriteTime(v);
     }
   }
+
+  @VisibleForTesting
+  public void setAppId(String appId) {
+    this.id = new AtomicReference<>(appId);
+  }
 }

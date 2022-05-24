@@ -51,7 +51,7 @@ public class CoordinatorUtilsTest {
   @Test
   public void testExtractClusterConf() {
     String confStr = "h1,k1-1=v1-1,k1-2=v1-2;h2,k2-1=v2-1";
-    Map<String, Map<String, String>> conf = CoordinatorUtils.extractClusterConf(confStr);
+    Map<String, Map<String, String>> conf = CoordinatorUtils.extractRemoteStorageConf(confStr);
     Map<String, Map<String, String>> expectConf = Maps.newTreeMap();
     expectConf.put("h1", ImmutableMap.of("k1-1", "v1-1", "k1-2", "v1-2"));
     expectConf.put("h2", ImmutableMap.of("k2-1", "v2-1"));
@@ -59,20 +59,20 @@ public class CoordinatorUtilsTest {
     compareConfMap(expectConf, conf);
 
     confStr = "h1,k1-1=v1-1,k1-2=v1-2;";
-    conf = CoordinatorUtils.extractClusterConf(confStr);
+    conf = CoordinatorUtils.extractRemoteStorageConf(confStr);
     expectConf = Maps.newTreeMap();
     expectConf.put("h1", ImmutableMap.of("k1-1", "v1-1", "k1-2", "v1-2"));
     assertEquals(1, conf.size());
     compareConfMap(expectConf, conf);
 
     confStr = "h1,k1-1=v1-1,k1-2=v1-2;h1,k1-1=";
-    conf = CoordinatorUtils.extractClusterConf(confStr);
+    conf = CoordinatorUtils.extractRemoteStorageConf(confStr);
     expectConf = Maps.newTreeMap();
     expectConf.put("h1", ImmutableMap.of("k1-1", "v1-1", "k1-2", "v1-2"));
     assertEquals(0, conf.size());
 
     confStr = "";
-    conf = CoordinatorUtils.extractClusterConf(confStr);
+    conf = CoordinatorUtils.extractRemoteStorageConf(confStr);
     expectConf = Maps.newTreeMap();
     expectConf.put("h1", ImmutableMap.of("k1-1", "v1-1", "k1-2", "v1-2"));
     assertEquals(0, conf.size());

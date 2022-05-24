@@ -35,6 +35,8 @@ import com.tencent.rss.storage.util.StorageType;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class HdfsStorageManagerTest {
 
@@ -61,25 +63,28 @@ public class HdfsStorageManagerTest {
     final String remoteStoragePath3 = "hdfs://path3";
     hdfsStorageManager.registerRemoteStorage(
         "app1",
-        new RemoteStorageInfo("hdfs://path1", ImmutableMap.of("k1", "v1", "k2", "v2")));
+        new RemoteStorageInfo(remoteStoragePath1, ImmutableMap.of("k1", "v1", "k2", "v2")));
     hdfsStorageManager.registerRemoteStorage(
         "app2",
-        new RemoteStorageInfo("hdfs://path2", ImmutableMap.of("k3", "v3")));
+        new RemoteStorageInfo(remoteStoragePath2, ImmutableMap.of("k3", "v3")));
     hdfsStorageManager.registerRemoteStorage(
         "app3",
-        new RemoteStorageInfo("hdfs://path3", Maps.newHashMap()));
+        new RemoteStorageInfo(remoteStoragePath3, Maps.newHashMap()));
     Map<String, HdfsStorage> appStorageMap =  hdfsStorageManager.getAppIdToStorages();
     assertEquals(3, appStorageMap.size());
     assertEquals(Sets.newHashSet("app1", "app2", "app3"), appStorageMap.keySet());
     HdfsStorage hs1 = hdfsStorageManager.getAppIdToStorages().get("app1");
+    assertSame(hdfsStorageManager.getPathToStorages().get(remoteStoragePath1), hs1);
     assertEquals("v1", hs1.getConf().get("k1"));
     assertEquals("v2", hs1.getConf().get("k2"));
     assertNull(hs1.getConf().get("k3"));
     HdfsStorage hs2 = hdfsStorageManager.getAppIdToStorages().get("app2");
+    assertSame(hdfsStorageManager.getPathToStorages().get(remoteStoragePath2), hs2);
     assertEquals("v3", hs2.getConf().get("k3"));
     assertNull(hs2.getConf().get("k1"));
     assertNull(hs2.getConf().get("k2"));
     HdfsStorage hs3 = hdfsStorageManager.getAppIdToStorages().get("app3");
+    assertSame(hdfsStorageManager.getPathToStorages().get(remoteStoragePath3), hs3);
     assertNull(hs3.getConf().get("k1"));
     assertNull(hs3.getConf().get("k2"));
     assertNull(hs3.getConf().get("k3"));

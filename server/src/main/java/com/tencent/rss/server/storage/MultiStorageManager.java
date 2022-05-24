@@ -148,4 +148,8 @@ public class MultiStorageManager implements StorageManager {
     warmStorageManager.removeResources(appId, shuffleSet);
     coldStorageManager.removeResources(appId, shuffleSet);
   }
+
+  public StorageManager getColdStorageManager() {
+    return coldStorageManager;
+  }
 }

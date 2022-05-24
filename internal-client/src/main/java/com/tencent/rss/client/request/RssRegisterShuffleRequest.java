@@ -19,39 +19,34 @@
 package com.tencent.rss.client.request;
 
 import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.Maps;
 
 import com.tencent.rss.common.PartitionRange;
+import com.tencent.rss.common.RemoteStorageInfo;
 
 public class RssRegisterShuffleRequest {
 
   private String appId;
   private int shuffleId;
   private List<PartitionRange> partitionRanges;
-  private String remoteStorage;
-  private Map<String, String> remoteStorageConf;
+  private RemoteStorageInfo remoteStorageInfo;
 
   public RssRegisterShuffleRequest(
       String appId,
       int shuffleId,
       List<PartitionRange> partitionRanges,
-      String remoteStorage,
-      Map<String, String> remoteStorageConf) {
+      RemoteStorageInfo remoteStorageInfo) {
     this.appId = appId;
     this.shuffleId = shuffleId;
     this.partitionRanges = partitionRanges;
-    this.remoteStorage = remoteStorage;
-    this.remoteStorageConf = remoteStorageConf;
+    this.remoteStorageInfo = remoteStorageInfo;
   }
 
   public RssRegisterShuffleRequest(
       String appId,
       int shuffleId,
       List<PartitionRange> partitionRanges,
-      String remoteStorage) {
-    this(appId, shuffleId, partitionRanges, remoteStorage, Maps.newHashMap());
+      String remoteStoragePath) {
+    this(appId, shuffleId, partitionRanges, new RemoteStorageInfo(remoteStoragePath));
   }
 
   public String getAppId() {
@@ -62,15 +57,11 @@ public class RssRegisterShuffleRequest {
     return shuffleId;
   }
 
-  public String getRemoteStorage() {
-    return remoteStorage;
-  }
-
   public List<PartitionRange> getPartitionRanges() {
     return partitionRanges;
   }
 
-  public Map<String, String> getRemoteStorageConf() {
-    return remoteStorageConf;
+  public RemoteStorageInfo getRemoteStorageInfo() {
+    return remoteStorageInfo;
   }
 }

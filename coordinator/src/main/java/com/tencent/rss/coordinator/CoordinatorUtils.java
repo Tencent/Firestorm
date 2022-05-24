@@ -91,7 +91,7 @@ public class CoordinatorUtils {
     }
   }
 
-  public static Map<String, Map<String, String>> extractClusterConf(String confString) {
+  public static Map<String, Map<String, String>> extractRemoteStorageConf(String confString) {
     Map<String, Map<String, String>> res = Maps.newHashMap();
     if (StringUtils.isEmpty(confString)) {
       return res;
