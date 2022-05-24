@@ -44,7 +44,12 @@ jobs:
         distribution: 'adopt'
         cache: maven
     - name: Execute tests
-      run: checks/${{ matrix.check }}.sh -Pspark2,spark3,mr
+      env:
+        PROFILES: spark2 spark3 mr
+      run: >
+        for profile in $PROFILES; do
+          checks/${{ matrix.check }}.sh -P${profile};
+        done
 
   build:
 
