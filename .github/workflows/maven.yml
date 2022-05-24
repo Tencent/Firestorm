@@ -32,6 +32,7 @@ jobs:
       matrix:
         check:
           - checkstyle
+          - spotbugs
       fail-fast: false
 
     steps:
