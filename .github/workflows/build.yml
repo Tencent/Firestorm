@@ -24,24 +24,24 @@ on: [push, pull_request]
 
 jobs:
   checkstyle:
-    uses: ./.github/workflows/seq.yml
+    uses: ./.github/workflows/sequential.yml
     with:
       maven-args: checkstyle:check
 
   license:
-    uses: ./.github/workflows/seq.yml
+    uses: ./.github/workflows/sequential.yml
     with:
       maven-args: org.apache.rat:apache-rat-plugin:check
       summary: "grep -r '!?????' --include='rat.txt' | awk '{print $3}'"
 
   spotbugs:
-    uses: ./.github/workflows/seq.yml
+    uses: ./.github/workflows/sequential.yml
     with:
       maven-args: test-compile spotbugs:check
       experimental: true
 
   build:
-    uses: ./.github/workflows/matrix.yml
+    uses: ./.github/workflows/parallel.yml
     with:
       maven-args: package
       reports-path: "**/target/surefire-reports/*.txt"
