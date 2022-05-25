@@ -20,15 +20,14 @@ package com.tencent.rss.test;
 
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.tencent.rss.server.storage.HdfsStorageManager;
-import com.tencent.rss.server.storage.MultiStorageManager;
-import com.tencent.rss.storage.common.HdfsStorage;
 import scala.Tuple2;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.TaskContextImpl;
+import org.apache.spark.shuffle.reader.RssShuffleReader;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.ShuffleDependency;
@@ -51,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RemoteStorageRegisterTest extends IntegrationTestBase {
+public class GetReaderTest extends IntegrationTestBase {
 
   @Test
   public void test() throws Exception {
@@ -61,13 +60,16 @@ public class RemoteStorageRegisterTest extends IntegrationTestBase {
     sparkConf.setMaster("local[4]");
     final String remoteStorage1 = "hdfs://h1/p1";
     final String remoteStorage2 = "hdfs://h2/p2";
+    final TaskContextImpl mockTaskContextImpl = new TaskContextImpl(
+        0, 0,  0, 0, 0,
+        null,null,null, null);
 
     String cfgFile = HDFS_URI + "/test/client_conf";
     Path path = new Path(cfgFile);
     FSDataOutputStream out = fs.create(path);
     PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(out));
     printWriter.println(CoordinatorConf.COORDINATOR_REMOTE_STORAGE_PATH.key()
-        + " " + String.join(Constants.COMMA_SPLIT_CHAR, remoteStorage1, remoteStorage2));
+        + " " + String.join(Constants.COMMA_SPLIT_CHAR,  remoteStorage1, remoteStorage2));
     printWriter.println(CoordinatorConf.COORDINATOR_REMOTE_STORAGE_CLUSTER_CONF.key() + " h2,k1=v1,k2=v2");
     printWriter.println("spark.rss.storage.type " + StorageType.MEMORY_LOCALFILE_HDFS.name());
     printWriter.flush();
@@ -87,8 +89,6 @@ public class RemoteStorageRegisterTest extends IntegrationTestBase {
     Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
 
     SparkSession sparkSession = SparkSession.builder().config(sparkConf).getOrCreate();
-    RssShuffleManager rssShuffleManager = (RssShuffleManager) sparkSession.sparkContext().env().shuffleManager();
-    rssShuffleManager.setAppId("test1");
     JavaSparkContext jsc1 = new JavaSparkContext(sparkSession.sparkContext());
     JavaPairRDD<String, Tuple2<Integer, Integer>> javaPairRDD1 = TestUtils.combineByKeyRDD(TestUtils.getRDD(jsc1));
     ShuffleDependency shuffleDependency1 = (ShuffleDependency) javaPairRDD1.rdd().dependencies().head();
@@ -105,26 +105,37 @@ public class RemoteStorageRegisterTest extends IntegrationTestBase {
     assertEquals(remoteStorage1, remoteStorageInfo1.getPath());
     assertTrue(remoteStorageInfo2.getConfItems().isEmpty());
 
+    RssShuffleManager rssShuffleManager = (RssShuffleManager) sparkSession.sparkContext().env().shuffleManager();
+    RssShuffleHandle rssShuffleHandle  = (RssShuffleHandle) shuffleDependency2.shuffleHandle();
+    RssShuffleReader rssShuffleReader = (RssShuffleReader) rssShuffleManager.getReader(
+        rssShuffleHandle, 0, 0, mockTaskContextImpl);
+    Configuration hadoopConf =  rssShuffleReader.getHadoopConf();
+    assertNull(hadoopConf.get("k1"));
+    assertNull(hadoopConf.get("k2"));
+    Configuration commonHadoopConf = jsc1.hadoopConfiguration();
+    assertNull(commonHadoopConf.get("k1"));
+    assertNull(commonHadoopConf.get("k2"));
+
     rssShuffleManager = (RssShuffleManager) sparkSession.sparkContext().env().shuffleManager();
     rssShuffleManager.setAppId("test2");
     JavaSparkContext jsc2 = new JavaSparkContext(sparkSession.sparkContext());
     JavaPairRDD<String, Tuple2<Integer, Integer>> javaPairRDD = TestUtils.combineByKeyRDD(TestUtils.getRDD(jsc2));
     ShuffleDependency shuffleDependency = (ShuffleDependency) javaPairRDD.rdd().dependencies().head();
-    RssShuffleHandle rssShuffleHandle = (RssShuffleHandle) shuffleDependency.shuffleHandle();
+    rssShuffleHandle = (RssShuffleHandle) shuffleDependency.shuffleHandle();
     RemoteStorageInfo remoteStorageInfo3 = rssShuffleHandle.getRemoteStorage();
     assertEquals(remoteStorage1, remoteStorageInfo1.getPath());
     assertEquals(2, remoteStorageInfo3.getConfItems().size());
     assertEquals("v1", remoteStorageInfo3.getConfItems().get("k1"));
     assertEquals("v2", remoteStorageInfo3.getConfItems().get("k2"));
 
-    HdfsStorageManager hdfsStorageManager =
-        (HdfsStorageManager) ((MultiStorageManager) shuffleServers.get(0).getStorageManager()).getColdStorageManager();
-    Map<String, HdfsStorage> hs = hdfsStorageManager.getAppIdToStorages();
-    HdfsStorage hdfsStorage1 = hs.get("test1");
-    assertNull(hdfsStorage1.getConf().get("k1"));
-    assertNull(hdfsStorage1.getConf().get("k2"));
-    HdfsStorage hdfsStorage2 = hs.get("test2");
-    assertEquals("v1", hdfsStorage2.getConf().get("k1"));
-    assertEquals("v2", remoteStorageInfo3.getConfItems().get("k2"));
+    rssShuffleReader = (RssShuffleReader) rssShuffleManager.getReader(
+        rssShuffleHandle, 0, 0, mockTaskContextImpl);
+    hadoopConf =  rssShuffleReader.getHadoopConf();
+    assertEquals("v1", hadoopConf.get("k1"));
+    assertEquals("v2", hadoopConf.get("k2"));
+    // hadoop conf of reader and spark context should be isolated
+    commonHadoopConf = jsc2.hadoopConfiguration();
+    assertNull(commonHadoopConf.get("k1"));
+    assertNull(commonHadoopConf.get("k2"));
   }
 }

@@ -89,15 +89,13 @@ public class HdfsStorageManager extends SingleStorageManager {
     String remoteStorage = remoteStorageInfo.getPath();
     Map<String, String> remoteStorageConf = remoteStorageInfo.getConfItems();
     if (!pathToStorages.containsKey(remoteStorage)) {
-      if (remoteStorageConf == null || remoteStorageConf.isEmpty()) {
-        pathToStorages.putIfAbsent(remoteStorage, new HdfsStorage(remoteStorage, hadoopConf));
-      } else {
-        Configuration curHadoopConf = new Configuration(hadoopConf);
+      Configuration remoteStorageHadoopConf = new Configuration(hadoopConf);
+      if (remoteStorageConf != null && remoteStorageConf.size() > 0) {
         for (Map.Entry<String, String> entry : remoteStorageConf.entrySet()) {
-          curHadoopConf.setStrings(entry.getKey(), entry.getValue());
+          remoteStorageHadoopConf.setStrings(entry.getKey(), entry.getValue());
         }
-        pathToStorages.putIfAbsent(remoteStorage, new HdfsStorage(remoteStorage, curHadoopConf));
       }
+      pathToStorages.putIfAbsent(remoteStorage, new HdfsStorage(remoteStorage, remoteStorageHadoopConf));
       // registerRemoteStorage may be called in different threads,
       // make sure metrics won't be created duplicated
       // there shouldn't have performance issue because

@@ -22,6 +22,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import scala.Option;
+import scala.Tuple2;
+import scala.collection.Seq;
+import scala.collection.immutable.Map;
+
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.TaskContext;
 import org.apache.spark.executor.TaskMetrics;
@@ -34,9 +41,6 @@ import org.apache.spark.shuffle.reader.RssShuffleReader;
 import org.apache.spark.util.AccumulatorV2;
 import org.apache.spark.util.TaskCompletionListener;
 import org.apache.spark.util.TaskFailureListener;
-import scala.Option;
-import scala.Tuple2;
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.ShuffleDependency;
@@ -48,13 +52,13 @@ import org.apache.spark.shuffle.RssSparkConfig;
 import org.apache.spark.shuffle.RssShuffleManager;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.Test;
+
 import com.tencent.rss.common.RemoteStorageInfo;
 import com.tencent.rss.common.util.Constants;
 import com.tencent.rss.coordinator.CoordinatorConf;
 import com.tencent.rss.server.ShuffleServerConf;
 import com.tencent.rss.storage.util.StorageType;
-import scala.collection.Seq;
-import scala.collection.immutable.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -112,22 +116,37 @@ public class GetReaderTest extends IntegrationTestBase {
     assertTrue(remoteStorageInfo2.getConfItems().isEmpty());
 
     RssShuffleManager rssShuffleManager = (RssShuffleManager) sparkSession.sparkContext().env().shuffleManager();
+    RssShuffleHandle rssShuffleHandle  = (RssShuffleHandle) shuffleDependency2.shuffleHandle();
+    RssShuffleReader rssShuffleReader = (RssShuffleReader) rssShuffleManager.getReader(
+        rssShuffleHandle, 0, 0, new MockTaskContext(), new TempShuffleReadMetrics());
+    Configuration hadoopConf =  rssShuffleReader.getHadoopConf();
+    assertNull(hadoopConf.get("k1"));
+    assertNull(hadoopConf.get("k2"));
+    Configuration commonHadoopConf = jsc1.hadoopConfiguration();
+    assertNull(commonHadoopConf.get("k1"));
+    assertNull(commonHadoopConf.get("k2"));
+
+    rssShuffleManager = (RssShuffleManager) sparkSession.sparkContext().env().shuffleManager();
     rssShuffleManager.setAppId("test2");
     JavaSparkContext jsc2 = new JavaSparkContext(sparkSession.sparkContext());
     JavaPairRDD<String, Tuple2<Integer, Integer>> javaPairRDD = TestUtils.combineByKeyRDD(TestUtils.getRDD(jsc2));
     ShuffleDependency shuffleDependency = (ShuffleDependency) javaPairRDD.rdd().dependencies().head();
-    RssShuffleHandle rssShuffleHandle = (RssShuffleHandle) shuffleDependency.shuffleHandle();
+    rssShuffleHandle = (RssShuffleHandle) shuffleDependency.shuffleHandle();
     RemoteStorageInfo remoteStorageInfo3 = rssShuffleHandle.getRemoteStorage();
     assertEquals(remoteStorage1, remoteStorageInfo1.getPath());
     assertEquals(2, remoteStorageInfo3.getConfItems().size());
     assertEquals("v1", remoteStorageInfo3.getConfItems().get("k1"));
     assertEquals("v2", remoteStorageInfo3.getConfItems().get("k2"));
 
-    RssShuffleReader rssShuffleReader = (RssShuffleReader) rssShuffleManager.getReader(
-          rssShuffleHandle, 0, 0, new MockTaskContext(), new TempShuffleReadMetrics());
-    Configuration hadoopConf =  rssShuffleReader.getHadoopConf();
+    rssShuffleReader = (RssShuffleReader) rssShuffleManager.getReader(
+        rssShuffleHandle, 0, 0, new MockTaskContext(), new TempShuffleReadMetrics());
+    hadoopConf =  rssShuffleReader.getHadoopConf();
     assertEquals("v1", hadoopConf.get("k1"));
     assertEquals("v2", hadoopConf.get("k2"));
+    // hadoop conf of reader and spark context should be isolated
+    commonHadoopConf = jsc2.hadoopConfiguration();
+    assertNull(commonHadoopConf.get("k1"));
+    assertNull(commonHadoopConf.get("k2"));
   }
 
   private static class MockTaskContext extends TaskContext {
