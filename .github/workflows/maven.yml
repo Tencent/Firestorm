@@ -80,7 +80,7 @@ jobs:
       shell: bash
       continue-on-error: true
     - name: Summary of failures
-      if: ${{ always() && inputs.summary != '' }}
+      if: ${{ (failure() || inputs.experimental) && inputs.summary != '' }}
       run: ${{ inputs.summary }}
       continue-on-error: true
     - name: Upload test reports
