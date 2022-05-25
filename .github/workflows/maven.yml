@@ -73,9 +73,11 @@ jobs:
     - name: Execute maven with -P${{ matrix.profile }}
       if: ${{ !inputs.experimental }}
       run: mvn -B -fae -P${{ matrix.profile }} ${{ inputs.maven-args }} | tee /tmp/maven.log
+      shell: bash
     - name: Execute maven with -P${{ matrix.profile }} (experimental)
       if: ${{ inputs.experimental }}
       run: mvn -B -fae -P${{ matrix.profile }} ${{ inputs.maven-args }} | tee /tmp/maven.log
+      shell: bash
       continue-on-error: true
     - name: Summary of failures
       if: ${{ always() && inputs.summary != '' }}
