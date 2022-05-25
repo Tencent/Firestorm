@@ -138,8 +138,8 @@ public class ConfigUtils {
     } else if (o.getClass() == Double.class) {
       double value = ((Double) o);
       if (value == 0.0
-        || (value >= Float.MIN_VALUE && value <= Float.MAX_VALUE)
-        || (value >= -Float.MAX_VALUE && value <= -Float.MIN_VALUE)) {
+          || (value >= Float.MIN_VALUE && value <= Float.MAX_VALUE)
+          || (value >= -Float.MAX_VALUE && value <= -Float.MIN_VALUE)) {
         return (float) value;
       } else {
         throw new IllegalArgumentException(String.format(

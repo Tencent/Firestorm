@@ -60,7 +60,7 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
         processBlockIds,
         storageBasePath,
         hadoopConf);
-    }
+  }
 
   @Override
   protected void init(String fullShufflePath) {
@@ -106,10 +106,10 @@ public class UploadedHdfsClientReadHandler extends HdfsClientReadHandler {
     // init lazily like LocalFileClientRead
     if (readHandlers.isEmpty()) {
       String fullShufflePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
-        ShuffleStorageUtils.getUploadShuffleDataPath(appId, shuffleId, partitionId));
+          ShuffleStorageUtils.getUploadShuffleDataPath(appId, shuffleId, partitionId));
       init(fullShufflePath);
       String combinePath = ShuffleStorageUtils.getFullShuffleDataFolder(storageBasePath,
-        ShuffleStorageUtils.getCombineDataPath(appId, shuffleId));
+          ShuffleStorageUtils.getCombineDataPath(appId, shuffleId));
       init(combinePath);
     }
     return super.readShuffleData();

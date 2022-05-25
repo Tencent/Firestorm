@@ -435,27 +435,27 @@ public class ShuffleUploader {
 
 
   private long addPartition(ShuffleFileInfo shuffleFileInfo, int partition) {
-      String filePrefix = ShuffleStorageUtils.generateAbsoluteFilePrefix(
-          localStorage.getBasePath(), shuffleFileInfo.getKey(), partition, serverId);
-      String dataFileName = ShuffleStorageUtils.generateDataFileName(filePrefix);
-      String indexFileName = ShuffleStorageUtils.generateIndexFileName(filePrefix);
+    String filePrefix = ShuffleStorageUtils.generateAbsoluteFilePrefix(
+        localStorage.getBasePath(), shuffleFileInfo.getKey(), partition, serverId);
+    String dataFileName = ShuffleStorageUtils.generateDataFileName(filePrefix);
+    String indexFileName = ShuffleStorageUtils.generateIndexFileName(filePrefix);
 
-      File dataFile = new File(dataFileName);
-      if (!dataFile.exists()) {
-        LOG.error("{} don't exist!", dataFileName);
-        return 0;
-      }
+    File dataFile = new File(dataFileName);
+    if (!dataFile.exists()) {
+      LOG.error("{} don't exist!", dataFileName);
+      return 0;
+    }
 
-      File indexFile = new File(indexFileName);
-      if (!indexFile.exists()) {
-        LOG.error("{} don't exist!", indexFileName);
-        return 0;
-      }
+    File indexFile = new File(indexFileName);
+    if (!indexFile.exists()) {
+      LOG.error("{} don't exist!", indexFileName);
+      return 0;
+    }
 
-      shuffleFileInfo.getDataFiles().add(dataFile);
-      shuffleFileInfo.getIndexFiles().add(indexFile);
-      shuffleFileInfo.getPartitions().add(partition);
-      return dataFile.length();
+    shuffleFileInfo.getDataFiles().add(dataFile);
+    shuffleFileInfo.getIndexFiles().add(indexFile);
+    shuffleFileInfo.getPartitions().add(partition);
+    return dataFile.length();
   }
 
   @VisibleForTesting
@@ -487,7 +487,7 @@ public class ShuffleUploader {
           expiredShuffleKeys.add(shuffleKey);
         }
       } else {
-          expiredShuffleKeys.add(shuffleKey);
+        expiredShuffleKeys.add(shuffleKey);
       }
     });
   }

@@ -30,30 +30,30 @@ import com.google.common.collect.ImmutableMap;
 public class UnitConverter {
 
   private static final Map<String, ByteUnit> byteSuffixes =
-    ImmutableMap.<String, ByteUnit>builder()
-      .put("b", ByteUnit.BYTE)
-      .put("k", ByteUnit.KiB)
-      .put("kb", ByteUnit.KiB)
-      .put("m", ByteUnit.MiB)
-      .put("mb", ByteUnit.MiB)
-      .put("g", ByteUnit.GiB)
-      .put("gb", ByteUnit.GiB)
-      .put("t", ByteUnit.TiB)
-      .put("tb", ByteUnit.TiB)
-      .put("p", ByteUnit.PiB)
-      .put("pb", ByteUnit.PiB)
-      .build();
+      ImmutableMap.<String, ByteUnit>builder()
+          .put("b", ByteUnit.BYTE)
+          .put("k", ByteUnit.KiB)
+          .put("kb", ByteUnit.KiB)
+          .put("m", ByteUnit.MiB)
+          .put("mb", ByteUnit.MiB)
+          .put("g", ByteUnit.GiB)
+          .put("gb", ByteUnit.GiB)
+          .put("t", ByteUnit.TiB)
+          .put("tb", ByteUnit.TiB)
+          .put("p", ByteUnit.PiB)
+          .put("pb", ByteUnit.PiB)
+          .build();
 
   private static final Map<String, TimeUnit> timeSuffixes =
-    ImmutableMap.<String, TimeUnit>builder()
-      .put("us", TimeUnit.MICROSECONDS)
-      .put("ms", TimeUnit.MILLISECONDS)
-      .put("s", TimeUnit.SECONDS)
-      .put("m", TimeUnit.MINUTES)
-      .put("min", TimeUnit.MINUTES)
-      .put("h", TimeUnit.HOURS)
-      .put("d", TimeUnit.DAYS)
-      .build();
+      ImmutableMap.<String, TimeUnit>builder()
+          .put("us", TimeUnit.MICROSECONDS)
+          .put("ms", TimeUnit.MILLISECONDS)
+          .put("s", TimeUnit.SECONDS)
+          .put("m", TimeUnit.MINUTES)
+          .put("min", TimeUnit.MINUTES)
+          .put("h", TimeUnit.HOURS)
+          .put("d", TimeUnit.DAYS)
+          .build();
 
   public static boolean isByteString(String str) {
     String strLower = str.toLowerCase();
@@ -101,8 +101,8 @@ public class UnitConverter {
       }
     } catch (NumberFormatException e) {
       String byteError = "Size must be specified as bytes (b), "
-        + "kibibytes (k), mebibytes (m), gibibytes (g), tebibytes (t), or pebibytes(p). "
-        + "E.g. 50b, 100k, or 250m.";
+          + "kibibytes (k), mebibytes (m), gibibytes (g), tebibytes (t), or pebibytes(p). "
+          + "E.g. 50b, 100k, or 250m.";
       throw new NumberFormatException(byteError + "\n" + e.getMessage());
     }
   }
@@ -172,8 +172,8 @@ public class UnitConverter {
       return unit.convert(val, suffix != null ? timeSuffixes.get(suffix) : unit);
     } catch (NumberFormatException e) {
       String timeError = "Time must be specified as seconds (s), "
-        + "milliseconds (ms), microseconds (us), minutes (m or min), hour (h), or day (d). "
-        + "E.g. 50s, 100ms, or 250us.";
+          + "milliseconds (ms), microseconds (us), minutes (m or min), hour (h), or day (d). "
+          + "E.g. 50s, 100ms, or 250us.";
 
       throw new NumberFormatException(timeError + "\n" + e.getMessage());
     }
