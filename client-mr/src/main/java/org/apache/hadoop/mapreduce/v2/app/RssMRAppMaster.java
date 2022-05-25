@@ -126,6 +126,7 @@ public class RssMRAppMaster {
         appId, defaultRemoteStorage, dynamicConfEnabled, storageType, client);
       // set the remote storage with actual value
       conf.set(RssMRConfig.RSS_REMOTE_STORAGE_PATH, remoteStorage.getPath());
+      conf.set(RssMRConfig.RSS_REMOTE_STORAGE_CONF, remoteStorage.getConfString());
 
       LOG.info("Start to register shuffle");
       long start = System.currentTimeMillis();

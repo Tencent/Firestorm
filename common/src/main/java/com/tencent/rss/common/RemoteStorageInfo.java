@@ -20,12 +20,17 @@ package com.tencent.rss.common;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.tencent.rss.common.util.Constants;
+
 public class RemoteStorageInfo implements Serializable {
-  public static final RemoteStorageInfo EMPTY_REMOTE_STORAGE = new RemoteStorageInfo("", null);
+  public static final RemoteStorageInfo EMPTY_REMOTE_STORAGE = new RemoteStorageInfo("", "");
   private final String path;
   private final Map<String, String> confItems;
 
@@ -35,7 +40,27 @@ public class RemoteStorageInfo implements Serializable {
 
   public RemoteStorageInfo(String path, Map<String, String> confItems) {
     this.path = path;
-    this.confItems = confItems;
+    if (confItems == null) {
+      this.confItems = Maps.newHashMap();
+    } else {
+      this.confItems = confItems;
+    }
+  }
+
+  public RemoteStorageInfo(String path, String confString) {
+    this.path = path;
+    this.confItems = Maps.newHashMap();
+    if (!StringUtils.isEmpty(confString)) {
+      String[] items = confString.split(Constants.COMMA_SPLIT_CHAR);
+      if (!ArrayUtils.isEmpty(items)) {
+        for (String item : items) {
+          String[] kv = item.split(Constants.EQUAL_SPLIT_CHAR);
+          if (kv != null && kv.length == 2) {
+            this.confItems.put(kv[0], kv[1]);
+          }
+        }
+      }
+    }
   }
 
   public String getPath() {
@@ -48,5 +73,52 @@ public class RemoteStorageInfo implements Serializable {
 
   public boolean isEmpty() {
     return StringUtils.isEmpty(path);
+  }
+
+  public String getConfString() {
+    if (confItems.isEmpty()) {
+      return  "";
+    }
+    return confItems.entrySet()
+        .stream()
+        .map(e -> String.join("=", e.getKey(), e.getValue()))
+        .collect(Collectors.joining(","));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    RemoteStorageInfo that = (RemoteStorageInfo) o;
+    if (!Objects.equal(path, that.path)) {
+      return false;
+    }
+
+    if (this.confItems.size() != that.confItems.size())  {
+      return false;
+    }
+
+    for (Map.Entry<String, String> entry : this.confItems.entrySet()) {
+      if (!that.confItems.containsKey(entry.getKey())) {
+        return false;
+      }
+      String value = that.confItems.get(entry.getKey());
+      if (!Objects.equal(entry.getValue(), value)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(path, confItems);
   }
 }
