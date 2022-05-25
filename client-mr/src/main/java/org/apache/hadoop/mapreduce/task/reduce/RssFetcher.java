@@ -177,7 +177,7 @@ public class RssFetcher<K,V> {
         mapOutput.commit();
         if (mapOutput instanceof OnDiskMapOutput) {
           LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
-            + " with byte sizes: " + uncompressedData.length);
+              + " with byte sizes: " + uncompressedData.length);
         }
       } catch (Throwable t) {
         ioErrs.increment(1);
@@ -200,8 +200,8 @@ public class RssFetcher<K,V> {
       shuffleReadClient.logStatics();
       metrics.inputBytes(unCompressionLength);
       LOG.info("reduce task " + reduceId.toString() + " cost " + readTime + " ms and "
-        + decompressTime + " ms to decompress with unCompressionLength["
-        + unCompressionLength + "] and " + serializeTime + " ms to serialize");
+          + decompressTime + " ms to decompress with unCompressionLength["
+          + unCompressionLength + "] and " + serializeTime + " ms to serialize");
       stopFetch();
     }
   }
@@ -223,7 +223,7 @@ public class RssFetcher<K,V> {
     double bytesPerMillis = (double) unCompressionLength / copyTime;
     double transferRate = bytesPerMillis * BYTES_PER_MILLIS_TO_MBS;
     progress.setStatus("copy(" + copyBlockCount + " of " + copyBlockCount + " at "
-      + mbpsFormat.format(transferRate) + " MB/s)");
+        + mbpsFormat.format(transferRate) + " MB/s)");
   }
 
 }

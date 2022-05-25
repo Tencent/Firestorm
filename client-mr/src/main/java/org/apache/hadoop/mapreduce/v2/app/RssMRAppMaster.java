@@ -175,10 +175,9 @@ public class RssMRAppMaster {
     try {
       FileSystem fs = new Cluster(conf).getFileSystem();
       fs.delete(jobConfFile, true);
-      try (FSDataOutputStream out =
-             FileSystem.create(fs, jobConfFile,
-                 new FsPermission(JobSubmissionFiles.JOB_FILE_PERMISSION))) {
-          conf.writeXml(out);
+      try (FSDataOutputStream out = FileSystem.create(fs, jobConfFile,
+          new FsPermission(JobSubmissionFiles.JOB_FILE_PERMISSION))) {
+        conf.writeXml(out);
       }
       File file = new File(MRJobConfig.JOB_CONF_FILE);
       file.delete();

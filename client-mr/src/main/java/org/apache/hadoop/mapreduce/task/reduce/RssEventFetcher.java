@@ -111,13 +111,13 @@ public class RssEventFetcher<K,V> {
       case OBSOLETE:
         obsoleteMaps.add(event.getTaskAttemptId());
         LOG.info("Ignoring obsolete output of "
-          + event.getTaskStatus() + " map-task: '" + event.getTaskAttemptId() + "'");
+            + event.getTaskStatus() + " map-task: '" + event.getTaskAttemptId() + "'");
         break;
 
       case TIPFAILED:
         tipFailedCount++;
         LOG.info("Ignoring output of failed map TIP: '"
-          + event.getTaskAttemptId() + "'");
+            + event.getTaskAttemptId() + "'");
         break;
 
       default:
@@ -132,14 +132,14 @@ public class RssEventFetcher<K,V> {
 
     do {
       MapTaskCompletionEventsUpdate update =
-        umbilical.getMapCompletionEvents(
-          (org.apache.hadoop.mapred.JobID) reduce.getJobID(),
-          fromEventIdx,
-          maxEventsToFetch,
-          (org.apache.hadoop.mapred.TaskAttemptID) reduce);
+          umbilical.getMapCompletionEvents(
+              (org.apache.hadoop.mapred.JobID) reduce.getJobID(),
+              fromEventIdx,
+              maxEventsToFetch,
+              (org.apache.hadoop.mapred.TaskAttemptID) reduce);
       events = update.getMapTaskCompletionEvents();
       LOG.debug("Got " + events.length + " map completion events from "
-        + fromEventIdx);
+          + fromEventIdx);
 
       assert !update.shouldReset() : "Unexpected legacy state";
 
