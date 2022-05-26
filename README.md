@@ -137,6 +137,24 @@ After apply the patch and rebuild spark, add following configuration in spark co
   spark.dynamicAllocation.enabled true
   ```
 
+## Deploy MapReduce Client
+
+1. Add client jar to Hadoop classpath, e.g., HADOOP_HOME/share/hadoop/mapreduce/
+
+The jar for MapReduce is located in <RSS_HOME>/jars/client/mr/rss-client-mr-XXXXX-shaded.jar
+
+2. Update MapReduce conf to enable Firestorm, the following demo is for local storage only, eg,
+
+   ```
+   -Dmapreduce.rss.coordinator.quorum=<coordinatorIp1>:19999,<coordinatorIp2>:19999
+   -Dmapreduce.rss.storage.type=MEMORY_LOCALFILE 
+   -Dyarn.app.mapreduce.am.command-opts=org.apache.hadoop.mapreduce.v2.app.RssMRAppMaster
+   -Dmapreduce.job.map.output.collector.class=org.apache.hadoop.mapred.RssMapOutputCollector
+   -Dmapreduce.job.reduce.shuffle.consumer.plugin.class=org.apache.hadoop.mapreduce.task.reduce.RssShuffle
+   ```
+Note that the RssMRAppMaster will automatically disable slow start (i.e., `mapreduce.job.reduce.slowstart.completedmaps=1`)
+and job recovery (i.e., `yarn.app.mapreduce.am.job.recovery.enable=false`)
+
 
 ## Configuration
 
@@ -185,6 +203,15 @@ The important configuration is listed as following.
 |spark.rss.client.read.buffer.size|32m|The max data size read from storage|
 |spark.rss.client.send.threadPool.size|10|The thread size for send shuffle data to shuffle server|
 
+
+### MapReduce Client
+
+|Property Name|Default|Description|
+|---|---|---|
+|mapreduce.rss.coordinator.quorum|-|Coordinator quorum|
+|mapreduce.rss.storage.type|-|Supports MEMORY_LOCAL, MEMORY_HDFS, LOCALFILE, HDFS, LOCALFILE_HDFS|
+|mapreduce.rss.client.max.buffer.size|3k|The max buffer size in map side|
+|mapreduce.rss.client.read.buffer.size|32m|The max data size read from storage|
 
 ## LICENSE
 
