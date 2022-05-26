@@ -40,6 +40,9 @@ Current support Spark 2.3.x, Spark 2.4.x, Spark3.0.x, Spark 3.1.x, Spark 3.2.x
 
 Note: To support dynamic allocation, the patch(which is included in client-spark/patch folder) should be applied to Spark
 
+## Supported MapReduce Version
+Current support Hadoop 2.8.5's MapReduce framework.
+
 ## Building Firestorm
 
 Firestorm is built using [Apache Maven](https://maven.apache.org/).
@@ -139,14 +142,13 @@ After apply the patch and rebuild spark, add following configuration in spark co
 
 ## Deploy MapReduce Client
 
-1. Upload client jar to a HDFS path, e.g., hdfs://your/lib/path/
+1. Add client jar to the classpath of each NodeManager, e.g., <HADOOP>/share/hadoop/mapreduce/
 
 The jar for MapReduce is located in <RSS_HOME>/jars/client/mr/rss-client-mr-XXXXX-shaded.jar
 
 2. Update MapReduce conf to enable Firestorm, the following demo is for local storage only, eg,
 
    ```
-   -Dmapreduce.job.cache.files=hdfs://your/lib/path/rss-client-mr-XXXXX-shaded.jar
    -Dmapreduce.rss.coordinator.quorum=<coordinatorIp1>:19999,<coordinatorIp2>:19999
    -Dmapreduce.rss.storage.type=MEMORY_LOCALFILE 
    -Dyarn.app.mapreduce.am.command-opts=org.apache.hadoop.mapreduce.v2.app.RssMRAppMaster
