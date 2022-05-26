@@ -139,13 +139,14 @@ After apply the patch and rebuild spark, add following configuration in spark co
 
 ## Deploy MapReduce Client
 
-1. Add client jar to Hadoop classpath, e.g., HADOOP_HOME/share/hadoop/mapreduce/
+1. Upload client jar to a HDFS path, e.g., hdfs://your/lib/path/
 
 The jar for MapReduce is located in <RSS_HOME>/jars/client/mr/rss-client-mr-XXXXX-shaded.jar
 
 2. Update MapReduce conf to enable Firestorm, the following demo is for local storage only, eg,
 
    ```
+   -Dmapreduce.job.cache.files=hdfs://your/lib/path/rss-client-mr-XXXXX-shaded.jar
    -Dmapreduce.rss.coordinator.quorum=<coordinatorIp1>:19999,<coordinatorIp2>:19999
    -Dmapreduce.rss.storage.type=MEMORY_LOCALFILE 
    -Dyarn.app.mapreduce.am.command-opts=org.apache.hadoop.mapreduce.v2.app.RssMRAppMaster
@@ -198,7 +199,7 @@ The important configuration is listed as following.
 |spark.rss.writer.buffer.size|3m|Buffer size for single partition data|
 |spark.rss.writer.buffer.spill.size|128m|Buffer size for total partition data|
 |spark.rss.coordinator.quorum|-|Coordinator quorum|
-|spark.rss.storage.type|-|Supports MEMORY_LOCAL, MEMORY_HDFS, LOCALFILE, HDFS, LOCALFILE_HDFS|
+|spark.rss.storage.type|-|Supports MEMORY_LOCALFILE, MEMORY_HDFS, MEMORY_LOCALFILE_HDFS|
 |spark.rss.client.send.size.limit|16m|The max data size sent to shuffle server|
 |spark.rss.client.read.buffer.size|32m|The max data size read from storage|
 |spark.rss.client.send.threadPool.size|10|The thread size for send shuffle data to shuffle server|
@@ -209,7 +210,7 @@ The important configuration is listed as following.
 |Property Name|Default|Description|
 |---|---|---|
 |mapreduce.rss.coordinator.quorum|-|Coordinator quorum|
-|mapreduce.rss.storage.type|-|Supports MEMORY_LOCAL, MEMORY_HDFS, LOCALFILE, HDFS, LOCALFILE_HDFS|
+|mapreduce.rss.storage.type|-|Supports MEMORY_LOCALFILE, MEMORY_HDFS, MEMORY_LOCALFILE_HDFS|
 |mapreduce.rss.client.max.buffer.size|3k|The max buffer size in map side|
 |mapreduce.rss.client.read.buffer.size|32m|The max data size read from storage|
 
