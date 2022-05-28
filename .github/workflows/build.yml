@@ -37,7 +37,7 @@ jobs:
   spotbugs:
     uses: ./.github/workflows/sequential.yml
     with:
-      maven-args: spotbugs:check
+      maven-args: test-compile spotbugs:check
       experimental: true
 
   build:
