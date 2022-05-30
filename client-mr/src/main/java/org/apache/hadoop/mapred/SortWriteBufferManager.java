@@ -134,7 +134,7 @@ public class SortWriteBufferManager<K, V> {
     this.maxSegmentSize = maxSegmentSize;
     this.numMaps = numMaps;
     this.isMemoryShuffleEnabled = isMemoryShuffleEnabled;
-    this.sendThreshold = sendThreshold ;
+    this.sendThreshold = sendThreshold;
     this.sendExecutorService  = Executors.newFixedThreadPool(
         sendThreadNum,
         new ThreadFactoryBuilder()
