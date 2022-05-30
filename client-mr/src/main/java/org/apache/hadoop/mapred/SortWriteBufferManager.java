@@ -88,12 +88,7 @@ public class SortWriteBufferManager<K, V> {
   private final int numMaps;
   private long copyTime = 0;
   private long sortTime = 0;
-  private final ExecutorService sendExecutorService = Executors.newFixedThreadPool(
-      5,
-      new ThreadFactoryBuilder()
-            .setDaemon(true)
-            .setNameFormat("send-thread-%d")
-      .build());
+  private final ExecutorService sendExecutorService;
 
   public SortWriteBufferManager(
       long maxMemSize,
@@ -115,7 +110,8 @@ public class SortWriteBufferManager<K, V> {
       int bitmapSplitNum,
       long maxSegmentSize,
       int numMaps,
-      boolean isMemoryShuffleEnabled) {
+      boolean isMemoryShuffleEnabled,
+      int sendThreadNum) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
@@ -136,6 +132,12 @@ public class SortWriteBufferManager<K, V> {
     this.maxSegmentSize = maxSegmentSize;
     this.numMaps = numMaps;
     this.isMemoryShuffleEnabled = isMemoryShuffleEnabled;
+    this.sendExecutorService  = Executors.newFixedThreadPool(
+        sendThreadNum,
+        new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setNameFormat("send-thread-%d")
+            .build());
   }
 
   // todo: Single Buffer should also have its size limit
@@ -173,7 +175,7 @@ public class SortWriteBufferManager<K, V> {
     waitSendBuffers.sort(new Comparator<SortWriteBuffer<K, V>>() {
       @Override
       public int compare(SortWriteBuffer<K, V> o1, SortWriteBuffer<K, V> o2) {
-        return o1.getDataLength() - o2.getDataLength();
+        return o2.getDataLength() - o1.getDataLength();
       }
     });
     int sendSize = batch;
@@ -189,9 +191,7 @@ public class SortWriteBufferManager<K, V> {
       index++;
     }
     List<ShuffleBlockInfo> shuffleBlocks = Lists.newArrayList();
-    long keyLength = 0;
     for (SortWriteBuffer buffer : selectBuffers) {
-      keyLength += buffer.getTotalKeyLength();
       buffers.remove(buffer.getPartitionId());
       ShuffleBlockInfo block = createShuffleBlock(buffer);
       shuffleBlocks.add(block);
@@ -201,7 +201,6 @@ public class SortWriteBufferManager<K, V> {
       }
       partitionToBlocks.get(block.getPartitionId()).add(block.getBlockId());
     }
-    long finalKeyLength = keyLength;
     sendExecutorService.submit(new Runnable() {
       @Override
       public void run() {
@@ -220,7 +219,6 @@ public class SortWriteBufferManager<K, V> {
           try {
             memoryLock.lock();
             memoryUsedSize.addAndGet(-size);
-            memoryUsedSize.addAndGet(-finalKeyLength);
             inSendListBytes.addAndGet(-size);
             full.signalAll();
           } finally {
@@ -328,6 +326,11 @@ public class SortWriteBufferManager<K, V> {
     } finally {
       executor.shutdown();
     }
+  }
+
+  // Only for test
+  List<SortWriteBuffer<K, V>> getWaitSendBuffers() {
+    return waitSendBuffers;
   }
 
   // it's run in single thread, and is not thread safe

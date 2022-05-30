@@ -88,6 +88,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     SerializationFactory serializationFactory = new SerializationFactory(jobConf);
     long maxSegmentSize = jobConf.getLong(RssMRConfig.RSS_CLIENT_MAX_SEGMENT_SIZE,
         RssMRConfig.RSS_CLIENT_DEFAULT_MAX_SEGMENT_SIZE);
+    int sendThreadNum = jobConf.getInt(RssMRConfig.RSS_CLIENT_SEND_THREAD_NUM,
+        RssMRConfig.RSS_CLIENT_DEFAULT_SEND_THREAD_NUM);
     bufferManager = new SortWriteBufferManager(
         (long)ByteUnit.MiB.toBytes(sortmb),
         taskAttemptId,
@@ -108,7 +110,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         bitmapSplitNum,
         maxSegmentSize,
         numMaps,
-        isMemoryShuffleEnabled(storageType));
+        isMemoryShuffleEnabled(storageType),
+        sendThreadNum);
   }
 
   private Map<Integer, List<ShuffleServerInfo>> createAssignmentMap(JobConf jobConf) {
