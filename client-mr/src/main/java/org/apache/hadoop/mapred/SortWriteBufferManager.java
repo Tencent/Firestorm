@@ -68,6 +68,7 @@ public class SortWriteBufferManager<K, V> {
   private final AtomicLong inSendListBytes = new AtomicLong(0);
   private final Map<Integer, List<ShuffleServerInfo>> partitionToServers;
   private double memoryThreshold;
+  private double sendThreshold;
   private final ReentrantLock memoryLock = new ReentrantLock();
   private final Condition full = memoryLock.newCondition();
   private final Serializer<K> keySerializer;
@@ -111,7 +112,8 @@ public class SortWriteBufferManager<K, V> {
       long maxSegmentSize,
       int numMaps,
       boolean isMemoryShuffleEnabled,
-      int sendThreadNum) {
+      int sendThreadNum,
+      double sendThreshold) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
@@ -132,6 +134,7 @@ public class SortWriteBufferManager<K, V> {
     this.maxSegmentSize = maxSegmentSize;
     this.numMaps = numMaps;
     this.isMemoryShuffleEnabled = isMemoryShuffleEnabled;
+    this.sendThreshold = sendThreshold ;
     this.sendExecutorService  = Executors.newFixedThreadPool(
         sendThreadNum,
         new ThreadFactoryBuilder()
@@ -163,7 +166,8 @@ public class SortWriteBufferManager<K, V> {
       throw new RssException("record is too big");
     }
     memoryUsedSize.addAndGet(length);
-    if (memoryUsedSize.get() > maxMemSize * memoryThreshold) {
+    if (memoryUsedSize.get() > maxMemSize * memoryThreshold
+      && inSendListBytes.get() <= maxMemSize * sendThreshold) {
       sendBuffersToServers();
     }
     mapOutputRecordCounter.increment(1);

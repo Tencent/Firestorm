@@ -70,6 +70,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     double memoryThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_MEMORY_THRESHOLD,
         RssMRConfig.RSS_CLIENT_DEFAULT_MEMORY_THRESHOLD);
     String appId = RssMRUtils.getApplicationAttemptId().toString();
+    double sendThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_SEND_THRESHOLD,
+        RssMRConfig.RSS_CLIENT_DEFAULT_SEND_THRESHOLD);
 
     long sendCheckInterval = jobConf.getLong(RssMRConfig.RSS_CLIENT_SEND_CHECK_INTERVAL_MS,
         RssMRConfig.RSS_CLIENT_SEND_CHECK_INTERVAL_MS_DEFAULT_VALUE);
@@ -111,7 +113,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         maxSegmentSize,
         numMaps,
         isMemoryShuffleEnabled(storageType),
-        sendThreadNum);
+        sendThreadNum,
+        sendThreshold);
   }
 
   private Map<Integer, List<ShuffleServerInfo>> createAssignmentMap(JobConf jobConf) {
