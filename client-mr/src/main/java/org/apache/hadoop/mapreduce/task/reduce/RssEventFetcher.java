@@ -74,7 +74,8 @@ public class RssEventFetcher<K,V> {
     for (TaskAttemptID taskAttemptID: successMaps) {
       if (!obsoleteMaps.contains(taskAttemptID)) {
         int mapIndex = taskAttemptID.getTaskID().getId();
-        // we only need to just one attempt of each map task.
+        // There can be multiple successful attempts on same map task.
+        // So we only need to accept one of them.
         if (!mapIndexBitmap.contains(mapIndex)) {
           long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID);
           taskIdBitmap.addLong(rssTaskId);
