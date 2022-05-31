@@ -181,7 +181,8 @@ public class SortWriteBufferManagerTest {
       byte[] value = new byte[1024];
       random.nextBytes(key);
       random.nextBytes(value);
-      manager.addRecord(1, new BytesWritable(key), new BytesWritable(value));
+      int partitionId = random.nextInt(50);
+      manager.addRecord(partitionId, new BytesWritable(key), new BytesWritable(value));
     }
     manager.waitSendFinished();
     assertTrue(manager.getWaitSendBuffers().isEmpty());

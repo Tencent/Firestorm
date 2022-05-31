@@ -148,9 +148,6 @@ public class SortWriteBufferManager<K, V> {
     memoryLock.lock();
     try {
       while (memoryUsedSize.get() > maxMemSize) {
-        if (inSendListBytes.get() <= maxMemSize * sendThreshold) {
-          sendBuffersToServers();
-        }
         full.await();
       }
     } finally {
@@ -224,10 +221,8 @@ public class SortWriteBufferManager<K, V> {
         } finally {
           try {
             memoryLock.lock();
-            LOG.info("size {} memoryUsedSize {} inSendListBytes {}", size, memoryUsedSize, inSendListBytes);
             memoryUsedSize.addAndGet(-size);
             inSendListBytes.addAndGet(-size);
-            LOG.info("size {} memoryUsedSize {} inSendListBytes {}", size, memoryUsedSize, inSendListBytes);
             full.signalAll();
           } finally {
             memoryLock.unlock();
