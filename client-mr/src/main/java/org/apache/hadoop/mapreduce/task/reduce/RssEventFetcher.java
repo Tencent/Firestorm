@@ -73,18 +73,21 @@ public class RssEventFetcher<K,V> {
     String errMsg = "TaskAttemptIDs are inconsistent with map tasks";
     for (TaskAttemptID taskAttemptID: successMaps) {
       if (!obsoleteMaps.contains(taskAttemptID)) {
-        long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID);
-        taskIdBitmap.addLong(rssTaskId);
         int mapIndex = taskAttemptID.getTaskID().getId();
-        if (mapIndex < totalMapsCount) {
-          mapIndexBitmap.addLong(mapIndex);
-        } else {
-          throw new IllegalStateException(errMsg);
+        // we only need to just one attempt of each map task.
+        if (!mapIndexBitmap.contains(mapIndex)) {
+          long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID);
+          taskIdBitmap.addLong(rssTaskId);
+          if (mapIndex < totalMapsCount) {
+            mapIndexBitmap.addLong(mapIndex);
+          } else {
+            throw new IllegalStateException(errMsg);
+          }
         }
       }
     }
     // each map should have only one success attempt
-    if (mapIndexBitmap.getLongCardinality() != mapIndexBitmap.getLongCardinality()) {
+    if (mapIndexBitmap.getLongCardinality() != taskIdBitmap.getLongCardinality()) {
       throw new IllegalStateException(errMsg);
     }
     if (taskIdBitmap.getLongCardinality() + tipFailedCount != totalMapsCount) {
