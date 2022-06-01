@@ -83,11 +83,12 @@ public class EvenFetcherTest {
         Sets.newHashSet()));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
+      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
-        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0)
+        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0),
+          1
       );
       expected.addLong(rssTaskId);
     }

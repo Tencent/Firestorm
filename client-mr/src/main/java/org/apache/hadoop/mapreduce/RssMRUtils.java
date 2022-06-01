@@ -69,7 +69,7 @@ public class RssMRUtils {
       throw new RssException("appAttemptId " + appAttemptId + " is wrong");
     }
     TaskID taskID = new TaskID(jobID, taskType, (int)(rssTaskAttemptId & MAX_TASK_ID));
-    return new TaskAttemptID(taskID, (int)(rssTaskAttemptId >> MAX_TASK_LENGTH) + 1000 * (appAttemptId -1));
+    return new TaskAttemptID(taskID, (int)(rssTaskAttemptId >> MAX_TASK_LENGTH) + 1000 * (appAttemptId - 1));
   }
 
   public static ShuffleWriteClient createShuffleClient(JobConf jobConf) {

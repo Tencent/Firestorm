@@ -33,14 +33,14 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RssMRConfig;
 import org.apache.hadoop.mapreduce.RssMRUtils;
 import org.apache.hadoop.mapreduce.TaskCounter;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.ByteUnit;
 import com.tencent.rss.storage.util.StorageType;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
     implements MapOutputCollector<K, V> {
@@ -75,7 +75,8 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
         RssMRConfig.RSS_CLIENT_DEFAULT_MEMORY_THRESHOLD);
     ApplicationAttemptId applicationAttemptId = RssMRUtils.getApplicationAttemptId();
     String appId = applicationAttemptId.toString();
-    long taskAttemptId = RssMRUtils.convertTaskAttemptIdToLong(mapTask.getTaskID(), applicationAttemptId.getAttemptId());
+    long taskAttemptId = RssMRUtils.convertTaskAttemptIdToLong(mapTask.getTaskID(),
+        applicationAttemptId.getAttemptId());
     double sendThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_SEND_THRESHOLD,
         RssMRConfig.RSS_CLIENT_DEFAULT_SEND_THRESHOLD);
 

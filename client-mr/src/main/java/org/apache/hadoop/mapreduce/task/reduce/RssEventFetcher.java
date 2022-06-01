@@ -82,7 +82,6 @@ public class RssEventFetcher<K,V> {
         // There can be multiple successful attempts on same map task.
         // So we only need to accept one of them.
         if (!mapIndexBitmap.contains(mapIndex)) {
-          long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID);
           taskIdBitmap.addLong(rssTaskId);
           if (mapIndex < totalMapsCount) {
             mapIndexBitmap.addLong(mapIndex);
