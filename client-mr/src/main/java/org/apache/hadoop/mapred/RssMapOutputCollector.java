@@ -38,10 +38,14 @@ import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
 import com.tencent.rss.common.util.ByteUnit;
 import com.tencent.rss.storage.util.StorageType;
+import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RssMapOutputCollector<K extends Object, V extends Object>
     implements MapOutputCollector<K, V> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(RssMapOutputCollector.class);
   private Task.TaskReporter reporter;
   private Class<K> keyClass;
   private Class<V> valClass;
@@ -53,6 +57,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   @Override
   public void init(Context context) throws IOException, ClassNotFoundException {
     JobConf jobConf = context.getJobConf();
+    jobConf.addResource(RssMRConfig.RSS_EXTRA_CONF_FILE);
     reporter = context.getReporter();
     keyClass = (Class<K>)jobConf.getMapOutputKeyClass();
     valClass = (Class<V>)jobConf.getMapOutputValueClass();
@@ -63,13 +68,14 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     }
     partitions = jobConf.getNumReduceTasks();
     MapTask mapTask = context.getMapTask();
-    long taskAttemptId = RssMRUtils.convertTaskAttemptIdToLong(mapTask.getTaskID());
     int batch = jobConf.getInt(RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
     RawComparator<K> comparator = jobConf.getOutputKeyComparator();
     double memoryThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_MEMORY_THRESHOLD,
         RssMRConfig.RSS_CLIENT_DEFAULT_MEMORY_THRESHOLD);
-    String appId = RssMRUtils.getApplicationAttemptId().toString();
+    ApplicationAttemptId applicationAttemptId = RssMRUtils.getApplicationAttemptId();
+    String appId = applicationAttemptId.toString();
+    long taskAttemptId = RssMRUtils.convertTaskAttemptIdToLong(mapTask.getTaskID(), applicationAttemptId.getAttemptId());
     double sendThreshold = jobConf.getDouble(RssMRConfig.RSS_CLIENT_SEND_THRESHOLD,
         RssMRConfig.RSS_CLIENT_DEFAULT_SEND_THRESHOLD);
 
