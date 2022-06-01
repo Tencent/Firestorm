@@ -158,6 +158,8 @@ public class RssMRAppMaster {
       conf.setFloat(MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 1.0f);
       LOG.warn("close slow start, because RSS does not support it yet");
 
+      // MapReduce don't set setKeepContainersAcrossApplicationAttempts in AppContext, there will be no container
+      // to be shared between attempts. Rss don't support shared container between attempts.
       conf.setBoolean(MRJobConfig.MR_AM_JOB_RECOVERY_ENABLE, false);
       LOG.warn("close recovery enable, because RSS doesn't support it yet");
 
