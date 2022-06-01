@@ -19,8 +19,8 @@
 package org.apache.hadoop.mapreduce.task.reduce;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -43,8 +43,8 @@ public class RssEventFetcher<K,V> {
   private final int maxEventsToFetch;
   private JobConf jobConf;
 
-  private Set<TaskAttemptID> successMaps = new HashSet<TaskAttemptID>();
-  private Set<TaskAttemptID> obsoleteMaps = new HashSet<TaskAttemptID>();
+  private List<TaskAttemptID> successMaps = new LinkedList<>();
+  private List<TaskAttemptID> obsoleteMaps = new LinkedList<>();
   private int tipFailedCount = 0;
   private final int totalMapsCount;
 
@@ -104,7 +104,6 @@ public class RssEventFetcher<K,V> {
     //    fetching from those maps.
     // 3. Remove TIPFAILED maps from neededOutputs since we don't need their
     //    outputs at all.
-    successMaps.contains(event);
     switch (event.getTaskStatus()) {
       case SUCCEEDED:
         successMaps.add(event.getTaskAttemptId());
