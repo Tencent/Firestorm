@@ -59,8 +59,7 @@ public class EvenFetcherTest {
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
-        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0),
-          1);
+        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0), 1);
       expected.addLong(rssTaskId);
     }
 
@@ -87,9 +86,7 @@ public class EvenFetcherTest {
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
-        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0),
-          1
-      );
+        new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0), 1);
       expected.addLong(rssTaskId);
     }
 
@@ -214,8 +211,7 @@ public class EvenFetcherTest {
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       if (!tipFailed.contains(mapIndex) && !obsoleted.contains(mapIndex)) {
         long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
-          new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0),
-            1);
+          new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0), 1);
         expected.addLong(rssTaskId);
       }
       if (obsoleted.contains(mapIndex)) {

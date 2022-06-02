@@ -180,7 +180,7 @@ public class RssMRAppMaster {
     try {
       FileSystem fs = new Cluster(conf).getFileSystem();
       String jobDirStr = conf.get(MRJobConfig.MAPREDUCE_JOB_DIR);
-      Path assignmentFile = new Path(jobDirStr, RssMRConfig.RSS_EXTRA_CONF_FILE);
+      Path assignmentFile = new Path(jobDirStr, RssMRConfig.RSS_CONF_FILE);
 
       try (FSDataOutputStream out =
                FileSystem.create(fs, assignmentFile,

@@ -89,7 +89,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
     this.reduceId = context.getReduceId();
     this.jobConf = context.getJobConf();
-    jobConf.addResource(RssMRConfig.RSS_EXTRA_CONF_FILE);
+    jobConf.addResource(RssMRConfig.RSS_CONF_FILE);
 
     this.umbilical = context.getUmbilical();
     this.reporter = context.getReporter();
