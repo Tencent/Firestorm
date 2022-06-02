@@ -55,7 +55,7 @@ public class EvenFetcherTest {
       .thenReturn(getMockedCompletionEventsUpdate(0, mapTaskNum));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
@@ -82,7 +82,7 @@ public class EvenFetcherTest {
         Sets.newHashSet()));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
@@ -114,7 +114,7 @@ public class EvenFetcherTest {
       .thenReturn(getMockedCompletionEventsUpdate(MAX_EVENTS_TO_FETCH * 2, 3));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
 
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
@@ -140,7 +140,7 @@ public class EvenFetcherTest {
         Sets.newHashSet(45, 67), Sets.newHashSet()));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
@@ -170,7 +170,7 @@ public class EvenFetcherTest {
         Sets.newHashSet(), Sets.newHashSet(101)));
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
       long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
@@ -205,7 +205,7 @@ public class EvenFetcherTest {
     ExceptionReporter reporter = mock(ExceptionReporter.class);
 
     RssEventFetcher ef =
-      new RssEventFetcher(tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH, 1);
+      new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
 
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {

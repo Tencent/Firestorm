@@ -153,7 +153,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
     // get map-completion events to generate RSS taskIDs
     final RssEventFetcher<K,V> eventFetcher =
-      new RssEventFetcher<K,V>(reduceId, umbilical, jobConf, MAX_EVENTS_TO_FETCH, appAttemptId);
+      new RssEventFetcher<K,V>(appAttemptId, reduceId, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
     Roaring64NavigableMap taskIdBitmap = eventFetcher.fetchAllRssTaskIds();
 
     LOG.info("In reduce: " + reduceId

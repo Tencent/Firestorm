@@ -49,11 +49,12 @@ public class RssEventFetcher<K,V> {
   private final int totalMapsCount;
   private final int appAttemptId;
 
-  public RssEventFetcher(TaskAttemptID reduce,
-                         TaskUmbilicalProtocol umbilical,
-                         JobConf jobConf,
-                         int maxEventsToFetch,
-                         int appAttemptId) {
+  public RssEventFetcher(
+      int appAttemptId,
+      TaskAttemptID reduce,
+      TaskUmbilicalProtocol umbilical,
+      JobConf jobConf,
+      int maxEventsToFetch) {
     this.jobConf = jobConf;
     this.totalMapsCount = jobConf.getNumMapTasks();
     this.reduce = reduce;
