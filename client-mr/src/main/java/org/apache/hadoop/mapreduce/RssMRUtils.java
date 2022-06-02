@@ -44,7 +44,8 @@ public class RssMRUtils {
   private static long MAX_ATTEMPT_ID = (1 << MAX_ATTEMPT_LENGTH) - 1;
 
   // Class TaskAttemptId have two field id and mapId, rss taskAttemptID have 21 bits,
-  // mapId is 19 bits, id is 2 bits.
+  // mapId is 19 bits, id is 2 bits. MR have a trick logic, taskAttemptId will increase
+  // 1000 * (appAttemptId - 1), so we will decrease it.
   public static long convertTaskAttemptIdToLong(TaskAttemptID taskAttemptID, int appAttemptId) {
     long lowBytes = taskAttemptID.getTaskID().getId();
     if (lowBytes > MAX_TASK_ID) {
