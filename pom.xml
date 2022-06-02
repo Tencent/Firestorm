@@ -776,6 +776,8 @@
           <failsOnError>true</failsOnError>
           <linkXRef>false</linkXRef>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <failOnViolation>true</failOnViolation>
+          <violationSeverity>warning</violationSeverity>
         </configuration>
         <dependencies>
           <dependency>
