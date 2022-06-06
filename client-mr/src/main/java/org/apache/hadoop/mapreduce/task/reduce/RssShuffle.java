@@ -56,6 +56,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
   private org.apache.hadoop.mapreduce.TaskAttemptID reduceId;
   private JobConf jobConf;
+  private JobConf assignmentConf;
   private Reporter reporter;
   private ShuffleClientMetrics metrics;
   private TaskUmbilicalProtocol umbilical;
@@ -89,7 +90,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
     this.reduceId = context.getReduceId();
     this.jobConf = context.getJobConf();
-    jobConf.addResource(RssMRConfig.RSS_CONF_FILE);
+    this.assignmentConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
 
     this.umbilical = context.getUmbilical();
     this.reporter = context.getReporter();
@@ -138,7 +139,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
   public RawKeyValueIterator run() throws IOException, InterruptedException {
 
     // get assigned RSS servers
-    Set<ShuffleServerInfo> serverInfoSet = RssMRUtils.getAssignedServers(jobConf,
+    Set<ShuffleServerInfo> serverInfoSet = RssMRUtils.getAssignedServers(assignmentConf,
         reduceId.getTaskID().getId());
     List<ShuffleServerInfo> serverInfoList = new ArrayList<>();
     for (ShuffleServerInfo server: serverInfoSet) {
