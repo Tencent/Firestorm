@@ -56,7 +56,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
   private org.apache.hadoop.mapreduce.TaskAttemptID reduceId;
   private JobConf jobConf;
-  private JobConf assignmentConf;
+  private JobConf rssJobConf;
   private Reporter reporter;
   private ShuffleClientMetrics metrics;
   private TaskUmbilicalProtocol umbilical;
@@ -90,7 +90,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
 
     this.reduceId = context.getReduceId();
     this.jobConf = context.getJobConf();
-    this.assignmentConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
+    this.rssJobConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
 
     this.umbilical = context.getUmbilical();
     this.reporter = context.getReporter();
@@ -103,24 +103,24 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
     // rss init
     this.appId = RssMRUtils.getApplicationAttemptId().toString();
     this.appAttemptId = RssMRUtils.getApplicationAttemptId().getAttemptId();
-    this.storageType = jobConf.get(RssMRConfig.RSS_STORAGE_TYPE);
-    this.replicaWrite = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_WRITE,
+    this.storageType = RssMRUtils.getString(rssJobConf, jobConf, RssMRConfig.RSS_STORAGE_TYPE);
+    this.replicaWrite = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_DATA_REPLICA_WRITE,
       RssMRConfig.RSS_DATA_REPLICA_WRITE_DEFAULT_VALUE);
-    this.replicaRead = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA_READ,
+    this.replicaRead = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_DATA_REPLICA_READ,
       RssMRConfig.RSS_DATA_REPLICA_READ_DEFAULT_VALUE);
-    this.replica = jobConf.getInt(RssMRConfig.RSS_DATA_REPLICA,
+    this.replica = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_DATA_REPLICA,
       RssMRConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
 
     this.partitionNum = jobConf.getNumReduceTasks();
-    this.partitionNumPerRange = jobConf.getInt(RssMRConfig.RSS_PARTITION_NUM_PER_RANGE,
+    this.partitionNumPerRange = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_PARTITION_NUM_PER_RANGE,
       RssMRConfig.RSS_PARTITION_NUM_PER_RANGE_DEFAULT_VALUE);
-    this.basePath = jobConf.get(RssMRConfig.RSS_REMOTE_STORAGE_PATH);
-    this.indexReadLimit = jobConf.getInt(RssMRConfig.RSS_INDEX_READ_LIMIT,
+    this.basePath = RssMRUtils.getString(rssJobConf, jobConf, RssMRConfig.RSS_REMOTE_STORAGE_PATH);
+    this.indexReadLimit = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_INDEX_READ_LIMIT,
       RssMRConfig.RSS_INDEX_READ_LIMIT_DEFAULT_VALUE);
     this.readBufferSize = (int)UnitConverter.byteStringAsBytes(
-      jobConf.get(RssMRConfig.RSS_CLIENT_READ_BUFFER_SIZE,
+      RssMRUtils.getString(rssJobConf, jobConf, RssMRConfig.RSS_CLIENT_READ_BUFFER_SIZE,
         RssMRConfig.RSS_CLIENT_READ_BUFFER_SIZE_DEFAULT_VALUE));
-    String remoteStorageConf = jobConf.get(RssMRConfig.RSS_REMOTE_STORAGE_CONF, "");
+    String remoteStorageConf = RssMRUtils.getString(rssJobConf, jobConf, RssMRConfig.RSS_REMOTE_STORAGE_CONF, "");
     this.remoteStorageInfo = new RemoteStorageInfo(basePath, remoteStorageConf);
    }
 
@@ -139,7 +139,7 @@ public class RssShuffle<K, V> implements ShuffleConsumerPlugin<K, V>, ExceptionR
   public RawKeyValueIterator run() throws IOException, InterruptedException {
 
     // get assigned RSS servers
-    Set<ShuffleServerInfo> serverInfoSet = RssMRUtils.getAssignedServers(assignmentConf,
+    Set<ShuffleServerInfo> serverInfoSet = RssMRUtils.getAssignedServers(rssJobConf,
         reduceId.getTaskID().getId());
     List<ShuffleServerInfo> serverInfoList = new ArrayList<>();
     for (ShuffleServerInfo server: serverInfoSet) {
