@@ -23,7 +23,6 @@ import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.impl.ShuffleReadClientImpl;
 import com.tencent.rss.client.impl.ShuffleWriteClientImpl;
 import com.tencent.rss.client.request.CreateShuffleReadClientRequest;
-import com.tencent.rss.client.util.DefaultIdHelper;
 
 public class ShuffleClientFactory {
 
