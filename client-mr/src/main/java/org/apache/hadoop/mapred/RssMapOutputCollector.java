@@ -57,7 +57,6 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   @Override
   public void init(Context context) throws IOException, ClassNotFoundException {
     JobConf jobConf = context.getJobConf();
-    JobConf assignmentConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
     reporter = context.getReporter();
     keyClass = (Class<K>)jobConf.getMapOutputKeyClass();
     valClass = (Class<V>)jobConf.getMapOutputValueClass();
@@ -92,6 +91,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
       throw new RssException("storage type mustn't be empty");
     }
 
+    JobConf assignmentConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
     Map<Integer, List<ShuffleServerInfo>> partitionToServers = createAssignmentMap(assignmentConf);
 
     SerializationFactory serializationFactory = new SerializationFactory(jobConf);
