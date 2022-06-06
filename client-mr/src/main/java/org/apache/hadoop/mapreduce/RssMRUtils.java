@@ -69,8 +69,8 @@ public class RssMRUtils {
       throw new RssException("appAttemptId " + appAttemptId + " is wrong");
     }
     TaskID taskID = new TaskID(jobID, taskType, (int)(rssTaskAttemptId & Constants.MAX_TASK_ATTEMPT_ID));
-    return new TaskAttemptID(taskID, (int)(rssTaskAttemptId >>
-        (Constants.TASK_ATTEMPT_ID_MAX_LENGTH + Constants.PARTITION_ID_MAX_LENGTH)) + 1000 * (appAttemptId - 1));
+    return new TaskAttemptID(taskID, (int)(rssTaskAttemptId
+        >> (Constants.TASK_ATTEMPT_ID_MAX_LENGTH + Constants.PARTITION_ID_MAX_LENGTH)) + 1000 * (appAttemptId - 1));
   }
 
   public static ShuffleWriteClient createShuffleClient(JobConf jobConf) {
@@ -168,7 +168,7 @@ public class RssMRUtils {
 
   public static long getBlockId(int partitionId, long taskAttemptId, int nextSeqNo) {
     long attemptId = taskAttemptId >> (Constants.PARTITION_ID_MAX_LENGTH + Constants.TASK_ATTEMPT_ID_MAX_LENGTH);
-    if (attemptId <0 || attemptId > MAX_ATTEMPT_ID) {
+    if (attemptId < 0 || attemptId > MAX_ATTEMPT_ID) {
       throw new RuntimeException("Can't support attemptId [" + attemptId
           + "], the max value should be " + MAX_ATTEMPT_ID);
     }
@@ -181,8 +181,9 @@ public class RssMRUtils {
       throw new RuntimeException("Can't support partitionId["
           + partitionId + "], the max value should be " + Constants.MAX_PARTITION_ID);
     }
-    long taskId = taskAttemptId - (attemptId << (Constants.PARTITION_ID_MAX_LENGTH + Constants.TASK_ATTEMPT_ID_MAX_LENGTH));
-    if ( taskId < 0 ||  taskId > Constants.MAX_TASK_ATTEMPT_ID) {
+    long taskId = taskAttemptId - (attemptId
+        << (Constants.PARTITION_ID_MAX_LENGTH + Constants.TASK_ATTEMPT_ID_MAX_LENGTH));
+    if (taskId < 0 ||  taskId > Constants.MAX_TASK_ATTEMPT_ID) {
       throw new RuntimeException("Can't support taskId["
           + taskId + "], the max value should be " + Constants.MAX_TASK_ATTEMPT_ID);
     }
