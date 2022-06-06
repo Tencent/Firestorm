@@ -36,7 +36,9 @@ public class RssMRUtilsTest {
   @Test
   public void TaskAttemptIdTest() {
     long taskAttemptId = 0x1000ad12;
-    TaskAttemptID mrTaskAttemptId = RssMRUtils.createMRTaskAttemptId(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, taskAttemptId, 1);
+    org.apache.hadoop.mapred.JobID jobID = new org.apache.hadoop.mapred.JobID();
+    TaskID taskId =  new TaskID(jobID, TaskType.MAP, (int) taskAttemptId);
+    TaskAttemptID mrTaskAttemptId = new TaskAttemptID(taskId, 3);
     boolean isException = false;
     try {
       RssMRUtils.convertTaskAttemptIdToLong(mrTaskAttemptId, 1);
@@ -48,7 +50,7 @@ public class RssMRUtilsTest {
     mrTaskAttemptId = RssMRUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, taskAttemptId, 1);
     long testId = RssMRUtils.convertTaskAttemptIdToLong(mrTaskAttemptId, 1);
     assertEquals(taskAttemptId, testId);
-    TaskID taskID = new TaskID(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, (int)(1 << 19));
+    TaskID taskID = new TaskID(new org.apache.hadoop.mapred.JobID(), TaskType.MAP, (int)(1 << 21));
     mrTaskAttemptId = new TaskAttemptID(taskID, 2);
     isException = false;
     try {

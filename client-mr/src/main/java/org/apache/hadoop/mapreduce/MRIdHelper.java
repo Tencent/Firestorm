@@ -23,6 +23,6 @@ public class MRIdHelper implements IdHelper {
 
   @Override
   public long getTaskAttemptId(long blockId) {
-    return 0;
+    return RssMRUtils.getTaskAttemptId(blockId);
   }
 }
