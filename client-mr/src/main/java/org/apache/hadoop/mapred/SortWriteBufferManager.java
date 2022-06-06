@@ -223,7 +223,7 @@ public class SortWriteBufferManager<K, V> {
         } finally {
           try {
             memoryLock.lock();
-            LOG.info("memoryUsedSize {} decrease {}", memoryUsedSize, size);
+            LOG.debug("memoryUsedSize {} decrease {}", memoryUsedSize, size);
             memoryUsedSize.addAndGet(-size);
             inSendListBytes.addAndGet(-size);
             full.signalAll();
