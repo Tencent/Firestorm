@@ -57,7 +57,6 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
   @Override
   public void init(Context context) throws IOException, ClassNotFoundException {
     JobConf jobConf = context.getJobConf();
-    JobConf rssJobConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
     reporter = context.getReporter();
     keyClass = (Class<K>)jobConf.getMapOutputKeyClass();
     valClass = (Class<V>)jobConf.getMapOutputValueClass();
@@ -68,6 +67,7 @@ public class RssMapOutputCollector<K extends Object, V extends Object>
     }
     partitions = jobConf.getNumReduceTasks();
     MapTask mapTask = context.getMapTask();
+    JobConf rssJobConf = new JobConf(RssMRConfig.RSS_CONF_FILE);
     int batch = RssMRUtils.getInt(rssJobConf, jobConf, RssMRConfig.RSS_CLIENT_BATCH_TRIGGER_NUM,
         RssMRConfig.RSS_CLIENT_DEFAULT_BATCH_TRIGGER_NUM);
     RawComparator<K> comparator = jobConf.getOutputKeyComparator();
