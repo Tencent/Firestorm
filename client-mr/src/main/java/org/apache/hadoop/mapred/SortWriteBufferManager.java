@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.response.SendShuffleDataResult;
-import com.tencent.rss.client.util.ClientUtils;
 import com.tencent.rss.common.RssShuffleUtils;
 import com.tencent.rss.common.ShuffleBlockInfo;
 import com.tencent.rss.common.ShuffleServerInfo;

@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
-import com.tencent.rss.common.util.Constants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -35,6 +34,7 @@ import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.client.factory.ShuffleClientFactory;
 import com.tencent.rss.common.ShuffleServerInfo;
 import com.tencent.rss.common.exception.RssException;
+import com.tencent.rss.common.util.Constants;
 
 public class RssMRUtils {
 
