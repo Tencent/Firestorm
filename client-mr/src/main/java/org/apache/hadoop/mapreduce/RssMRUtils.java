@@ -146,23 +146,23 @@ public class RssMRUtils {
     }
   }
 
-  public static int getInt(JobConf priorityConf, JobConf normalConf, String key, int defaultValue) {
-    return priorityConf.getInt(key, normalConf.getInt(key, defaultValue));
+  public static int getInt(JobConf rssJobConf, JobConf mrJobCOnf, String key, int defaultValue) {
+    return rssJobConf.getInt(key,  mrJobCOnf.getInt(key, defaultValue));
   }
 
-  public static long getLong(JobConf priorityConf, JobConf normalConf, String key, long defaultValue) {
-    return priorityConf.getLong(key, normalConf.getLong(key, defaultValue));
+  public static long getLong(JobConf rssJobConf, JobConf mrJobConf, String key, long defaultValue) {
+    return rssJobConf.getLong(key, mrJobConf.getLong(key, defaultValue));
   }
 
-  public static double getDouble(JobConf priorityConf, JobConf normalConf, String key, double defaultValue) {
-    return priorityConf.getDouble(key, normalConf.getDouble(key, defaultValue));
+  public static double getDouble(JobConf rssJobConf, JobConf mrJobConf, String key, double defaultValue) {
+    return rssJobConf.getDouble(key, mrJobConf.getDouble(key, defaultValue));
   }
 
-  public static String getString(JobConf priorityConf, JobConf normalConf, String key) {
-    return priorityConf.get(key, normalConf.get(key));
+  public static String getString(JobConf rssJobConf, JobConf mrJobConf, String key) {
+    return rssJobConf.get(key, mrJobConf.get(key));
   }
 
-  public static String getString(JobConf priorityConf, JobConf normalConf, String key, String defaultValue) {
-    return priorityConf.get(key, normalConf.get(key, defaultValue));
+  public static String getString(JobConf rssJobConf, JobConf mrJobConf, String key, String defaultValue) {
+    return rssJobConf.get(key, mrJobConf.get(key, defaultValue));
   }
 }
