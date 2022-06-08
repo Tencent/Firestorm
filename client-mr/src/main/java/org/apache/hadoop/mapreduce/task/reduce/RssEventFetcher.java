@@ -74,29 +74,44 @@ public class RssEventFetcher<K,V> {
 
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     Roaring64NavigableMap mapIndexBitmap = Roaring64NavigableMap.bitmapOf();
-    String errMsg = "TaskAttemptIDs are inconsistent with map tasks";
+    String errMsg = "TaskAttemptIDs are inconsistent with map tasks: \n";
+    int skipSuccCount = 0;
     for (TaskAttemptID taskAttemptID: successMaps) {
-      if (!obsoleteMaps.contains(taskAttemptID)) {
-        long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID, appAttemptId);
-        int mapIndex = taskAttemptID.getTaskID().getId();
-        // There can be multiple successful attempts on same map task.
-        // So we only need to accept one of them.
-        if (!mapIndexBitmap.contains(mapIndex)) {
-          taskIdBitmap.addLong(rssTaskId);
-          if (mapIndex < totalMapsCount) {
-            mapIndexBitmap.addLong(mapIndex);
-          } else {
-            throw new IllegalStateException(errMsg);
-          }
+      long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID, appAttemptId);
+      int mapIndex = taskAttemptID.getTaskID().getId();
+      // There can be multiple successful attempts on same map task.
+      // So we only need to accept one of them.
+      if (!mapIndexBitmap.contains(mapIndex)) {
+        taskIdBitmap.addLong(rssTaskId);
+        if (mapIndex < totalMapsCount) {
+          mapIndexBitmap.addLong(mapIndex);
+        } else {
+          throw new IllegalStateException(errMsg);
         }
+      } else {
+        skipSuccCount ++;
+        LOG.info(taskAttemptID + " has ready accept a success attempt" );
       }
     }
+
+    String status = "taskIds:" + taskIdBitmap.getLongCardinality()
+      + " ,totalMapsCount:" + totalMapsCount
+      + " ,tipFailedCount:" + tipFailedCount
+      + " ,obsoleteMaps:" + obsoleteMaps.size()
+      + " ,skipSuccCount:" + skipSuccCount;
+
+    for (long i = 0; i < totalMapsCount; i++) {
+      if (!mapIndexBitmap.contains(i)) {
+        LOG.info("Reduce miss the map task of " + i);
+      }
+    }
+
     // each map should have only one success attempt
     if (mapIndexBitmap.getLongCardinality() != taskIdBitmap.getLongCardinality()) {
-      throw new IllegalStateException(errMsg);
+      throw new IllegalStateException(errMsg + status);
     }
     if (taskIdBitmap.getLongCardinality() + tipFailedCount != totalMapsCount) {
-      throw new IllegalStateException(errMsg);
+      throw new IllegalStateException(errMsg + status);
     }
     return taskIdBitmap;
   }
@@ -128,6 +143,7 @@ public class RssEventFetcher<K,V> {
         break;
 
       default:
+        LOG.warn("unexpected event: " + event);
         break;
     }
   }
@@ -145,7 +161,7 @@ public class RssEventFetcher<K,V> {
           maxEventsToFetch,
           (org.apache.hadoop.mapred.TaskAttemptID) reduce);
       events = update.getMapTaskCompletionEvents();
-      LOG.debug("Got " + events.length + " map completion events from "
+      LOG.info("Got " + events.length + " map completion events from "
         + fromEventIdx);
 
       assert !update.shouldReset() : "Unexpected legacy state";
