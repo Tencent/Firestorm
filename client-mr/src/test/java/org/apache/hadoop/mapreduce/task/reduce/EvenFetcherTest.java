@@ -207,17 +207,12 @@ public class EvenFetcherTest {
     RssEventFetcher ef =
       new RssEventFetcher(1, tid, umbilical, jobConf, MAX_EVENTS_TO_FETCH);
 
+    // OBSOLETE/FAILED/KILLED event will not revoke successful attempts
     Roaring64NavigableMap expected = Roaring64NavigableMap.bitmapOf();
     for (int mapIndex = 0; mapIndex < mapTaskNum; mapIndex++) {
-      if (!tipFailed.contains(mapIndex) && !obsoleted.contains(mapIndex)) {
+      if (!tipFailed.contains(mapIndex)) {
         long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
           new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 0), 1);
-        expected.addLong(rssTaskId);
-      }
-      if (obsoleted.contains(mapIndex)) {
-        long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(
-          new TaskAttemptID("12345", 1, TaskType.MAP, mapIndex, 1),
-            1);
         expected.addLong(rssTaskId);
       }
     }

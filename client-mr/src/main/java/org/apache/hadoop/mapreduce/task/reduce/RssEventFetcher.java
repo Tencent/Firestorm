@@ -74,29 +74,37 @@ public class RssEventFetcher<K,V> {
 
     Roaring64NavigableMap taskIdBitmap = Roaring64NavigableMap.bitmapOf();
     Roaring64NavigableMap mapIndexBitmap = Roaring64NavigableMap.bitmapOf();
-    String errMsg = "TaskAttemptIDs are inconsistent with map tasks";
+    String errMsg = "TaskAttemptIDs are inconsistent with map tasks due to: ";
     for (TaskAttemptID taskAttemptID: successMaps) {
-      if (!obsoleteMaps.contains(taskAttemptID)) {
-        long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID, appAttemptId);
-        int mapIndex = taskAttemptID.getTaskID().getId();
-        // There can be multiple successful attempts on same map task.
-        // So we only need to accept one of them.
-        if (!mapIndexBitmap.contains(mapIndex)) {
-          taskIdBitmap.addLong(rssTaskId);
-          if (mapIndex < totalMapsCount) {
-            mapIndexBitmap.addLong(mapIndex);
-          } else {
-            throw new IllegalStateException(errMsg);
-          }
+      // Different from default MR shuffle, in rss shuffle, OBSOLETE/FAILED/KILLED events
+      // will not revoke successful attempts (maybe caused by "bad node" after map success).
+      // This is because these map tasks have already sent their data to rss server.
+      // Not that there can be multiple successful attempts on same map task.
+      // So we only need to accept one of them.
+      long rssTaskId = RssMRUtils.convertTaskAttemptIdToLong(taskAttemptID, appAttemptId);
+      int mapIndex = taskAttemptID.getTaskID().getId();
+      if (!mapIndexBitmap.contains(mapIndex)) {
+        taskIdBitmap.addLong(rssTaskId);
+        if (mapIndex < totalMapsCount) {
+          mapIndexBitmap.addLong(mapIndex);
+        } else {
+          throw new IllegalStateException(errMsg +  taskAttemptID
+            + " exceeds totalMapsCount: " + totalMapsCount);
         }
       }
     }
+
+    String eventStatus = "\n taskIds:" + taskIdBitmap.getLongCardinality()
+      + " ,totalMapsCount:" + totalMapsCount
+      + " ,tipFailedCount:" + tipFailedCount
+      + " ,obsoleteMaps:" + obsoleteMaps.size();
+
     // each map should have only one success attempt
     if (mapIndexBitmap.getLongCardinality() != taskIdBitmap.getLongCardinality()) {
-      throw new IllegalStateException(errMsg);
+      throw new IllegalStateException(errMsg + eventStatus);
     }
     if (taskIdBitmap.getLongCardinality() + tipFailedCount != totalMapsCount) {
-      throw new IllegalStateException(errMsg);
+      throw new IllegalStateException(errMsg + eventStatus);
     }
     return taskIdBitmap;
   }
