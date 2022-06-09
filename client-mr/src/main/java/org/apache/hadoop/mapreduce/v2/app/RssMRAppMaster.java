@@ -83,6 +83,7 @@ public class RssMRAppMaster extends MRAppMaster {
   private final int rssNmPort;
   private final int rssNmHttpPort;
   private final ContainerId rssContainerID;
+  private RssContainerAllocatorRouter rssContainerAllocator;
 
   public RssMRAppMaster(
       ApplicationAttemptId applicationAttemptId,
@@ -96,6 +97,7 @@ public class RssMRAppMaster extends MRAppMaster {
     rssNmPort = nmPort;
     rssNmHttpPort = nmHttpPort;
     rssContainerID = containerId;
+    rssContainerAllocator = null;
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(RssMRAppMaster.class);
@@ -234,7 +236,7 @@ public class RssMRAppMaster extends MRAppMaster {
       MRAppMaster appMaster = new RssMRAppMaster(
           applicationAttemptId, containerId, nodeHostString, Integer.parseInt(nodePortString),
           Integer.parseInt(nodeHttpPortString), appSubmitTime);
-      ShutdownHookManager.get().addShutdownHook(new MRAppMaster.MRAppMasterShutdownHook(appMaster), 30);
+      ShutdownHookManager.get().addShutdownHook(new RssMRAppMasterShutdownHook(appMaster), 30);
       MRWebAppUtil.initialize(conf);
       String systemPropsToLog = MRApps.getSystemPropertiesToLog(conf);
       if (systemPropsToLog != null) {
@@ -257,7 +259,8 @@ public class RssMRAppMaster extends MRAppMaster {
   }
 
   protected ContainerAllocator createContainerAllocator(ClientService clientService, AppContext context) {
-    return new RssContainerAllocatorRouter(clientService, context);
+    rssContainerAllocator = new RssContainerAllocatorRouter(clientService, context);
+    return rssContainerAllocator;
   }
 
   private static void validateInputParam(String value, String param) throws IOException {
@@ -358,6 +361,33 @@ public class RssMRAppMaster extends MRAppMaster {
 
     public void runOnNextHeartbeat(Runnable callback) {
       ((RMCommunicator)this.containerAllocator).runOnNextHeartbeat(callback);
+    }
+  }
+
+  @Override
+  public void notifyIsLastAMRetry(boolean isLastAMRetry) {
+    LOG.info("Notify RMCommunicator isAMLastRetry: " + isLastAMRetry);
+    if (rssContainerAllocator != null) {
+      rssContainerAllocator.setShouldUnregister(isLastAMRetry);
+    }
+    super.notifyIsLastAMRetry(isLastAMRetry);
+  }
+
+  static class RssMRAppMasterShutdownHook implements Runnable {
+    RssMRAppMaster appMaster;
+
+    RssMRAppMasterShutdownHook(RssMRAppMaster appMaster) {
+      this.appMaster = appMaster;
+    }
+
+    public void run() {
+      RssMRAppMaster.LOG.info("MRAppMaster received a signal. Signaling RMCommunicator and JobHistoryEventHandler.");
+      RssContainerAllocatorRouter allocatorRouter = this.appMaster.rssContainerAllocator;
+      if (allocatorRouter != null) {
+        allocatorRouter.setSignalled(true);
+      }
+      this.appMaster.notifyIsLastAMRetry(this.appMaster.isLastAMRetry);
+      this.appMaster.stop();
     }
   }
 
