@@ -114,7 +114,8 @@ public class SortWriteBufferManager<K, V> {
       int numMaps,
       boolean isMemoryShuffleEnabled,
       int sendThreadNum,
-      double sendThreshold, long maxBufferSize) {
+      double sendThreshold,
+      long maxBufferSize) {
     this.maxMemSize = maxMemSize;
     this.taskAttemptId = taskAttemptId;
     this.batch = batch;
