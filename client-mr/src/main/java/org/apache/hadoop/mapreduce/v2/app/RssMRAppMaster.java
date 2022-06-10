@@ -233,7 +233,7 @@ public class RssMRAppMaster extends MRAppMaster {
       }
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
-      MRAppMaster appMaster = new RssMRAppMaster(
+      RssMRAppMaster appMaster = new RssMRAppMaster(
           applicationAttemptId, containerId, nodeHostString, Integer.parseInt(nodePortString),
           Integer.parseInt(nodeHttpPortString), appSubmitTime);
       ShutdownHookManager.get().addShutdownHook(new RssMRAppMasterShutdownHook(appMaster), 30);
