@@ -141,6 +141,14 @@ public class RssMRAppMaster {
       RemoteStorageInfo remoteStorage = ClientUtils.fetchRemoteStorage(
         appId, defaultRemoteStorage, dynamicConfEnabled, storageType, client);
       // set the remote storage with actual value
+      extraConf.forEach(kv -> {
+        if (kv.getKey().startsWith("mapreduce.rss")){
+          LOG.info(kv.getKey() + "->" + kv.getValue());
+        }
+      });
+      LOG.info("dynamicConfEnabled:" + dynamicConfEnabled);
+      LOG.info("remoteStorage.getPath:" + remoteStorage.getPath());
+      LOG.info("remoteStorage.getConfString:" + remoteStorage.getConfString());
       extraConf.set(RssMRConfig.RSS_REMOTE_STORAGE_PATH, remoteStorage.getPath());
       extraConf.set(RssMRConfig.RSS_REMOTE_STORAGE_CONF, remoteStorage.getConfString());
 

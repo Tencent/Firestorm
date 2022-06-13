@@ -135,6 +135,8 @@ public class ShuffleServerGrpcClient extends GrpcClient implements ShuffleServer
         rsBuilder.addRemoteStorageConf(rsConfBuilder.build());
       }
     }
+    LOG.info("remoteStorageInfo:" + remoteStorageInfo.getPath());
+
     reqBuilder.setRemoteStorage(rsBuilder.build());
     return blockingStub.registerShuffle(reqBuilder.build());
   }
