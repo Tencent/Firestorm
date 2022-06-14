@@ -82,8 +82,6 @@ public class RssFetcher<K,V> {
 
   private boolean retry = false;
   private int retryCount = 0;
-  private CompressedShuffleBlock compressedBlock = null;
-  private ByteBuffer compressedData = null;
   private byte[] uncompressedData = null;
 
   RssFetcher(JobConf job, TaskAttemptID reduceId,
@@ -135,6 +133,8 @@ public class RssFetcher<K,V> {
 
   @VisibleForTesting
   public void copyFromRssServer() throws IOException {
+    CompressedShuffleBlock compressedBlock = null;
+    ByteBuffer compressedData = null;
     // fetch a block
     if (!retry) {
       final long startFetch = System.currentTimeMillis();
@@ -147,16 +147,16 @@ public class RssFetcher<K,V> {
     }
 
     // uncompress the block
-    if (compressedData != null) {
-      if (!retry) {
-        final long startDecompress = System.currentTimeMillis();
-        uncompressedData = RssShuffleUtils.decompressData(
-          compressedData, compressedBlock.getUncompressLength(), false).array();
-        unCompressionLength += compressedBlock.getUncompressLength();
-        long decompressDuration = System.currentTimeMillis() - startDecompress;
-        decompressTime += decompressDuration;
-      }
+    if (!retry && compressedData != null) {
+      final long startDecompress = System.currentTimeMillis();
+      uncompressedData = RssShuffleUtils.decompressData(
+        compressedData, compressedBlock.getUncompressLength(), false).array();
+      unCompressionLength += compressedBlock.getUncompressLength();
+      long decompressDuration = System.currentTimeMillis() - startDecompress;
+      decompressTime += decompressDuration;
+    }
 
+    if (uncompressedData != null) {
       // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
       // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
       // treat each "block" as a faked "mapout".
@@ -166,7 +166,7 @@ public class RssFetcher<K,V> {
       TaskAttemptID mapId = getNextUniqueTaskAttemptID();
       MapOutput<K, V> mapOutput = null;
       try {
-        mapOutput = merger.reserve(mapId, compressedBlock.getUncompressLength(), 0);
+        mapOutput = merger.reserve(mapId, uncompressedData.length, 0);
       } catch (IOException ioe) {
         // kill this reduce attempt
         ioErrs.increment(1);
@@ -176,7 +176,7 @@ public class RssFetcher<K,V> {
       if (mapOutput == null) {
         LOG.info("RssMRFetcher" + " - MergeManager returned status WAIT ...");
         // Not an error but wait to process data.
-        // Use a retry flag to avoid re-fetch and re-compress.
+        // Use a retry flag to avoid re-fetch and re-uncompress.
         retry = true;
         retryCount++;
         return;
@@ -202,8 +202,6 @@ public class RssFetcher<K,V> {
 
       // reset status for next fetch
       retry = false;
-      compressedBlock = null;
-      compressedData = null;
       uncompressedData = null;
 
       // update some status
