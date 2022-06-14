@@ -75,13 +75,15 @@ public class RssFetcher<K,V> {
   private long readTime = 0;
   private long decompressTime = 0;
   private long serializeTime = 0;
-  private long copyTime = 0;  // the sum of readTime + decompressTime + serializeTime
+  private long waitTime = 0;
+  private long copyTime = 0;  // the sum of readTime + decompressTime + serializeTime + waitTime
   private long unCompressionLength = 0;
   private final TaskAttemptID reduceId;
   private int uniqueMapId = 0;
 
-  private boolean retry = false;
-  private int retryCount = 0;
+  private boolean hasPendingData = false;
+  private long startWait;
+  private int waitCount = 0;
   private byte[] uncompressedData = null;
 
   RssFetcher(JobConf job, TaskAttemptID reduceId,
@@ -136,7 +138,7 @@ public class RssFetcher<K,V> {
     CompressedShuffleBlock compressedBlock = null;
     ByteBuffer compressedData = null;
     // fetch a block
-    if (!retry) {
+    if (!hasPendingData) {
       final long startFetch = System.currentTimeMillis();
       compressedBlock = shuffleReadClient.readShuffleBlockData();
       if (compressedBlock != null) {
@@ -147,7 +149,7 @@ public class RssFetcher<K,V> {
     }
 
     // uncompress the block
-    if (!retry && compressedData != null) {
+    if (!hasPendingData && compressedData != null) {
       final long startDecompress = System.currentTimeMillis();
       uncompressedData = RssShuffleUtils.decompressData(
         compressedData, compressedBlock.getUncompressLength(), false).array();
@@ -157,56 +159,26 @@ public class RssFetcher<K,V> {
     }
 
     if (uncompressedData != null) {
-      // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
-      // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
-      // treat each "block" as a faked "mapout".
-      // To avoid name conflicts, we use getNextUniqueTaskAttemptID instead.
-      // It will generate a unique TaskAttemptID(increased_seq++, 0).
+      // start to merge
       final long startSerialization = System.currentTimeMillis();
-      TaskAttemptID mapId = getNextUniqueTaskAttemptID();
-      MapOutput<K, V> mapOutput = null;
-      try {
-        mapOutput = merger.reserve(mapId, uncompressedData.length, 0);
-      } catch (IOException ioe) {
-        // kill this reduce attempt
-        ioErrs.increment(1);
-        throw ioe;
-      }
-      // Check if we can shuffle *now* ...
-      if (mapOutput == null) {
-        LOG.info("RssMRFetcher" + " - MergeManager returned status WAIT ...");
-        // Not an error but wait to process data.
-        // Use a retry flag to avoid re-fetch and re-uncompress.
-        retry = true;
-        retryCount++;
+      if (issueMapoutMerge()) {
+        long serializationDuration = System.currentTimeMillis() - startSerialization;
+        serializeTime += serializationDuration;
+        // if reserve successes, reset status for next fetch
+        if (hasPendingData) {
+          waitTime += System.currentTimeMillis() - startWait;
+        }
+        hasPendingData = false;
+        uncompressedData = null;
+      } else {
+        // if reserve fail, return and wait
+        startWait = System.currentTimeMillis();
         return;
       }
 
-      // write data to mapOutput
-      try {
-        RssBypassWriter.write(mapOutput, uncompressedData);
-        // let the merger knows this block is ready for merging
-        mapOutput.commit();
-        if (mapOutput instanceof OnDiskMapOutput) {
-          LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
-            + " with byte sizes: " + uncompressedData.length);
-        }
-      } catch (Throwable t) {
-        ioErrs.increment(1);
-        mapOutput.abort();
-        throw new RssException("Reduce: " + reduceId + " cannot write block to "
-          + mapOutput.getClass().getSimpleName() + " due to: " + t.getClass().getName());
-      }
-      long serializationDuration = System.currentTimeMillis() - startSerialization;
-      serializeTime += serializationDuration;
-
-      // reset status for next fetch
-      retry = false;
-      uncompressedData = null;
-
       // update some status
       copyBlockCount++;
-      copyTime = readTime + decompressTime + serializeTime;
+      copyTime = readTime + decompressTime + serializeTime + waitTime;
       updateStatus();
       reporter.progress();
     } else {
@@ -217,9 +189,53 @@ public class RssFetcher<K,V> {
       metrics.inputBytes(unCompressionLength);
       LOG.info("reduce task " + reduceId.toString() + " cost " + readTime + " ms to fetch and "
         + decompressTime + " ms to decompress with unCompressionLength["
-        + unCompressionLength + "] and " + serializeTime + " ms to serialize");
+        + unCompressionLength + "] and " + serializeTime + " ms to serialize and "
+        + waitTime + " ms to wait resource");
       stopFetch();
     }
+  }
+
+  private boolean issueMapoutMerge() throws IOException {
+    // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
+    // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
+    // treat each "block" as a faked "mapout".
+    // To avoid name conflicts, we use getNextUniqueTaskAttemptID instead.
+    // It will generate a unique TaskAttemptID(increased_seq++, 0).
+    TaskAttemptID mapId = getNextUniqueTaskAttemptID();
+    MapOutput<K, V> mapOutput = null;
+    try {
+      mapOutput = merger.reserve(mapId, uncompressedData.length, 0);
+    } catch (IOException ioe) {
+      // kill this reduce attempt
+      ioErrs.increment(1);
+      throw ioe;
+    }
+    // Check if we can shuffle *now* ...
+    if (mapOutput == null) {
+      LOG.info("RssMRFetcher" + " - MergeManager returned status WAIT ...");
+      // Not an error but wait to process data.
+      // Use a retry flag to avoid re-fetch and re-uncompress.
+      hasPendingData = true;
+      waitCount++;
+      return false;
+    }
+
+    // write data to mapOutput
+    try {
+      RssBypassWriter.write(mapOutput, uncompressedData);
+      // let the merger knows this block is ready for merging
+      mapOutput.commit();
+      if (mapOutput instanceof OnDiskMapOutput) {
+        LOG.info("Reduce: " + reduceId + " allocates disk to accept block "
+          + " with byte sizes: " + uncompressedData.length);
+      }
+    } catch (Throwable t) {
+      ioErrs.increment(1);
+      mapOutput.abort();
+      throw new RssException("Reduce: " + reduceId + " cannot write block to "
+        + mapOutput.getClass().getSimpleName() + " due to: " + t.getClass().getName());
+    }
+    return true;
   }
 
   private TaskAttemptID getNextUniqueTaskAttemptID() {
@@ -248,6 +264,6 @@ public class RssFetcher<K,V> {
 
   @VisibleForTesting
   public int getRetryCount() {
-    return retryCount;
+    return waitCount;
   }
 }
