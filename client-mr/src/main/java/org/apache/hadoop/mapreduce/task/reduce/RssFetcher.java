@@ -161,7 +161,7 @@ public class RssFetcher<K,V> {
     if (uncompressedData != null) {
       // start to merge
       final long startSerialization = System.currentTimeMillis();
-      if (issueMapoutMerge()) {
+      if (issueMapOutputMerge()) {
         long serializationDuration = System.currentTimeMillis() - startSerialization;
         serializeTime += serializationDuration;
         // if reserve successes, reset status for next fetch
@@ -195,7 +195,7 @@ public class RssFetcher<K,V> {
     }
   }
 
-  private boolean issueMapoutMerge() throws IOException {
+  private boolean issueMapOutputMerge() throws IOException {
     // Allocate a MapOutput (either in-memory or on-disk) to put uncompressed block
     // In Rss, a MapOutput is sent as multiple blocks, so the reducer needs to
     // treat each "block" as a faked "mapout".
