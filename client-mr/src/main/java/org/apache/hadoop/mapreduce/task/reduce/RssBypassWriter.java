@@ -55,18 +55,6 @@ public class RssBypassWriter {
     }
   }
 
-  static Decompressor getDecompressor(InMemoryMapOutput inMemoryMapOutput) {
-    try {
-      Class clazz = Class.forName(InMemoryMapOutput.class.getName());
-      Field deCompressorField = clazz.getDeclaredField("decompressor");
-      deCompressorField.setAccessible(true);
-      Decompressor decompressor = (Decompressor) deCompressorField.get(inMemoryMapOutput);
-      return decompressor;
-    } catch (Exception e) {
-      throw new RssException("Get Decompressor fail " + e.getMessage());
-    }
-  }
-
   private static void write(InMemoryMapOutput inMemoryMapOutput, byte[] buffer) {
     byte[] memory = inMemoryMapOutput.getMemory();
     System.arraycopy(buffer, 0, memory, 0, buffer.length);
@@ -96,6 +84,18 @@ public class RssBypassWriter {
       IOUtils.cleanup(LOG, disk);
       throw new RssException("Failed to write OnDiskMapOutput due to: "
         + ioe.getMessage());
+    }
+  }
+
+  static Decompressor getDecompressor(InMemoryMapOutput inMemoryMapOutput) {
+    try {
+      Class clazz = Class.forName(InMemoryMapOutput.class.getName());
+      Field deCompressorField = clazz.getDeclaredField("decompressor");
+      deCompressorField.setAccessible(true);
+      Decompressor decompressor = (Decompressor) deCompressorField.get(inMemoryMapOutput);
+      return decompressor;
+    } catch (Exception e) {
+      throw new RssException("Get Decompressor fail " + e.getMessage());
     }
   }
 }
