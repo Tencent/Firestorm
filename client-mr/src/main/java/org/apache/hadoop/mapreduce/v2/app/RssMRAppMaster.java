@@ -217,19 +217,20 @@ public class RssMRAppMaster extends MRAppMaster {
       setMainStartedTrue();
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
       String containerIdStr = System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-      String nodeHostString = System.getenv(ApplicationConstants.Environment.NM_HOST.name());
-      String nodePortString = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
       String nodeHttpPortString = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
-      String appSubmitTimeStr = System.getenv("APP_SUBMIT_TIME_ENV");
       validateInputParam(containerIdStr, ApplicationConstants.Environment.CONTAINER_ID.name());
+      String nodeHostString = System.getenv(ApplicationConstants.Environment.NM_HOST.name());
       validateInputParam(nodeHostString, ApplicationConstants.Environment.NM_HOST.name());
+      String nodePortString = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
       validateInputParam(nodePortString, ApplicationConstants.Environment.NM_PORT.name());
       validateInputParam(nodeHttpPortString, ApplicationConstants.Environment.NM_HTTP_PORT.name());
+      String appSubmitTimeStr = System.getenv("APP_SUBMIT_TIME_ENV");
       validateInputParam(appSubmitTimeStr, "APP_SUBMIT_TIME_ENV");
       ContainerId containerId = ContainerId.fromString(containerIdStr);
       ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
       if (applicationAttemptId != null) {
-        CallerContext.setCurrent((new CallerContext.Builder("mr_appmaster_" + applicationAttemptId.toString())).build());
+        CallerContext.setCurrent((
+            new CallerContext.Builder("mr_appmaster_" + applicationAttemptId.toString())).build());
       }
 
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
@@ -301,7 +302,8 @@ public class RssMRAppMaster extends MRAppMaster {
     }
   }
 
-  private final class RssContainerAllocatorRouter extends AbstractService implements ContainerAllocator, RMHeartbeatHandler {
+  private final class RssContainerAllocatorRouter
+      extends AbstractService implements ContainerAllocator, RMHeartbeatHandler {
     private final ClientService clientService;
     private final AppContext context;
     private ContainerAllocator containerAllocator;
@@ -327,6 +329,8 @@ public class RssMRAppMaster extends MRAppMaster {
           @Override
           protected AllocateResponse makeRemoteRequest() throws YarnException, IOException {
             AllocateResponse response = super.makeRemoteRequest();
+            // UpdateNodes only have one use for MRAppMaster, MRAppMaster use the updateNodes to find which
+            // nodes are bad nodes. So we clear them, MRAppMaster will not recompute the map tasks.
             response.getUpdatedNodes().clear();
             return response;
           }
