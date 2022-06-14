@@ -27,6 +27,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.IOUtils;
 
 import com.tencent.rss.common.exception.RssException;
+import org.apache.hadoop.io.compress.CodecPool;
+import org.apache.hadoop.io.compress.Decompressor;
 
 // In MR shuffle, MapOutput encapsulates the logic to fetch map task's output data via http.
 // So, in RSS, we should bypass this logic, and directly write data to MapOutput.
@@ -39,12 +41,29 @@ public class RssBypassWriter {
     // but when data size exceeds the threshold, merger can also allocate disk.
     // So, we should consider the two situations, respectively.
     if (mapOutput instanceof InMemoryMapOutput) {
-      write((InMemoryMapOutput) mapOutput, buffer);
+      InMemoryMapOutput inMemoryMapOutput = (InMemoryMapOutput) mapOutput;
+      // In InMemoryMapOutput constructor method, we create a decompressor or borrow a decompressor from
+      // pool. Now we need to put it back, otherwise we will create a decompressor for every InMemoryMapOutput
+      // object, they will cause `out of direct memory` problems.
+      CodecPool.returnDecompressor(getDecompressor(inMemoryMapOutput));
+      write(inMemoryMapOutput, buffer);
     } else if (mapOutput instanceof OnDiskMapOutput) {
       write((OnDiskMapOutput) mapOutput, buffer);
     } else {
       throw new IllegalStateException("Merger reserve unknown type of MapOutput："
         + mapOutput.getClass().getCanonicalName());
+    }
+  }
+
+  static Decompressor getDecompressor(InMemoryMapOutput inMemoryMapOutput) {
+    try {
+      Class clazz = Class.forName(InMemoryMapOutput.class.getName());
+      Field deCompressorField = clazz.getDeclaredField("decompressor");
+      deCompressorField.setAccessible(true);
+      Decompressor decompressor = (Decompressor) deCompressorField.get(inMemoryMapOutput);
+      return decompressor;
+    } catch (Exception e) {
+      throw new RssException("Get Decompressor fail " + e.getMessage());
     }
   }
 
