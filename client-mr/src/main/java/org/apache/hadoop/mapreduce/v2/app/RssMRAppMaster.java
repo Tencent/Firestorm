@@ -217,12 +217,12 @@ public class RssMRAppMaster extends MRAppMaster {
       setMainStartedTrue();
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
       String containerIdStr = System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-      String nodeHttpPortString = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
       validateInputParam(containerIdStr, ApplicationConstants.Environment.CONTAINER_ID.name());
       String nodeHostString = System.getenv(ApplicationConstants.Environment.NM_HOST.name());
       validateInputParam(nodeHostString, ApplicationConstants.Environment.NM_HOST.name());
       String nodePortString = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
       validateInputParam(nodePortString, ApplicationConstants.Environment.NM_PORT.name());
+      String nodeHttpPortString = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
       validateInputParam(nodeHttpPortString, ApplicationConstants.Environment.NM_HTTP_PORT.name());
       String appSubmitTimeStr = System.getenv("APP_SUBMIT_TIME_ENV");
       validateInputParam(appSubmitTimeStr, "APP_SUBMIT_TIME_ENV");
