@@ -45,6 +45,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.mapred.Counters;
@@ -59,6 +60,7 @@ import org.apache.hadoop.mapred.SortWriteBufferManager;
 import org.apache.hadoop.mapred.TaskStatus;
 import org.apache.hadoop.mapred.Task;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.RssMRUtils;
 import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.MRConfig;
@@ -69,6 +71,8 @@ import org.junit.jupiter.api.Test;
 import com.tencent.rss.client.api.ShuffleReadClient;
 import com.tencent.rss.client.response.CompressedShuffleBlock;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FetcherTest {
   static JobID jobId = new JobID("a", 0);
@@ -180,6 +184,23 @@ public class FetcherTest {
     // There will be 2 retries
     assert(fetcher.getRetryCount() == 2);
     assert(((MockMergeManagerImpl)merger).happenedFails.size() == 2);
+  }
+
+  public void testCodecIsDuplicated() throws Exception {
+    fs = FileSystem.getLocal(conf);
+    BZip2Codec codec = new BZip2Codec();
+    codec.setConf(new Configuration());
+    merger = new MergeManagerImpl<Text, Text>(
+        reduceId1, jobConf, fs, lda, Reporter.NULL, codec, null, null, null, null,
+        null, null, new Progress(), new MROutputFiles());
+    TaskAttemptID taskAttemptID = RssMRUtils.createMRTaskAttemptId(new JobID(), TaskType.MAP, 1, 1);
+    byte[] buffer = new byte[10];
+    MapOutput  mapOutput1 = merger.reserve(taskAttemptID, 10, 1);
+    RssBypassWriter.write(mapOutput1, buffer);
+    MapOutput mapOutput2 = merger.reserve(taskAttemptID, 10, 1);
+    RssBypassWriter.write(mapOutput2, buffer);
+    assertEquals(RssBypassWriter.getDecompressor(
+        (InMemoryMapOutput) mapOutput1), RssBypassWriter.getDecompressor((InMemoryMapOutput) mapOutput2));
   }
 
   private void validate(List<String> expected, List<String> actual) {
