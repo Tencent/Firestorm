@@ -165,6 +165,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
 
         if (sizeTrackingAppendOnlyMap.estimateSize() > 1 << 15) {
           shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
+          sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
         }
       } else {
         int partition = getPartition(record._1());
@@ -199,7 +200,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
 
   private List<ShuffleBlockInfo> toBufferManager(SizeTrackingAppendOnlyMap<K,V> sizeTrackingAppendOnlyMap) {
     List<ShuffleBlockInfo> shuffleBlockInfos = new ArrayList<>();
-    Iterator<Tuple2<K, V>> iterator = sizeTrackingAppendOnlyMap.drop(sizeTrackingAppendOnlyMap.size()).iterator();
+    Iterator<Tuple2<K, V>> iterator = sizeTrackingAppendOnlyMap.iterator();
     while (iterator.hasNext()) {
       Tuple2<K, V> tuple = iterator.next();
       int partition = getPartition(tuple._1);
