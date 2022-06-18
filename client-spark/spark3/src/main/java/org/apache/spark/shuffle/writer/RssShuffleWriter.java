@@ -19,6 +19,7 @@
 package org.apache.spark.shuffle.writer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -43,12 +44,16 @@ import org.apache.spark.shuffle.RssShuffleManager;
 import org.apache.spark.shuffle.RssSparkConfig;
 import org.apache.spark.shuffle.ShuffleWriter;
 import org.apache.spark.storage.BlockManagerId;
+import org.apache.spark.util.collection.SizeTrackingAppendOnlyMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Function1;
+import scala.Function2;
 import scala.Option;
 import scala.Product2;
+import scala.Tuple2;
 import scala.collection.Iterator;
+import scala.runtime.AbstractFunction2;
 
 import com.tencent.rss.client.api.ShuffleWriteClient;
 import com.tencent.rss.common.ShuffleBlockInfo;
@@ -135,21 +140,42 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
   public void write(Iterator<Product2<K, V>> records) throws IOException {
     List<ShuffleBlockInfo> shuffleBlockInfos = null;
     Set<Long> blockIds = Sets.newConcurrentHashSet();
+
+    boolean isCombine = shuffleDependency.mapSideCombine();
+    SizeTrackingAppendOnlyMap<K, V> sizeTrackingAppendOnlyMap = null;
+    if (isCombine) {
+      sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
+    }
+
     while (records.hasNext()) {
       Product2<K, V> record = records.next();
-      K key = record._1();
-      int partition = getPartition(key);
-      boolean isCombine = shuffleDependency.mapSideCombine();
       if (isCombine) {
-        Function1 createCombiner = shuffleDependency.aggregator().get().createCombiner();
-        Object c = createCombiner.apply(record._2());
-        shuffleBlockInfos = bufferManager.addRecord(partition, record._1(), c);
+        final Function1 createCombiner = shuffleDependency.aggregator().get().createCombiner();
+        final Function2 mergeValues = shuffleDependency.aggregator().get().mergeValue();
+        Function2 updateFunc = new AbstractFunction2<Boolean, V, V>() {
+          @Override
+          public V apply(Boolean hasKey, V oldVal) {
+            if (hasKey) {
+              return (V) mergeValues.apply(oldVal, record._2());
+            }
+            return (V) createCombiner.apply(record._2());
+          }
+        };
+        sizeTrackingAppendOnlyMap.changeValue(record._1(), updateFunc);
+
+        if (sizeTrackingAppendOnlyMap.estimateSize() > 1 << 15) {
+          shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
+        }
       } else {
+        int partition = getPartition(record._1());
         shuffleBlockInfos = bufferManager.addRecord(partition, record._1(), record._2());
       }
       if (shuffleBlockInfos != null && !shuffleBlockInfos.isEmpty()) {
         processShuffleBlockInfos(shuffleBlockInfos, blockIds);
       }
+    }
+    if (sizeTrackingAppendOnlyMap != null && !sizeTrackingAppendOnlyMap.isEmpty()) {
+      shuffleBlockInfos.addAll(toBufferManager(sizeTrackingAppendOnlyMap));
     }
     final long start = System.currentTimeMillis();
     shuffleBlockInfos = bufferManager.clear();
@@ -169,6 +195,20 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         + "], taskId[" + taskId + "] with write " + writeDurationMs + " ms, include checkSendResult["
         + checkDuration + "], commit[" + (System.currentTimeMillis() - commitStartTs) + "], "
         + bufferManager.getManagerCostInfo());
+  }
+
+  private List<ShuffleBlockInfo> toBufferManager(SizeTrackingAppendOnlyMap<K,V> sizeTrackingAppendOnlyMap) {
+    List<ShuffleBlockInfo> shuffleBlockInfos = new ArrayList<>();
+    Iterator<Tuple2<K, V>> iterator = sizeTrackingAppendOnlyMap.drop(sizeTrackingAppendOnlyMap.size()).iterator();
+    while (iterator.hasNext()) {
+      Tuple2<K, V> tuple = iterator.next();
+      int partition = getPartition(tuple._1);
+      List<ShuffleBlockInfo> partialBlocks = bufferManager.addRecord(partition, tuple._1, tuple._2);
+      if (partialBlocks != null && !partialBlocks.isEmpty()) {
+        shuffleBlockInfos.addAll(partialBlocks);
+      }
+    }
+    return shuffleBlockInfos;
   }
 
   // only push-based shuffle use this interface, but rss won't be used when push-based shuffle is enabled.
