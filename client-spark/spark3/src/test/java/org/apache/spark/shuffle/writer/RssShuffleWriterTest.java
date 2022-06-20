@@ -19,6 +19,7 @@
 package org.apache.spark.shuffle.writer;
 
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.spark.Aggregator;
 import org.apache.spark.Partitioner;
 import org.apache.spark.ShuffleDependency;
 import org.apache.spark.SparkConf;
@@ -43,6 +46,10 @@ import org.apache.spark.shuffle.RssShuffleManager;
 import org.apache.spark.shuffle.TestUtils;
 import org.apache.spark.util.EventLoop;
 import org.junit.jupiter.api.Test;
+
+import scala.Function1;
+import scala.Function2;
+import scala.Option;
 import scala.Product2;
 import scala.Tuple2;
 import scala.collection.mutable.MutableList;
@@ -63,6 +70,119 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class RssShuffleWriterTest {
+
+  class MockedAggregator extends Aggregator {
+    public MockedAggregator(Function1 createCombiner, Function2 mergeValue, Function2 mergeCombiners) {
+      super(createCombiner, mergeValue, mergeCombiners);
+    }
+  }
+
+  @Test
+  public void testMergeValuesWhenCombineAllowed() throws IOException {
+    SparkConf conf = new SparkConf();
+    conf.setAppName("testApp").setMaster("local[2]")
+            .set(RssSparkConfig.RSS_WRITER_SERIALIZER_BUFFER_SIZE, "32")
+            .set(RssSparkConfig.RSS_WRITER_BUFFER_SIZE, "32")
+            .set(RssSparkConfig.RSS_TEST_FLAG, "true")
+            .set(RssSparkConfig.RSS_WRITER_BUFFER_SEGMENT_SIZE, "64")
+            .set(RssSparkConfig.RSS_CLIENT_SEND_CHECK_TIMEOUT_MS, "10000")
+            .set(RssSparkConfig.RSS_CLIENT_SEND_CHECK_INTERVAL_MS, "1000")
+            .set(RssSparkConfig.RSS_WRITER_BUFFER_SPILL_SIZE, "128")
+            .set(RssSparkConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name())
+            .set(RssSparkConfig.RSS_COORDINATOR_QUORUM, "127.0.0.1:12345,127.0.0.1:12346")
+            .set(RssSparkConfig.RSS_CLIENT_MERGE_ENABLE, "true");
+
+    List<ShuffleBlockInfo> shuffleBlockInfos = Lists.newArrayList();
+    Map<String, Set<Long>> successBlockIds = Maps.newConcurrentMap();
+    EventLoop<AddBlockEvent> testLoop = new EventLoop<AddBlockEvent>("test") {
+      @Override
+      public void onReceive(AddBlockEvent event) {
+        assertEquals("taskId", event.getTaskId());
+        shuffleBlockInfos.addAll(event.getShuffleDataInfoList());
+        Set<Long> blockIds = event.getShuffleDataInfoList().parallelStream()
+                .map(sdi -> sdi.getBlockId()).collect(Collectors.toSet());
+        successBlockIds.putIfAbsent(event.getTaskId(), Sets.newConcurrentHashSet());
+        successBlockIds.get(event.getTaskId()).addAll(blockIds);
+      }
+
+      @Override
+      public void onError(Throwable e) {
+      }
+    };
+
+    RssShuffleManager manager = TestUtils.createShuffleManager(
+            conf,
+            false,
+            testLoop,
+            successBlockIds,
+            Maps.newConcurrentMap());
+    Serializer kryoSerializer = new KryoSerializer(conf);
+    Partitioner mockPartitioner = mock(Partitioner.class);
+    ShuffleWriteClient mockShuffleWriteClient = mock(ShuffleWriteClient.class);
+    ShuffleDependency mockDependency = mock(ShuffleDependency.class);
+    RssShuffleHandle mockHandle = mock(RssShuffleHandle.class);
+    when(mockHandle.getDependency()).thenReturn(mockDependency);
+
+    when(mockDependency.serializer()).thenReturn(kryoSerializer);
+    when(mockDependency.partitioner()).thenReturn(mockPartitioner);
+    when(mockDependency.mapSideCombine()).thenReturn(true);
+
+    MockedAggregator mockedAggregator = new MockedAggregator(
+            (value) -> value,
+            (oldVal, newVal) -> String.format("%s-%s", oldVal, newVal),
+            null
+    );
+    when(mockDependency.aggregator()).thenReturn(Option.apply(mockedAggregator));
+
+    when(mockPartitioner.numPartitions()).thenReturn(1);
+
+    Map<Integer, List<ShuffleServerInfo>> partitionToServers = Maps.newHashMap();
+    List<ShuffleServerInfo> ssi34 = Arrays.asList(new ShuffleServerInfo("id3", "0.0.0.3", 100),
+            new ShuffleServerInfo("id4", "0.0.0.4", 100));
+    partitionToServers.put(1, ssi34);
+    List<ShuffleServerInfo> ssi56 = Arrays.asList(new ShuffleServerInfo("id5", "0.0.0.5", 100),
+            new ShuffleServerInfo("id6", "0.0.0.6", 100));
+    partitionToServers.put(2, ssi56);
+    List<ShuffleServerInfo> ssi12 = Arrays.asList(new ShuffleServerInfo("id1", "0.0.0.1", 100),
+            new ShuffleServerInfo("id2", "0.0.0.2", 100));
+    partitionToServers.put(0, ssi12);
+    when(mockPartitioner.getPartition("testKey1")).thenReturn(0);
+    when(mockPartitioner.getPartition("testKey4")).thenReturn(0);
+    when(mockPartitioner.getPartition("testKey7")).thenReturn(0);
+
+    when(mockPartitioner.getPartition("testKey2")).thenReturn(1);
+    when(mockPartitioner.getPartition("testKey5")).thenReturn(1);
+    when(mockPartitioner.getPartition("testKey8")).thenReturn(1);
+
+    when(mockPartitioner.getPartition("testKey3")).thenReturn(2);
+    when(mockPartitioner.getPartition("testKey9")).thenReturn(2);
+    when(mockPartitioner.getPartition("testKey6")).thenReturn(2);
+
+    TaskMemoryManager mockTaskMemoryManager = mock(TaskMemoryManager.class);
+
+    BufferManagerOptions bufferOptions = new BufferManagerOptions(conf);
+    ShuffleWriteMetrics shuffleWriteMetrics = new ShuffleWriteMetrics();
+    WriteBufferManager bufferManager = new WriteBufferManager(
+            0, 0, bufferOptions, kryoSerializer,
+            partitionToServers, mockTaskMemoryManager, shuffleWriteMetrics);
+    WriteBufferManager bufferManagerSpy = spy(bufferManager);
+    RssShuffleWriter rssShuffleWriter = new RssShuffleWriter("appId", 0, "taskId", 1L,
+            bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle);
+    doReturn(1000000L).when(bufferManagerSpy).acquireMemory(anyLong());
+
+
+    RssShuffleWriter<String, String, String> rssShuffleWriterSpy = spy(rssShuffleWriter);
+    doNothing().when(rssShuffleWriterSpy).sendCommit();
+
+    MutableList<Product2<String, String>> data = new MutableList();
+    data.appendElem(new Tuple2("testKey2", "testValue2"));
+    data.appendElem(new Tuple2("testKey2", "testValue2"));
+
+    rssShuffleWriterSpy.write(data.iterator());
+
+    assertEquals(1, shuffleWriteMetrics.recordsWritten());
+    assertEquals(1, shuffleBlockInfos.size());
+  }
 
   @Test
   public void checkBlockSendResultTest() {

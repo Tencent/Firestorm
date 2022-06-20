@@ -88,6 +88,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
   private final Set shuffleServersForData;
   private final long[] partitionLengths;
   private boolean isMemoryShuffleEnabled;
+  private boolean isMergeEnabled;
 
   public RssShuffleWriter(
       String appId,
@@ -128,6 +129,8 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     partitionToServers = rssHandle.getPartitionToServers();
     this.isMemoryShuffleEnabled = isMemoryShuffleEnabled(
         sparkConf.get(RssSparkConfig.RSS_STORAGE_TYPE));
+    this.isMergeEnabled = sparkConf.getBoolean(RssSparkConfig.RSS_CLIENT_MERGE_ENABLE,
+        RssSparkConfig.RSS_CLIENT_MEGE_ENABLE_DEFAULT_VALUE);
   }
 
   private boolean isMemoryShuffleEnabled(String storageType) {
@@ -151,21 +154,26 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
       Product2<K, V> record = records.next();
       if (isCombine) {
         final Function1 createCombiner = shuffleDependency.aggregator().get().createCombiner();
-        final Function2 mergeValues = shuffleDependency.aggregator().get().mergeValue();
-        Function2 updateFunc = new AbstractFunction2<Boolean, V, V>() {
-          @Override
-          public V apply(Boolean hasKey, V oldVal) {
-            if (hasKey) {
-              return (V) mergeValues.apply(oldVal, record._2());
+        if (isMergeEnabled) {
+          final Function2 mergeValues = shuffleDependency.aggregator().get().mergeValue();
+          Function2 updateFunc = new AbstractFunction2<Boolean, V, V>() {
+            @Override
+            public V apply(Boolean hasKey, V oldVal) {
+              if (hasKey) {
+                return (V) mergeValues.apply(oldVal, record._2());
+              }
+              return (V) createCombiner.apply(record._2());
             }
-            return (V) createCombiner.apply(record._2());
-          }
-        };
-        sizeTrackingAppendOnlyMap.changeValue(record._1(), updateFunc);
+          };
+          sizeTrackingAppendOnlyMap.changeValue(record._1(), updateFunc);
 
-        if (sizeTrackingAppendOnlyMap.estimateSize() > 1 << 15) {
-          shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
-          sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
+          if (sizeTrackingAppendOnlyMap.estimateSize() > 1 << 15) {
+            shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
+            sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
+          }
+        } else {
+          int partition = getPartition(record._1());
+          shuffleBlockInfos = bufferManager.addRecord(partition, record._1(), createCombiner.apply(record._2()));
         }
       } else {
         int partition = getPartition(record._1());
@@ -175,9 +183,15 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         processShuffleBlockInfos(shuffleBlockInfos, blockIds);
       }
     }
+
+    // If merge enable, add all the rest records from map to buffer manager.
     if (sizeTrackingAppendOnlyMap != null && !sizeTrackingAppendOnlyMap.isEmpty()) {
-      shuffleBlockInfos.addAll(toBufferManager(sizeTrackingAppendOnlyMap));
+      shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
+      if (shuffleBlockInfos != null && !shuffleBlockInfos.isEmpty()) {
+        processShuffleBlockInfos(shuffleBlockInfos, blockIds);
+      }
     }
+
     final long start = System.currentTimeMillis();
     shuffleBlockInfos = bufferManager.clear();
     if (shuffleBlockInfos != null && !shuffleBlockInfos.isEmpty()) {
