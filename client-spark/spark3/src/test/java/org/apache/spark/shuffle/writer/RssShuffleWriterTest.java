@@ -99,7 +99,7 @@ public class RssShuffleWriterTest {
       public void onReceive(AddBlockEvent event) {
         assertEquals("taskId", event.getTaskId());
         shuffleBlockInfos.addAll(event.getShuffleDataInfoList());
-        Set<Long> blockIds = event.getShuffleDataInfoList().parallelStream()
+        Set<Long> blockIds = event.getShuffleDataInfoList().stream()
                 .map(sdi -> sdi.getBlockId()).collect(Collectors.toSet());
         successBlockIds.putIfAbsent(event.getTaskId(), Sets.newConcurrentHashSet());
         successBlockIds.get(event.getTaskId()).addAll(blockIds);
@@ -169,7 +169,6 @@ public class RssShuffleWriterTest {
     RssShuffleWriter rssShuffleWriter = new RssShuffleWriter("appId", 0, "taskId", 1L,
             bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle);
     doReturn(1000000L).when(bufferManagerSpy).acquireMemory(anyLong());
-
 
     RssShuffleWriter<String, String, String> rssShuffleWriterSpy = spy(rssShuffleWriter);
     doNothing().when(rssShuffleWriterSpy).sendCommit();
@@ -274,7 +273,7 @@ public class RssShuffleWriterTest {
       public void onReceive(AddBlockEvent event) {
         assertEquals("taskId", event.getTaskId());
         shuffleBlockInfos.addAll(event.getShuffleDataInfoList());
-        Set<Long> blockIds = event.getShuffleDataInfoList().parallelStream()
+        Set<Long> blockIds = event.getShuffleDataInfoList().stream()
             .map(sdi -> sdi.getBlockId()).collect(Collectors.toSet());
         successBlockIds.putIfAbsent(event.getTaskId(), Sets.newConcurrentHashSet());
         successBlockIds.get(event.getTaskId()).addAll(blockIds);
