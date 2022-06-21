@@ -156,7 +156,7 @@ public class RssShuffleManager implements ShuffleManager {
     this.heartbeatInterval = sparkConf.getLong(RssSparkConfig.RSS_HEARTBEAT_INTERVAL,
         RssSparkConfig.RSS_HEARTBEAT_INTERVAL_DEFAULT_VALUE);
     this.heartbeatTimeout = sparkConf.getLong(RssSparkConfig.RSS_HEARTBEAT_TIMEOUT, heartbeatInterval / 2);
-    int retryMax = sparkConf.getInt(RssSparkConfig.RSS_CLIENT_RETRY_MAX,
+    final int retryMax = sparkConf.getInt(RssSparkConfig.RSS_CLIENT_RETRY_MAX,
         RssSparkConfig.RSS_CLIENT_RETRY_MAX_DEFAULT_VALUE);
     this.clientType = sparkConf.get(RssSparkConfig.RSS_CLIENT_TYPE,
         RssSparkConfig.RSS_CLIENT_TYPE_DEFAULT_VALUE);
