@@ -90,7 +90,7 @@ public class RssShuffleWriterTest {
             .set(RssSparkConfig.RSS_WRITER_BUFFER_SPILL_SIZE, "128")
             .set(RssSparkConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name())
             .set(RssSparkConfig.RSS_COORDINATOR_QUORUM, "127.0.0.1:12345,127.0.0.1:12346")
-            .set(RssSparkConfig.RSS_CLIENT_MERGE_ENABLE, "true");
+            .set(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_ENABLE, "true");
 
     List<ShuffleBlockInfo> shuffleBlockInfos = Lists.newArrayList();
     Map<String, Set<Long>> successBlockIds = Maps.newConcurrentMap();
