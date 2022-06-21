@@ -43,6 +43,7 @@ public class MemoryLimitedMap<K, V> extends Spillable<SizeTrackingAppendOnlyMap>
         long estimatedSize = currentMap.estimateSize();
         if (estimatedSize > maxSpillThresholdSize) {
             spill(currentMap);
+            currentMap = new SizeTrackingAppendOnlyMap<>();
             estimatedSize = currentMap.estimateSize();
         }
         if (maybeSpill(currentMap, estimatedSize)) {
