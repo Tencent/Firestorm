@@ -38,13 +38,14 @@ import org.apache.spark.Partitioner;
 import org.apache.spark.ShuffleDependency;
 import org.apache.spark.SparkConf;
 import org.apache.spark.executor.ShuffleWriteMetrics;
+import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.scheduler.MapStatus;
+import org.apache.spark.shuffle.MemoryLimitedMap;
 import org.apache.spark.shuffle.RssShuffleHandle;
 import org.apache.spark.shuffle.RssShuffleManager;
 import org.apache.spark.shuffle.RssSparkConfig;
 import org.apache.spark.shuffle.ShuffleWriter;
 import org.apache.spark.storage.BlockManagerId;
-import org.apache.spark.util.collection.SizeTrackingAppendOnlyMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Function1;
@@ -53,6 +54,7 @@ import scala.Option;
 import scala.Product2;
 import scala.Tuple2;
 import scala.collection.Iterator;
+import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
 import com.tencent.rss.client.api.ShuffleWriteClient;
@@ -90,6 +92,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
   private boolean isMemoryShuffleEnabled;
   private boolean isMapsideMergeEnabled;
   private final long mapsideMergeStagingMaxSize;
+  private final TaskMemoryManager taskMemoryManager;
 
   public RssShuffleWriter(
       String appId,
@@ -101,7 +104,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
       RssShuffleManager shuffleManager,
       SparkConf sparkConf,
       ShuffleWriteClient shuffleWriteClient,
-      RssShuffleHandle rssHandle) {
+      RssShuffleHandle rssHandle, TaskMemoryManager taskMemoryManager) {
     LOG.warn("RssShuffle start write taskAttemptId data" + taskAttemptId);
     this.shuffleManager = shuffleManager;
     this.appId = appId;
@@ -132,8 +135,10 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         sparkConf.get(RssSparkConfig.RSS_STORAGE_TYPE));
     this.isMapsideMergeEnabled = sparkConf.getBoolean(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_ENABLE,
         RssSparkConfig.RSS_CLIENT_MEGE_ENABLE_DEFAULT_VALUE);
-    this.mapsideMergeStagingMaxSize = sparkConf.getLong(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE,
+    this.mapsideMergeStagingMaxSize = sparkConf.getSizeAsBytes(
+        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE,
         RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE_DEFAULT_VALUE);
+    this.taskMemoryManager = taskMemoryManager;
   }
 
   private boolean isMemoryShuffleEnabled(String storageType) {
@@ -147,11 +152,21 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     List<ShuffleBlockInfo> shuffleBlockInfos = null;
     Set<Long> blockIds = Sets.newConcurrentHashSet();
 
-    SizeTrackingAppendOnlyMap<K, V> sizeTrackingAppendOnlyMap = null;
-    if (shuffleDependency.mapSideCombine()) {
-      bufferManager.acquireMemory(mapsideMergeStagingMaxSize);
-      sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
-    }
+    Function1<Tuple2<K, V>, Void> spillFunc = new AbstractFunction1<Tuple2<K, V>, Void>() {
+      @Override
+      public Void apply(Tuple2<K, V> tuple) {
+        int partition = getPartition(tuple._1);
+        List<ShuffleBlockInfo> shuffleBlockInfos = bufferManager.addRecord(partition, tuple._1, tuple._2);
+        if (shuffleBlockInfos != null && !shuffleBlockInfos.isEmpty()) {
+          processShuffleBlockInfos(shuffleBlockInfos, blockIds);
+        }
+        return null;
+      }
+    };
+
+    MemoryLimitedMap<K, V> memoryLimitedMap = new MemoryLimitedMap<>(
+            taskMemoryManager, mapsideMergeStagingMaxSize, spillFunc
+    );
 
     while (records.hasNext()) {
       Product2<K, V> record = records.next();
@@ -168,12 +183,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
               return (V) createCombiner.apply(record._2());
             }
           };
-          sizeTrackingAppendOnlyMap.changeValue(record._1(), updateFunc);
-
-          if (sizeTrackingAppendOnlyMap.estimateSize() > mapsideMergeStagingMaxSize) {
-            shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
-            sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
-          }
+          memoryLimitedMap.changeValue(record._1(), updateFunc);
         } else {
           int partition = getPartition(record._1());
           shuffleBlockInfos = bufferManager.addRecord(partition, record._1(), createCombiner.apply(record._2()));
@@ -188,10 +198,10 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     }
 
     // If merge enable, add all the rest records from map to buffer manager.
-    if (!sizeTrackingAppendOnlyMap.isEmpty()) {
-      shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
-      if (shuffleBlockInfos != null && !shuffleBlockInfos.isEmpty()) {
-        processShuffleBlockInfos(shuffleBlockInfos, blockIds);
+    if (!memoryLimitedMap.isEmpty()) {
+      Iterator<Tuple2<K,V>> iter = memoryLimitedMap.iterator();
+      while (iter.hasNext()) {
+        spillFunc.apply(iter.next());
       }
     }
 
@@ -213,20 +223,6 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         + "], taskId[" + taskId + "] with write " + writeDurationMs + " ms, include checkSendResult["
         + checkDuration + "], commit[" + (System.currentTimeMillis() - commitStartTs) + "], "
         + bufferManager.getManagerCostInfo());
-  }
-
-  private List<ShuffleBlockInfo> toBufferManager(SizeTrackingAppendOnlyMap<K,V> sizeTrackingAppendOnlyMap) {
-    List<ShuffleBlockInfo> shuffleBlockInfos = new ArrayList<>();
-    Iterator<Tuple2<K, V>> iterator = sizeTrackingAppendOnlyMap.iterator();
-    while (iterator.hasNext()) {
-      Tuple2<K, V> tuple = iterator.next();
-      int partition = getPartition(tuple._1);
-      List<ShuffleBlockInfo> partialBlocks = bufferManager.addRecord(partition, tuple._1, tuple._2);
-      if (partialBlocks != null && !partialBlocks.isEmpty()) {
-        shuffleBlockInfos.addAll(partialBlocks);
-      }
-    }
-    return shuffleBlockInfos;
   }
 
   // only push-based shuffle use this interface, but rss won't be used when push-based shuffle is enabled.

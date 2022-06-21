@@ -91,6 +91,7 @@ public class RssShuffleWriterTest {
             .set(RssSparkConfig.RSS_STORAGE_TYPE, StorageType.LOCALFILE.name())
             .set(RssSparkConfig.RSS_COORDINATOR_QUORUM, "127.0.0.1:12345,127.0.0.1:12346")
             .set(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_ENABLE, "true");
+    SparkContext sc = SparkContext.getOrCreate(conf);
 
     List<ShuffleBlockInfo> shuffleBlockInfos = Lists.newArrayList();
     Map<String, Set<Long>> successBlockIds = Maps.newConcurrentMap();
@@ -167,7 +168,8 @@ public class RssShuffleWriterTest {
             partitionToServers, mockTaskMemoryManager, shuffleWriteMetrics);
     WriteBufferManager bufferManagerSpy = spy(bufferManager);
     RssShuffleWriter rssShuffleWriter = new RssShuffleWriter("appId", 0, "taskId", 1L,
-            bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle);
+            bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle,
+            mockTaskMemoryManager);
     doReturn(1000000L).when(bufferManagerSpy).acquireMemory(anyLong());
 
     RssShuffleWriter<String, String, String> rssShuffleWriterSpy = spy(rssShuffleWriter);
@@ -181,6 +183,8 @@ public class RssShuffleWriterTest {
 
     assertEquals(1, shuffleWriteMetrics.recordsWritten());
     assertEquals(1, shuffleBlockInfos.size());
+
+    sc.stop();
   }
 
   @Test
@@ -223,7 +227,7 @@ public class RssShuffleWriterTest {
 
     RssShuffleWriter rssShuffleWriter = new RssShuffleWriter("appId", 0, "taskId", 1L,
         bufferManagerSpy, (new TaskMetrics()).shuffleWriteMetrics(),
-        manager, conf, mockShuffleWriteClient, mockHandle);
+        manager, conf, mockShuffleWriteClient, mockHandle, mockTaskMemoryManager);
     doReturn(1000000L).when(bufferManagerSpy).acquireMemory(anyLong());
 
     // case 1: all blocks are sent successfully
@@ -329,7 +333,8 @@ public class RssShuffleWriterTest {
         partitionToServers, mockTaskMemoryManager, shuffleWriteMetrics);
     WriteBufferManager bufferManagerSpy = spy(bufferManager);
     RssShuffleWriter rssShuffleWriter = new RssShuffleWriter("appId", 0, "taskId", 1L,
-        bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient, mockHandle);
+        bufferManagerSpy, shuffleWriteMetrics, manager, conf, mockShuffleWriteClient,
+        mockHandle, mockTaskMemoryManager);
     doReturn(1000000L).when(bufferManagerSpy).acquireMemory(anyLong());
 
 
@@ -413,7 +418,7 @@ public class RssShuffleWriterTest {
         .set(RssSparkConfig.RSS_STORAGE_TYPE, StorageType.MEMORY_LOCALFILE.name());
     List<ShuffleBlockInfo> shuffleBlockInfoList = createShuffleBlockList(1, 31);
     RssShuffleWriter writer = new RssShuffleWriter("appId", 0, "taskId", 1L,
-        mockBufferManager, mockMetrics, mockShuffleManager, conf, mockWriteClient, mockHandle);
+        mockBufferManager, mockMetrics, mockShuffleManager, conf, mockWriteClient, mockHandle, null);
     writer.postBlockEvent(shuffleBlockInfoList);
     Thread.sleep(500);
     assertEquals(1, events.size());
