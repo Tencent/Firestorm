@@ -89,7 +89,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
   private final long[] partitionLengths;
   private boolean isMemoryShuffleEnabled;
   private boolean isMapsideMergeEnabled;
-  private final long mapsideMergeStagingSize;
+  private final long mapsideMergeStagingMaxSize;
 
   public RssShuffleWriter(
       String appId,
@@ -132,8 +132,8 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         sparkConf.get(RssSparkConfig.RSS_STORAGE_TYPE));
     this.isMapsideMergeEnabled = sparkConf.getBoolean(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_ENABLE,
         RssSparkConfig.RSS_CLIENT_MEGE_ENABLE_DEFAULT_VALUE);
-    this.mapsideMergeStagingSize = sparkConf.getLong(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_SIZE,
-        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_SIZE_DEFAULT_VALUE);
+    this.mapsideMergeStagingMaxSize = sparkConf.getLong(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE,
+        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE_DEFAULT_VALUE);
   }
 
   private boolean isMemoryShuffleEnabled(String storageType) {
@@ -147,7 +147,11 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     List<ShuffleBlockInfo> shuffleBlockInfos = null;
     Set<Long> blockIds = Sets.newConcurrentHashSet();
 
-    SizeTrackingAppendOnlyMap<K, V> sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
+    SizeTrackingAppendOnlyMap<K, V> sizeTrackingAppendOnlyMap = null;
+    if (shuffleDependency.mapSideCombine()) {
+      bufferManager.acquireMemory(mapsideMergeStagingMaxSize);
+      sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
+    }
 
     while (records.hasNext()) {
       Product2<K, V> record = records.next();
@@ -166,7 +170,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
           };
           sizeTrackingAppendOnlyMap.changeValue(record._1(), updateFunc);
 
-          if (sizeTrackingAppendOnlyMap.estimateSize() > mapsideMergeStagingSize) {
+          if (sizeTrackingAppendOnlyMap.estimateSize() > mapsideMergeStagingMaxSize) {
             shuffleBlockInfos = toBufferManager(sizeTrackingAppendOnlyMap);
             sizeTrackingAppendOnlyMap = new SizeTrackingAppendOnlyMap<>();
           }

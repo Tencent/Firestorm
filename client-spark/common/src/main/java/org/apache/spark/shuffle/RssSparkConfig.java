@@ -127,9 +127,9 @@ public class RssSparkConfig {
   public static final String RSS_CLIENT_MAPSIDE_MERGE_ENABLE =
       SPARK_RSS_CONFIG_PREFIX + "rss.client.mapside.merge.enable";
   public static final boolean RSS_CLIENT_MEGE_ENABLE_DEFAULT_VALUE = false;
-  public static final String RSS_CLIENT_MAPSIDE_MERGE_STAGING_SIZE =
-      SPARK_RSS_CONFIG_PREFIX + "rss.client.mapside.merge.staging.size";
-  public static final long RSS_CLIENT_MAPSIDE_MERGE_STAGING_SIZE_DEFAULT_VALUE = 32 * 1024 * 1024;
+  public static final String RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE =
+      SPARK_RSS_CONFIG_PREFIX + "rss.client.mapside.merge.staging.max.size";
+  public static final long RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE_DEFAULT_VALUE = 32 * 1024 * 1024;
   public static final int RSS_CLIENT_BITMAP_SPLIT_NUM_DEFAULT_VALUE = 1;
   public static final String RSS_ACCESS_ID = SPARK_RSS_CONFIG_PREFIX + "rss.access.id";
   public static final String RSS_ACCESS_TIMEOUT_MS = SPARK_RSS_CONFIG_PREFIX + RssClientConfig.RSS_ACCESS_TIMEOUT_MS;
