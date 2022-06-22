@@ -72,8 +72,7 @@ public class SimpleClusterManager implements ClusterManager {
     }
   }
 
-  @VisibleForTesting
-  protected void nodesCheck() {
+  void nodesCheck() {
     try {
       long timestamp = System.currentTimeMillis();
       Set<String> deleteIds = Sets.newHashSet();

@@ -118,7 +118,7 @@ public class ServerNode implements Comparable<ServerNode> {
   /**
    * Only for test case
    */
-  public void setTimestamp(long timestamp) {
+  void setTimestamp(long timestamp) {
     this.timestamp = timestamp;
   }
 
