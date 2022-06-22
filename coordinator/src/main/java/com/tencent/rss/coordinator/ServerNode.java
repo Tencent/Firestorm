@@ -20,6 +20,7 @@ package com.tencent.rss.coordinator;
 
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.tencent.rss.proto.RssProtos.ShuffleServerId;
 
 public class ServerNode implements Comparable<ServerNode> {
@@ -113,6 +114,14 @@ public class ServerNode implements Comparable<ServerNode> {
         + "], timestamp[" + timestamp
         + "], tags" + tags.toString() + ""
         + ", healthy[" + isHealthy + "]";
+  }
+
+  /**
+   * Only for test case
+   */
+  @VisibleForTesting
+  public void setTimestamp(long timestamp) {
+    this.timestamp = timestamp;
   }
 
   @Override

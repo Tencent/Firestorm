@@ -72,7 +72,8 @@ public class SimpleClusterManager implements ClusterManager {
     }
   }
 
-  private void nodesCheck() {
+  @VisibleForTesting
+  protected void nodesCheck() {
     try {
       long timestamp = System.currentTimeMillis();
       Set<String> deleteIds = Sets.newHashSet();
@@ -80,6 +81,9 @@ public class SimpleClusterManager implements ClusterManager {
         if (timestamp - sn.getTimestamp() > heartbeatTimeout) {
           LOG.warn("Heartbeat timeout detect, " + sn + " will be removed from node list.");
           deleteIds.add(sn.getId());
+          for (Set<ServerNode> nodesWithTag : tagToNodes.values()) {
+            nodesWithTag.remove(sn);
+          }
         }
       }
       for (String serverId : deleteIds) {
