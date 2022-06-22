@@ -136,7 +136,9 @@ public class LocalStorageManager extends SingleStorageManager {
 
   @Override
   public void registerRemoteStorage(String appId, RemoteStorageInfo remoteStorageInfo) {
-    // ignore
+    if (!remoteStorageInfo.isEmpty()) {
+      throw new RuntimeException("LocalStorageManager should have empty remote storage info");
+    }
   }
 
   void repair() {

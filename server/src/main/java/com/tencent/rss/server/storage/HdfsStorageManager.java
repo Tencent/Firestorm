@@ -86,6 +86,9 @@ public class HdfsStorageManager extends SingleStorageManager {
 
   @Override
   public void registerRemoteStorage(String appId, RemoteStorageInfo remoteStorageInfo) {
+    if (remoteStorageInfo.isEmpty()) {
+      throw new RuntimeException("HdfsStorageManager must have remote storage info");
+    }
     String remoteStorage = remoteStorageInfo.getPath();
     Map<String, String> remoteStorageConf = remoteStorageInfo.getConfItems();
     if (!pathToStorages.containsKey(remoteStorage)) {
