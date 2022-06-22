@@ -80,13 +80,15 @@ public class SimpleClusterManager implements ClusterManager {
         if (timestamp - sn.getTimestamp() > heartbeatTimeout) {
           LOG.warn("Heartbeat timeout detect, " + sn + " will be removed from node list.");
           deleteIds.add(sn.getId());
+        }
+      }
+      for (String serverId : deleteIds) {
+        ServerNode sn = servers.remove(serverId);
+        if (sn != null) {
           for (Set<ServerNode> nodesWithTag : tagToNodes.values()) {
             nodesWithTag.remove(sn);
           }
         }
-      }
-      for (String serverId : deleteIds) {
-        servers.remove(serverId);
       }
 
       CoordinatorMetrics.gaugeTotalServerNum.set(servers.size());
