@@ -137,7 +137,9 @@ public class RssShuffleManager implements ShuffleManager {
 
   public RssShuffleManager(SparkConf sparkConf, boolean isDriver) {
     this.sparkConf = sparkConf;
-
+    if (sparkConf.getBoolean("spark.sql.adaptive.enabled", false)) {
+      throw new IllegalArgumentException("For Spark2, spark.sql.adaptive.enabled should be false cause Spark2 doesn't support AQE.");
+    }
     // set & check replica config
     this.dataReplica = sparkConf.getInt(RssSparkConfig.RSS_DATA_REPLICA,
         RssSparkConfig.RSS_DATA_REPLICA_DEFAULT_VALUE);
