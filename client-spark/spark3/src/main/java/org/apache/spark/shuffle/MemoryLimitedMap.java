@@ -21,7 +21,6 @@ package org.apache.spark.shuffle;
 import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.util.collection.SizeTrackingAppendOnlyMap;
 import org.apache.spark.util.collection.Spillable;
-
 import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
