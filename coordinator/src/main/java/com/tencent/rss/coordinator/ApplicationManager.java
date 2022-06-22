@@ -121,6 +121,7 @@ public class ApplicationManager {
     // create list for sort
     List<Map.Entry<String, AtomicInteger>> sizeList =
         Lists.newArrayList(remoteStoragePathCounter.entrySet());
+
     sizeList.sort((entry1, entry2) -> {
       if (entry1 == null && entry2 == null) {
         return 0;
