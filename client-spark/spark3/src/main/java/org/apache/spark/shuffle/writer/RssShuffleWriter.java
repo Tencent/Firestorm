@@ -19,7 +19,6 @@
 package org.apache.spark.shuffle.writer;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +90,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
   private final long[] partitionLengths;
   private boolean isMemoryShuffleEnabled;
   private boolean isMapsideMergeEnabled;
-  private final long mapsideMergeStagingMaxSize;
+  private final long mapsideMergeSpillThreshold;
   private final TaskMemoryManager taskMemoryManager;
 
   public RssShuffleWriter(
@@ -135,9 +134,9 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
         sparkConf.get(RssSparkConfig.RSS_STORAGE_TYPE));
     this.isMapsideMergeEnabled = sparkConf.getBoolean(RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_ENABLE,
         RssSparkConfig.RSS_CLIENT_MEGE_ENABLE_DEFAULT_VALUE);
-    this.mapsideMergeStagingMaxSize = sparkConf.getSizeAsBytes(
-        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE,
-        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_STAGING_MAX_SIZE_DEFAULT_VALUE);
+    this.mapsideMergeSpillThreshold = sparkConf.getSizeAsBytes(
+        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_SPILL_THRESHOLD,
+        RssSparkConfig.RSS_CLIENT_MAPSIDE_MERGE_SPILL_THRESHOLD_DEFAULT_VALUE);
     this.taskMemoryManager = taskMemoryManager;
   }
 
@@ -165,7 +164,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     };
 
     MemoryLimitedMap<K, V> memoryLimitedMap = new MemoryLimitedMap<>(
-            taskMemoryManager, mapsideMergeStagingMaxSize, spillFunc
+            taskMemoryManager, mapsideMergeSpillThreshold, spillFunc
     );
 
     while (records.hasNext()) {
