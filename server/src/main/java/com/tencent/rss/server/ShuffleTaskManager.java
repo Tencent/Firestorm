@@ -136,7 +136,9 @@ public class ShuffleTaskManager {
     for (PartitionRange partitionRange : partitionRanges) {
       shuffleBufferManager.registerBuffer(appId, shuffleId, partitionRange.getStart(), partitionRange.getEnd());
     }
-    storageManager.registerRemoteStorage(appId, remoteStorageInfo);
+    if (!remoteStorageInfo.isEmpty()) {
+      storageManager.registerRemoteStorage(appId, remoteStorageInfo);
+    }
     return StatusCode.SUCCESS;
   }
 
