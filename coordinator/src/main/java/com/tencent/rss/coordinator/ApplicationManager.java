@@ -121,9 +121,6 @@ public class ApplicationManager {
     // create list for sort
     List<Map.Entry<String, AtomicInteger>> sizeList =
         Lists.newArrayList(remoteStoragePathCounter.entrySet());
-    for (Map.Entry<String, AtomicInteger> entry : remoteStoragePathCounter.entrySet()) {
-      LOG.info("counter entry key {} : {}", entry.getKey(), entry.getValue());
-    }
     sizeList.sort((entry1, entry2) -> {
       if (entry1 == null && entry2 == null) {
         return 0;
@@ -149,12 +146,6 @@ public class ApplicationManager {
         incRemoteStorageCounter(storagePath);
         break;
       }
-    }
-    for (Map.Entry<String, RemoteStorageInfo> entry : availableRemoteStorageInfo.entrySet()) {
-      LOG.info("avail entry key {} : {}", entry.getKey(), entry.getValue());
-    }
-    for (Map.Entry<String, RemoteStorageInfo> entry : appIdToRemoteStorageInfo.entrySet()) {
-      LOG.info("app entry key {} : {}", entry.getKey(), entry.getValue());
     }
     return appIdToRemoteStorageInfo.get(appId);
   }
