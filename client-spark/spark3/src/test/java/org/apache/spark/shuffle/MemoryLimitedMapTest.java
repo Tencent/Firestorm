@@ -38,6 +38,9 @@ import scala.Tuple2;
 import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
+/**
+ * The test case for {@link MemoryLimitedMap}
+ */
 public class MemoryLimitedMapTest {
     private static SparkContext sparkContext;
 

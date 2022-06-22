@@ -29,7 +29,9 @@ import scala.collection.Iterator;
 
 /**
  * This class is the wrapper of {@link SizeTrackingAppendOnlyMap} and to limit the
- * memory usage from the task memory manager.
+ * memory usage from the task memory manager. Once the memory usage exceed the
+ * {@code spillThresholdSize} or lack the enough memory from task memory manager,
+ * it will spill elements by the external function of {@code spillFunc}.
  */
 public class MemoryLimitedMap<K, V> extends Spillable<SizeTrackingAppendOnlyMap> {
     private SizeTrackingAppendOnlyMap<K, V> currentMap = new SizeTrackingAppendOnlyMap<>();
@@ -71,6 +73,9 @@ public class MemoryLimitedMap<K, V> extends Spillable<SizeTrackingAppendOnlyMap>
         addElementsRead();
     }
 
+    /**
+     * It will return the iterator of the non-spilled elements in {@code currentMap}.
+     */
     public Iterator<Tuple2<K, V>> iterator() {
         return currentMap.iterator();
     }
