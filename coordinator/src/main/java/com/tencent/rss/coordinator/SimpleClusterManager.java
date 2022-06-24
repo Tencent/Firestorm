@@ -19,9 +19,11 @@
 package com.tencent.rss.coordinator;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Closeable;
+import java.io.DataInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,10 +38,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleClusterManager implements ClusterManager {
+public class SimpleClusterManager implements ClusterManager, Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimpleClusterManager.class);
 
@@ -52,8 +58,9 @@ public class SimpleClusterManager implements ClusterManager {
   private int shuffleNodesMax;
   private ScheduledExecutorService scheduledExecutorService;
   private ScheduledExecutorService checkNodesExecutorService;
+  private FileSystem hadoopFileSystem;
 
-  public SimpleClusterManager(CoordinatorConf conf) {
+  public SimpleClusterManager(CoordinatorConf conf, Configuration hadoopConf) throws IOException {
     this.shuffleNodesMax = conf.getInteger(CoordinatorConf.COORDINATOR_SHUFFLE_NODES_MAX);
     this.heartbeatTimeout = conf.getLong(CoordinatorConf.COORDINATOR_HEARTBEAT_TIMEOUT);
     // the thread for checking if shuffle server report heartbeat in time
@@ -65,6 +72,7 @@ public class SimpleClusterManager implements ClusterManager {
 
     String excludeNodesPath = conf.getString(CoordinatorConf.COORDINATOR_EXCLUDE_NODES_FILE_PATH, "");
     if (!StringUtils.isEmpty(excludeNodesPath)) {
+      this.hadoopFileSystem = CoordinatorUtils.getFileSystemForPath(new Path(excludeNodesPath), hadoopConf);
       long updateNodesInterval = conf.getLong(CoordinatorConf.COORDINATOR_EXCLUDE_NODES_CHECK_INTERVAL);
       checkNodesExecutorService = Executors.newSingleThreadScheduledExecutor(
           new ThreadFactoryBuilder().setDaemon(true).setNameFormat("UpdateExcludeNodes-%d").build());
@@ -100,39 +108,37 @@ public class SimpleClusterManager implements ClusterManager {
 
   private void updateExcludeNodes(String path) {
     try {
-      File excludeNodesFile = new File(path);
-      if (excludeNodesFile.exists()) {
-        // don't parse same file twice
-        if (excludeLastModify.get() != excludeNodesFile.lastModified()) {
-          parseExcludeNodesFile(excludeNodesFile);
+      Path hadoopPath = new Path(path);
+      FileStatus fileStatus = hadoopFileSystem.getFileStatus(hadoopPath);
+      if (fileStatus != null && fileStatus.isFile()) {
+        if (excludeLastModify.get() != fileStatus.getModificationTime()) {
+          parseExcludeNodesFile(hadoopFileSystem.open(hadoopPath));
+          excludeLastModify.set(fileStatus.getModificationTime());
         }
       } else {
         excludeNodes = Sets.newConcurrentHashSet();
       }
       CoordinatorMetrics.gaugeExcludeServerNum.set(excludeNodes.size());
+    } catch (FileNotFoundException fileNotFoundException) {
+      excludeNodes = Sets.newConcurrentHashSet();
     } catch (Exception e) {
-      LOG.warn("Error when update exclude nodes", e);
+      LOG.warn("Error when updating exclude nodes, the exclude nodes file path: " + path, e);
     }
   }
 
-  private void parseExcludeNodesFile(File excludeNodesFile) {
-    try {
-      Set<String> nodes = Sets.newConcurrentHashSet();
-      try (BufferedReader br = new BufferedReader(new FileReader(excludeNodesFile))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-          if (!StringUtils.isEmpty(line)) {
-            nodes.add(line);
-          }
+  private void parseExcludeNodesFile(DataInputStream fsDataInputStream) throws IOException {
+    Set<String> nodes = Sets.newConcurrentHashSet();
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(fsDataInputStream))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        if (!StringUtils.isEmpty(line)) {
+          nodes.add(line);
         }
       }
-      // update exclude nodes and last modify time
-      excludeNodes = nodes;
-      excludeLastModify.set(excludeNodesFile.lastModified());
-      LOG.info("Update exclude nodes and " + excludeNodes.size() + " nodes was marked as exclude nodes");
-    } catch (Exception e) {
-      LOG.warn("Error when parse file " + excludeNodesFile.getAbsolutePath(), e);
     }
+    // update exclude nodes and last modify time
+    excludeNodes = nodes;
+    LOG.info("Updated exclude nodes and " + excludeNodes.size() + " nodes were marked as exclude nodes");
   }
 
   @Override
@@ -187,17 +193,20 @@ public class SimpleClusterManager implements ClusterManager {
   }
 
   @Override
+  public int getShuffleNodesMax() {
+    return shuffleNodesMax;
+  }
+
+  @Override
   public void close() throws IOException {
+    if (hadoopFileSystem != null) {
+      hadoopFileSystem.close();
+    }
     if (scheduledExecutorService != null) {
       scheduledExecutorService.shutdown();
     }
     if (checkNodesExecutorService != null) {
       checkNodesExecutorService.shutdown();
     }
-  }
-
-  @Override
-  public int getShuffleNodesMax() {
-    return shuffleNodesMax;
   }
 }
