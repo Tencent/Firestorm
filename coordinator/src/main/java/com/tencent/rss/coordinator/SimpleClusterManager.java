@@ -20,7 +20,6 @@ package com.tencent.rss.coordinator;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
@@ -45,7 +44,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleClusterManager implements ClusterManager, Closeable {
+public class SimpleClusterManager implements ClusterManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(SimpleClusterManager.class);
 
@@ -202,9 +201,11 @@ public class SimpleClusterManager implements ClusterManager, Closeable {
     if (hadoopFileSystem != null) {
       hadoopFileSystem.close();
     }
+
     if (scheduledExecutorService != null) {
       scheduledExecutorService.shutdown();
     }
+
     if (checkNodesExecutorService != null) {
       checkNodesExecutorService.shutdown();
     }
