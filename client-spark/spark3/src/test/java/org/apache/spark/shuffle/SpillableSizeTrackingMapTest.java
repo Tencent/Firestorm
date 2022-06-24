@@ -18,14 +18,13 @@
 
 package org.apache.spark.shuffle;
 
-import static org.mockito.Mockito.mock;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.SparkEnv;
+import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.TaskMemoryManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -39,9 +38,9 @@ import scala.runtime.AbstractFunction1;
 import scala.runtime.AbstractFunction2;
 
 /**
- * The test case for {@link MemoryLimitedMap}
+ * The test cases for {@link SpillableSizeTrackingMap}
  */
-public class MemoryLimitedMapTest {
+public class SpillableSizeTrackingMapTest {
     private static SparkContext sparkContext;
 
     @BeforeAll
@@ -59,10 +58,9 @@ public class MemoryLimitedMapTest {
         }
     }
 
-    @Test
-    public void testMapReachedSpillThreshold() {
-        SparkEnv.get().conf().set("spark.shuffle.spill.initialMemoryThreshold", String.valueOf(32 * 1024 * 1024));
-        TaskMemoryManager mockTaskMemoryManager = mock(TaskMemoryManager.class);
+    private void createMapAndCheck(long initialRequiredMemoryBytes, long totalMemoryBytes,
+            long spillThresholdBytes) {
+        TaskMemoryManager mockTaskMemoryManager = new MockedTaskMemoryManager(totalMemoryBytes);
 
         List<String> spillStoreList = new ArrayList<>();
         Function1<Tuple2<String, String>, Void> spillFunc1 = new AbstractFunction1<Tuple2<String, String>, Void>() {
@@ -74,23 +72,52 @@ public class MemoryLimitedMapTest {
             }
         };
 
-        MemoryLimitedMap<String, String> map = new MemoryLimitedMap<>(
+        SpillableSizeTrackingMap<String, String> map = new SpillableSizeTrackingMap<>(
                 mockTaskMemoryManager,
-                1024L,
-                spillFunc1
+                spillThresholdBytes,
+                spillFunc1,
+                initialRequiredMemoryBytes
         );
 
         for (int i = 0; i < 1000; i++) {
             map.changeValue("key" + i, getUpdateFunc("val" + i));
         }
-
         Assertions.assertTrue(spillStoreList.size() > 0);
+        Assertions.assertTrue(((MockedTaskMemoryManager)mockTaskMemoryManager).getUsed() > 0);
+
+        map.finalizeAndClear();
+        Assertions.assertEquals(1000, spillStoreList.size());
+        Assertions.assertEquals(((MockedTaskMemoryManager)mockTaskMemoryManager).getUsed(), 0);
     }
 
     @Test
-    public void testMapAcquireMemoryFailed() {
-        SparkEnv.get().conf().set("spark.shuffle.spill.initialMemoryThreshold", "1024");
-        TaskMemoryManager mockTaskMemoryManager = mock(TaskMemoryManager.class);
+    public void testMapReachedSpillThreshold() {
+        // Initial required: 1KB
+        long initialRequiredMemoryBytes = 1024L;
+        long totalMemoryBytes = Long.MAX_VALUE;
+        // Spill threshold size: 2MB
+        long spillThresholdBytes = 2 * 1024 * 1024L;
+        createMapAndCheck(initialRequiredMemoryBytes, totalMemoryBytes, spillThresholdBytes);
+    }
+
+    @Test
+    public void testMapAcquireMemoryFailedToRelaseMemory() {
+        // Initial required: 1KB
+        long initialRequiredMemoryBytes = 1024L;
+        // Total memory: 1M
+        long totalMemoryBytes = 1 * 1024 * 1024L;
+        long spillThresholdBytes = Long.MAX_VALUE;
+        createMapAndCheck(initialRequiredMemoryBytes, totalMemoryBytes, spillThresholdBytes);
+    }
+
+    @Test
+    public void testWithoutReachingSpillCondition() {
+        // Initial required: 1KB
+        long initialRequiredMemoryBytes = 1024L;
+        long totalMemoryBytes = Long.MAX_VALUE;
+        long spillThresholdBytes = Long.MAX_VALUE;
+
+        TaskMemoryManager mockTaskMemoryManager = new MockedTaskMemoryManager(totalMemoryBytes);
 
         List<String> spillStoreList = new ArrayList<>();
         Function1<Tuple2<String, String>, Void> spillFunc1 = new AbstractFunction1<Tuple2<String, String>, Void>() {
@@ -102,17 +129,20 @@ public class MemoryLimitedMapTest {
             }
         };
 
-        MemoryLimitedMap<String, String> map = new MemoryLimitedMap<>(
+        SpillableSizeTrackingMap<String, String> map = new SpillableSizeTrackingMap<>(
                 mockTaskMemoryManager,
-                Long.MAX_VALUE,
-                spillFunc1
+                spillThresholdBytes,
+                spillFunc1,
+                initialRequiredMemoryBytes
         );
 
         for (int i = 0; i < 1000; i++) {
             map.changeValue("key" + i, getUpdateFunc("val" + i));
         }
+        Assertions.assertTrue(spillStoreList.isEmpty());
 
-        Assertions.assertTrue(spillStoreList.size() > 0);
+        map.finalizeAndClear();
+        Assertions.assertEquals(spillStoreList.size(), 1000);
     }
 
     private Function2 getUpdateFunc(String newVal) {
@@ -127,5 +157,39 @@ public class MemoryLimitedMapTest {
             }
         };
         return updateFunc;
+    }
+
+    class MockedTaskMemoryManager extends TaskMemoryManager {
+
+        private final long totalMemoryBytes;
+        private long used = 0L;
+
+        /**
+         * Construct a new MockedTaskMemoryManager.
+         */
+        public MockedTaskMemoryManager(long totalMemoryBytes) {
+            super(SparkEnv.get().memoryManager(), 0);
+            this.totalMemoryBytes = totalMemoryBytes;
+        }
+
+        @Override
+        public long acquireExecutionMemory(long required, MemoryConsumer consumer) {
+            long rest = totalMemoryBytes - used;
+            if (rest > required) {
+                used += required;
+                return required;
+            }
+            used = totalMemoryBytes;
+            return rest;
+        }
+
+        @Override
+        public void releaseExecutionMemory(long size, MemoryConsumer consumer) {
+            used -= size;
+        }
+
+        public long getUsed() {
+            return used;
+        }
     }
 }

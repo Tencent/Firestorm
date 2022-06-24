@@ -39,7 +39,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.executor.ShuffleWriteMetrics;
 import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.scheduler.MapStatus;
-import org.apache.spark.shuffle.MemoryLimitedMap;
+import org.apache.spark.shuffle.SpillableSizeTrackingMap;
 import org.apache.spark.shuffle.RssShuffleHandle;
 import org.apache.spark.shuffle.RssShuffleManager;
 import org.apache.spark.shuffle.RssSparkConfig;
@@ -163,7 +163,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
       }
     };
 
-    MemoryLimitedMap<K, V> memoryLimitedMap = new MemoryLimitedMap<>(
+    SpillableSizeTrackingMap<K, V> spillableSizeTrackingMap = new SpillableSizeTrackingMap<>(
             taskMemoryManager, mapsideMergeSpillThreshold, spillFunc
     );
 
@@ -182,7 +182,7 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
               return (V) createCombiner.apply(record._2());
             }
           };
-          memoryLimitedMap.changeValue(record._1(), updateFunc);
+          spillableSizeTrackingMap.changeValue(record._1(), updateFunc);
         } else {
           int partition = getPartition(record._1());
           shuffleBlockInfos = bufferManager.addRecord(partition, record._1(), createCombiner.apply(record._2()));
@@ -197,11 +197,8 @@ public class RssShuffleWriter<K, V, C> extends ShuffleWriter<K, V> {
     }
 
     // If merge enable, add all the rest records from map to buffer manager.
-    if (!memoryLimitedMap.isEmpty()) {
-      Iterator<Tuple2<K,V>> iter = memoryLimitedMap.iterator();
-      while (iter.hasNext()) {
-        spillFunc.apply(iter.next());
-      }
+    if (!spillableSizeTrackingMap.isEmpty()) {
+      spillableSizeTrackingMap.finalizeAndClear();
     }
 
     final long start = System.currentTimeMillis();
