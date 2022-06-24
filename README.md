@@ -154,7 +154,7 @@ rss-xxx.tgz will be generated for deployment
 ### Support Spark dynamic allocation
 
 To support spark dynamic allocation with Firestorm, spark code should be updated.
-There are 3 patches for spark(2.4.6/3.1.2/3.2.1) in spark-patches folder for reference.
+There are 3 patches for spark (2.4.6/3.1.2/3.2.1) in spark-patches folder for reference.
 
 After apply the patch and rebuild spark, add following configuration in spark conf to enable dynamic allocation:
   ```
