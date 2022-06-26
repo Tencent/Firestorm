@@ -18,10 +18,12 @@
 
 package com.tencent.rss.coordinator;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public interface ClusterManager {
+public interface ClusterManager extends Closeable {
 
   /**
    * Add a server to the cluster.
@@ -49,6 +51,4 @@ public interface ClusterManager {
   List<ServerNode> list();
 
   int getShuffleNodesMax();
-
-  void shutdown();
 }
