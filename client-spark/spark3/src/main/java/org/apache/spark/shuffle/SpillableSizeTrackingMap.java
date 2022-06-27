@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.spark.memory.MemoryConsumer;
+import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.memory.TaskMemoryManager;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -50,7 +51,15 @@ public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
 
     private class MemoryConsumerImpl extends MemoryConsumer {
         protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager) {
-            super(taskMemoryManager);
+            this(taskMemoryManager, MemoryMode.ON_HEAP);
+        }
+
+        protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager, long pageSize, MemoryMode mode) {
+            super(taskMemoryManager, pageSize, mode);
+        }
+
+        protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager,MemoryMode mode) {
+            this(taskMemoryManager, taskMemoryManager.pageSizeBytes(), mode);
         }
 
         @Override
