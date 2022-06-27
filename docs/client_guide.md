@@ -78,6 +78,26 @@ Notice:
 
 2. `<client_type>.rss.coordinator.quorum` is compulsory, and other configurations are optional when coordinator dynamic configuration is enabled.
 
+### Adaptive Remote Shuffle Enabling 
+
+To select build-in shuffle or remote shuffle in a smart manner, Firestorm support adaptive enabling. 
+The client should use `DelegationRssShuffleManager` and provide its unique <access_id> so that the coordinator could distinguish whether it should enable remote shuffle.
+
+```
+spark.shuffle.manager org.apache.spark.shuffle.DelegationRssShuffleManager
+spark.rss.access.id=<access_id> 
+```
+
+Notice:
+Currently, this feature only supports Spark. 
+
+Other configuration:
+
+|Property Name|Default|Description|
+|---|---|---|
+|spark.rss.access.timeout.ms|10000|The timeout to access Firestorm coordinator|
+  
+
 ### Client Quorum Setting 
 
 Firestorm supports client-side quorum protocol to tolerant shuffle server crash. 
