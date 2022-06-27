@@ -50,13 +50,17 @@ To build it, run:
 
     mvn -DskipTests clean package
 
+Build against profile Spark2(2.4.6)
+
+    mvn -DskipTests clean package -Pspark2
+
+Build against profile Spark3(3.1.2)
+
+    mvn -DskipTests clean package -Pspark3
+
 Build against Spark 3.2.x
 
     mvn -DskipTests clean package -Pspark3.2
-
-Build against Spark 3.2.x and Spark version
-
-    mvn -DskipTests clean package -Pspark3.2 -Dspark.version=3.2.1
 
 To package the Firestorm, run:
 
