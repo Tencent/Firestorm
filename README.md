@@ -68,7 +68,7 @@ To package the Firestorm, run:
 
 Package against Spark 3.2.x, run:
 
-    ./build_distribution.sh --spark3-mvn "-Pspark3.2"
+    ./build_distribution.sh --spark3-profile 'spark3.2'
 
 rss-xxx.tgz will be generated for deployment
 

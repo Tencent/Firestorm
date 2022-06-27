@@ -36,19 +36,30 @@ function exit_with_usage() {
   echo ""
   echo "Usage:"
   echo "+------------------------------------------------------------------------------------------------------+"
-  echo "| ./build_distribution.sh [--spark2-mvn <custom maven options>] [--spark3-mvn <custom maven options>]  |"
+  echo "| ./build_distribution.sh [--spark2-profile <spark2 profile id>] [--spark2-mvn <custom maven options>] |"
+  echo "|                         [--spark3-profile <spark3 profile id>] [--spark3-mvn <custom maven options>] |"
   echo "|                         <maven build options>                                                        |"
   echo "+------------------------------------------------------------------------------------------------------+"
   exit 1
 }
 
+SPARK2_PROFILE_ID="spark2"
 SPARK2_MVN_OPTS=""
+SPARK3_PROFILE_ID="spark3"
 SPARK3_MVN_OPTS=""
 while (( "$#" )); do
   case $1 in
+    --spark2-profile)
+      SPARK2_PROFILE_ID="$2"
+      shift
+      ;;
     --spark2-mvn)
       SPARK2_MVN_OPTS=$2
-      shfit
+      shift
+      ;;
+    --spark3-profile)
+      SPARK3_PROFILE_ID="$2"
+      shift
       ;;
     --spark3-mvn)
       SPARK3_MVN_OPTS=$2
@@ -133,7 +144,7 @@ cp "${RSS_HOME}"/coordinator/target/jars/* ${COORDINATOR_JAR_DIR}
 CLIENT_JAR_DIR="${DISTDIR}/jars/client"
 mkdir -p $CLIENT_JAR_DIR
 
-BUILD_COMMAND_SPARK2=("$MVN" clean package -Pspark2 -pl client-spark/spark2 -DskipTests -am $@ $SPARK2_MVN_OPTS)
+BUILD_COMMAND_SPARK2=("$MVN" clean package -P$SPARK2_PROFILE_ID -pl client-spark/spark2 -DskipTests -am $@ $SPARK2_MVN_OPTS)
 
 # Actually build the jar
 echo -e "\nBuilding with..."
@@ -148,7 +159,7 @@ SPARK_CLIENT2_JAR="${RSS_HOME}/client-spark/spark2/target/shaded/rss-client-spar
 echo "copy $SPARK_CLIENT2_JAR to ${SPARK_CLIENT2_JAR_DIR}"
 cp $SPARK_CLIENT2_JAR ${SPARK_CLIENT2_JAR_DIR}
 
-BUILD_COMMAND_SPARK3=("$MVN" clean package -Pspark3 -pl client-spark/spark3 -DskipTests -am $@ $SPARK3_MVN_OPTS)
+BUILD_COMMAND_SPARK3=("$MVN" clean package -P$SPARK3_PROFILE_ID -pl client-spark/spark3 -DskipTests -am $@ $SPARK3_MVN_OPTS)
 
 echo -e "\nBuilding with..."
 echo -e "\$ ${BUILD_COMMAND_SPARK3[@]}\n"
