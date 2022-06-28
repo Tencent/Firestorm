@@ -19,9 +19,9 @@
 package com.tencent.rss.coordinator;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
