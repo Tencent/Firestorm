@@ -62,6 +62,7 @@ import com.tencent.rss.storage.util.StorageType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -160,6 +161,7 @@ public class RssShuffleWriterTest {
     when(mockPartitioner.getPartition("testKey6")).thenReturn(2);
 
     TaskMemoryManager mockTaskMemoryManager = mock(TaskMemoryManager.class);
+    doReturn(Long.MAX_VALUE).when(mockTaskMemoryManager).acquireExecutionMemory(anyLong(), any());
 
     BufferManagerOptions bufferOptions = new BufferManagerOptions(conf);
     ShuffleWriteMetrics shuffleWriteMetrics = new ShuffleWriteMetrics();
