@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.common.collect.Lists;
+import com.google.common.net.InetAddresses;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +103,14 @@ public class RssUtils {
   // loop back, etc.). If the network interface in the machine is more than one, we
   // will choose the first IP.
   public static String getHostIp() throws Exception {
+    // For K8S, there are too many IPS, it's hard to decide which we should use
+    String ip = System.getenv("RSS_IP");
+    if (ip != null) {
+      if (!InetAddresses.isInetAddress(ip)) {
+        throw new RuntimeException("Environment RSS_IP: " + ip + " is wrong format");
+      }
+      return ip;
+    }
     Enumeration<NetworkInterface> nif = NetworkInterface.getNetworkInterfaces();
     String siteLocalAddress = null;
     while (nif.hasMoreElements()) {
