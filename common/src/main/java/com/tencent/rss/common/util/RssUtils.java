@@ -103,7 +103,8 @@ public class RssUtils {
   // loop back, etc.). If the network interface in the machine is more than one, we
   // will choose the first IP.
   public static String getHostIp() throws Exception {
-    // For K8S, there are too many IPS, it's hard to decide which we should use
+    // For K8S, there are too many IPs, it's hard to decide which we should use.
+    // So we use the environment variable to tell RSS to use which one.
     String ip = System.getenv("RSS_IP");
     if (ip != null) {
       if (!InetAddresses.isInetAddress(ip)) {
