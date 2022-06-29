@@ -28,7 +28,6 @@ import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.util.collection.SizeTracker;
-
 import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
@@ -49,7 +48,7 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
     private long grantedMemorySize = 0;
     private long initialRequireMemorySize = DEFAULT_INITIAL_REQUIRED_MEMORY_BYTES;
 
-    private double SAMPLE_GROWTH_RATE = 1.1;
+    private double sampleGrowthRate = 1.1;
     private long nextSampleNum;
     private long numUpdates;
     private double bytesPerUpdate;
@@ -71,11 +70,11 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
         resetSamples();
     }
 
-    private void spill(Map currentMap) {
+    private void doSpill(Map currentMap) {
         for (Iterator<Map.Entry<K, V>> it = currentMap.entrySet().iterator(); it.hasNext();) {
             Map.Entry<K, V> entry = it.next();
-            spillFunc.apply(Tuple2.apply(entry.getKey(), entry.getValue()));
             it.remove();
+            spillFunc.apply(Tuple2.apply(entry.getKey(), entry.getValue()));
         }
     }
 
@@ -97,7 +96,7 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
         }
 
         if (shouldSpill) {
-            spill(currentMap);
+            doSpill(currentMap);
             currentMap = Maps.newHashMap();
             resetSamples();
             if (grantedMemorySize > initialRequireMemorySize) {
@@ -119,7 +118,7 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
     }
 
     public void finalizeAndClear() {
-        spill(currentMap);
+        doSpill(currentMap);
         currentMap = Maps.newHashMap();
         freeMemory(grantedMemorySize);
         grantedMemorySize = 0;
@@ -135,16 +134,20 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
      * The following code is to implement methods of {@link SizeTracker}.
       */
 
-    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$SAMPLE_GROWTH_RATE_$eq(final double x$1) {
-        this.SAMPLE_GROWTH_RATE = x$1;
+    // CHECKSTYLE:OFF
+
+    @SuppressWarnings("checkstyle:LineLength")
+    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$SAMPLE_GROWTH_RATE_$eq(final double sampleGrowthRate) {
+        this.sampleGrowthRate = sampleGrowthRate;
     }
 
     public double org$apache$spark$util$collection$SizeTracker$$SAMPLE_GROWTH_RATE() {
-        return this.SAMPLE_GROWTH_RATE;
+        return this.sampleGrowthRate;
     }
 
-    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$samples_$eq(final Queue x$1) {
-        this.samples = x$1;
+    @SuppressWarnings("checkstyle:LineLength")
+    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$samples_$eq(final Queue samples) {
+        this.samples = samples;
     }
 
     public Queue org$apache$spark$util$collection$SizeTracker$$samples() {
@@ -155,23 +158,25 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
         return this.bytesPerUpdate;
     }
 
-    public void org$apache$spark$util$collection$SizeTracker$$bytesPerUpdate_$eq(final double x$1) {
-        this.bytesPerUpdate = x$1;
+    public void org$apache$spark$util$collection$SizeTracker$$bytesPerUpdate_$eq(final double bytesPerUpdate) {
+        this.bytesPerUpdate = bytesPerUpdate;
     }
 
     public long org$apache$spark$util$collection$SizeTracker$$numUpdates() {
         return this.numUpdates;
     }
 
-    public void org$apache$spark$util$collection$SizeTracker$$numUpdates_$eq(long var1) {
-        this.numUpdates = var1;
+    public void org$apache$spark$util$collection$SizeTracker$$numUpdates_$eq(long numUpdates) {
+        this.numUpdates = numUpdates;
     }
 
     public long org$apache$spark$util$collection$SizeTracker$$nextSampleNum() {
         return this.nextSampleNum;
     }
 
-    public void org$apache$spark$util$collection$SizeTracker$$nextSampleNum_$eq(long var1) {
-        this.nextSampleNum = var1;
+    public void org$apache$spark$util$collection$SizeTracker$$nextSampleNum_$eq(long nextSampleNum) {
+        this.nextSampleNum = nextSampleNum;
     }
+
+    // CHECKSTYLE:ON
 }
