@@ -22,16 +22,17 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.memory.TaskMemoryManager;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
+import org.apache.spark.util.collection.SizeTracker;
 
 import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
+import scala.collection.mutable.Queue;
 
 /**
  * This class is to limit the memory usage from the task memory manager.
@@ -39,40 +40,27 @@ import scala.Tuple2;
  * the enough memory from task memory manager, it will spill elements by
  * the external function of {@code spillFunc}.
  */
-public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
-    private final long DEFAULT_INITIAL_REQUIRED_MEMORY_BYTES = 5 * 1024 * 1024;
+public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements SizeTracker {
+    private static final long DEFAULT_INITIAL_REQUIRED_MEMORY_BYTES = 5 * 1024 * 1024;
     private final long spillThresholdSize;
     private final Function1<Tuple2<K, V>, Void> spillFunc;
 
     private Map<K, V> currentMap = Maps.newHashMap();
     private long grantedMemorySize = 0;
-    private MemoryConsumerImpl memoryConsumer;
     private long initialRequireMemorySize = DEFAULT_INITIAL_REQUIRED_MEMORY_BYTES;
 
-    private class MemoryConsumerImpl extends MemoryConsumer {
-        protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager) {
-            this(taskMemoryManager, MemoryMode.ON_HEAP);
-        }
-
-        protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager, long pageSize, MemoryMode mode) {
-            super(taskMemoryManager, pageSize, mode);
-        }
-
-        protected MemoryConsumerImpl(TaskMemoryManager taskMemoryManager,MemoryMode mode) {
-            this(taskMemoryManager, taskMemoryManager.pageSizeBytes(), mode);
-        }
-
-        @Override
-        public long spill(long size, MemoryConsumer trigger) throws IOException {
-            return 0L;
-        }
-    }
+    private double SAMPLE_GROWTH_RATE = 1.1;
+    private long nextSampleNum;
+    private long numUpdates;
+    private double bytesPerUpdate;
+    private Queue samples = new Queue<SizeTracker.Sample>();
 
     public SpillableSizeTrackingMap(TaskMemoryManager taskMemoryManager, Long spillThresholdSize,
             Function1<Tuple2<K, V>, Void> spillFunc) {
+        super(taskMemoryManager, taskMemoryManager.pageSizeBytes(), MemoryMode.ON_HEAP);
         this.spillThresholdSize = spillThresholdSize;
         this.spillFunc = spillFunc;
-        this.memoryConsumer = new MemoryConsumerImpl(taskMemoryManager);
+        resetSamples();
     }
 
     @VisibleForTesting
@@ -80,6 +68,7 @@ public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
             Function1<Tuple2<K, V>, Void> spillFunc, long initialRequireMemorySize) {
         this(taskMemoryManager, spillThresholdSize, spillFunc);
         this.initialRequireMemorySize = initialRequireMemorySize;
+        resetSamples();
     }
 
     private void spill(Map currentMap) {
@@ -92,17 +81,17 @@ public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
 
     public void changeValue(K key, Function2 updateFunc) {
         if (grantedMemorySize == 0) {
-            grantedMemorySize += memoryConsumer.acquireMemory(initialRequireMemorySize);
+            grantedMemorySize += acquireMemory(initialRequireMemorySize);
         }
 
-        long currentMemory = super.estimateSize();
+        long currentMemory = estimateSize();
         boolean shouldSpill = false;
 
         if (currentMemory > spillThresholdSize) {
             shouldSpill = true;
         } else if (currentMemory > grantedMemorySize) {
             long amountToRequest = 2 * currentMemory - grantedMemorySize;
-            long granted = memoryConsumer.acquireMemory(amountToRequest);
+            long granted = acquireMemory(amountToRequest);
             grantedMemorySize += granted;
             shouldSpill = currentMemory >= grantedMemorySize;
         }
@@ -110,14 +99,14 @@ public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
         if (shouldSpill) {
             spill(currentMap);
             currentMap = Maps.newHashMap();
-            super.resetSamples();
+            resetSamples();
             if (grantedMemorySize > initialRequireMemorySize) {
-                memoryConsumer.freeMemory(grantedMemorySize - initialRequireMemorySize);
+                freeMemory(grantedMemorySize - initialRequireMemorySize);
                 grantedMemorySize = initialRequireMemorySize;
             }
         }
         updateVal(key, updateFunc);
-        super.afterUpdate();
+        afterUpdate();
     }
 
     private void updateVal(K key, Function2 updateFunc) {
@@ -132,8 +121,57 @@ public class SpillableSizeTrackingMap<K, V> extends AbstractSizeTracker {
     public void finalizeAndClear() {
         spill(currentMap);
         currentMap = Maps.newHashMap();
-        memoryConsumer.freeMemory(grantedMemorySize);
+        freeMemory(grantedMemorySize);
         grantedMemorySize = 0;
-        super.resetSamples();
+        resetSamples();
+    }
+
+    @Override
+    public long spill(long size, MemoryConsumer trigger) throws IOException {
+        return 0L;
+    }
+
+    /**
+     * The following code is to implement methods of {@link SizeTracker}.
+      */
+
+    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$SAMPLE_GROWTH_RATE_$eq(final double x$1) {
+        this.SAMPLE_GROWTH_RATE = x$1;
+    }
+
+    public double org$apache$spark$util$collection$SizeTracker$$SAMPLE_GROWTH_RATE() {
+        return this.SAMPLE_GROWTH_RATE;
+    }
+
+    public void org$apache$spark$util$collection$SizeTracker$_setter_$org$apache$spark$util$collection$SizeTracker$$samples_$eq(final Queue x$1) {
+        this.samples = x$1;
+    }
+
+    public Queue org$apache$spark$util$collection$SizeTracker$$samples() {
+        return this.samples;
+    }
+
+    public double org$apache$spark$util$collection$SizeTracker$$bytesPerUpdate() {
+        return this.bytesPerUpdate;
+    }
+
+    public void org$apache$spark$util$collection$SizeTracker$$bytesPerUpdate_$eq(final double x$1) {
+        this.bytesPerUpdate = x$1;
+    }
+
+    public long org$apache$spark$util$collection$SizeTracker$$numUpdates() {
+        return this.numUpdates;
+    }
+
+    public void org$apache$spark$util$collection$SizeTracker$$numUpdates_$eq(long var1) {
+        this.numUpdates = var1;
+    }
+
+    public long org$apache$spark$util$collection$SizeTracker$$nextSampleNum() {
+        return this.nextSampleNum;
+    }
+
+    public void org$apache$spark$util$collection$SizeTracker$$nextSampleNum_$eq(long var1) {
+        this.nextSampleNum = var1;
     }
 }
