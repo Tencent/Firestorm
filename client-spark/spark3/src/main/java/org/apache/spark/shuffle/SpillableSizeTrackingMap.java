@@ -27,6 +27,7 @@ import com.google.common.collect.Maps;
 import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.memory.TaskMemoryManager;
+import org.apache.spark.util.SizeEstimator;
 import org.apache.spark.util.collection.SizeTracker;
 import scala.Function1;
 import scala.Function2;
@@ -70,12 +71,23 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
         resetSamples();
     }
 
-    private void doSpill(Map currentMap) {
+    private void doSpillAndReleaseMemory(Map currentMap) {
+        long total = Math.max(0, grantedMemorySize - initialRequireMemorySize);
+        long released = 0;
         for (Iterator<Map.Entry<K, V>> it = currentMap.entrySet().iterator(); it.hasNext();) {
             Map.Entry<K, V> entry = it.next();
             it.remove();
+            long kvSize = SizeEstimator.estimate(entry);
+            released += kvSize;
+            if (released <= total) {
+                freeMemory(kvSize);
+            }
             spillFunc.apply(Tuple2.apply(entry.getKey(), entry.getValue()));
         }
+        if (total - released > 0) {
+            freeMemory(total - released);
+        }
+        grantedMemorySize -= total;
     }
 
     public void changeValue(K key, Function2 updateFunc) {
@@ -96,21 +108,20 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
         }
 
         if (shouldSpill) {
-            doSpill(currentMap);
+            doSpillAndReleaseMemory(currentMap);
             currentMap = Maps.newHashMap();
             resetSamples();
-            if (grantedMemorySize > initialRequireMemorySize) {
-                freeMemory(grantedMemorySize - initialRequireMemorySize);
-                grantedMemorySize = initialRequireMemorySize;
-            }
         }
         updateVal(key, updateFunc);
         afterUpdate();
     }
 
     private void updateVal(K key, Function2 updateFunc) {
-        currentMap.computeIfAbsent(key, k -> (V) updateFunc.apply(false, null));
-        currentMap.computeIfPresent(key, (k, oldVal) -> (V) updateFunc.apply(true, oldVal));
+        if (currentMap.containsKey(key)) {
+            currentMap.computeIfPresent(key, (k, oldVal) -> (V) updateFunc.apply(true, oldVal));
+            return;
+        }
+        currentMap.put(key, (V) updateFunc.apply(false, null));
     }
 
     public boolean isEmpty() {
@@ -118,10 +129,10 @@ public class SpillableSizeTrackingMap<K, V> extends MemoryConsumer implements Si
     }
 
     public void finalizeAndClear() {
-        doSpill(currentMap);
-        currentMap = Maps.newHashMap();
+        doSpillAndReleaseMemory(currentMap);
         freeMemory(grantedMemorySize);
         grantedMemorySize = 0;
+        currentMap = Maps.newHashMap();
         resetSamples();
     }
 
