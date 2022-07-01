@@ -1,5 +1,7 @@
-# What is Firestorm
+Firestorm has been donated to the Apache Software Foundation and renamed to Uniffle, this old repository is deleted and only reserved the readme.MD file.
+The latest content please visit the new Apache mailing lists, site, and repository:
 
+<<<<<<< HEAD
 Firestorm is a Remote Shuffle Service, and provides the capability for Apache Spark applications
 to store shuffle data on remote servers.
 
@@ -248,3 +250,8 @@ For more information about contributing issues or pull requests, see [Firestorm 
 We provide free support for users using this project. If you want to join user wechat group for further help and collaboration. You can scan the following QR code or search wechatID `xinghuojihua_01`, add our assistant on wechat, and remark `Firestorm`. The assistant will help you join our wechat group.
 
 ![Wechat](docs/asset/wechat.png)
+=======
+- Mailing-list: dev@uniffle.apache.org (subscribe using dev-subscribe@uniffle.apache.org)
+- Site: https://uniffle.apache.org
+- Repository: https://github.com/apache/incubator-uniffle
+>>>>>>> c7537129 (delete)
