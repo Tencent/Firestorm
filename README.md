@@ -1,4 +1,4 @@
-# Firestorm is moved to Apache Uniffle
+# Firestorm is moved to Apache Uniffle (incubating)
 
 Firestorm is now moved to ASF and renamed to [Apache Uniffle (incubating)](https://github.com/apache/incubator-uniffle).  
 For the latest content, please visit Apache Uniffle mailing lists, site and repository:
