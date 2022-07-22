@@ -118,29 +118,16 @@ public class WriteBufferManager extends MemoryConsumer {
       return null;
     }
     List<ShuffleBlockInfo> result = Lists.newArrayList();
-    if (buffers.containsKey(partitionId)) {
-      WriterBuffer wb = buffers.get(partitionId);
-      if (wb.askForMemory(serializedDataLength)) {
-        if (serializedDataLength > bufferSegmentSize) {
-          requestMemory(serializedDataLength);
-        } else {
-          requestMemory(bufferSegmentSize);
-        }
-      }
-      wb.addRecord(serializedData, serializedDataLength);
-      if (wb.getMemoryUsed() > bufferSize) {
-        result.add(createShuffleBlock(partitionId, wb));
-        copyTime += wb.getCopyTime();
-        buffers.remove(partitionId);
-        LOG.debug("Single buffer is full for shuffleId[" + shuffleId
-            + "] partition[" + partitionId + "] with memoryUsed[" + wb.getMemoryUsed()
-            + "], dataLength[" + wb.getDataLength() + "]");
-      }
-    } else {
-      requestMemory(bufferSegmentSize);
-      WriterBuffer wb = new WriterBuffer(bufferSegmentSize);
-      wb.addRecord(serializedData, serializedDataLength);
-      buffers.put(partitionId, wb);
+    WriterBuffer wb = buffers.computeIfAbsent(partitionId, k -> new WriterBuffer(bufferSegmentSize));
+    requestMemory(wb.calculateMemoryCost(serializedDataLength));
+    wb.addRecord(serializedData, serializedDataLength);
+    if (wb.getMemoryUsed() > bufferSize) {
+      result.add(createShuffleBlock(partitionId, wb));
+      copyTime += wb.getCopyTime();
+      buffers.remove(partitionId);
+      LOG.debug("Single buffer is full for shuffleId[" + shuffleId
+              + "] partition[" + partitionId + "] with memoryUsed[" + wb.getMemoryUsed()
+              + "], dataLength[" + wb.getDataLength() + "]");
     }
     shuffleWriteMetrics.incRecordsWritten(1L);
 
@@ -178,13 +165,15 @@ public class WriteBufferManager extends MemoryConsumer {
     final byte[] compressed = RssShuffleUtils.compressData(data);
     final long crc32 = ChecksumUtils.getCrc32(compressed);
     compressTime += System.currentTimeMillis() - start;
+    int toFree = wb.getMemoryUsed() - compressed.length;
+    freeInnerUsed(toFree);
     final long blockId = ClientUtils.getBlockId(partitionId, taskAttemptId, getNextSeqNo(partitionId));
     uncompressedDataLen += data.length;
     shuffleWriteMetrics.incBytesWritten(compressed.length);
     // add memory to indicate bytes which will be sent to shuffle server
-    inSendListBytes.addAndGet(wb.getMemoryUsed());
+    inSendListBytes.addAndGet(data.length);
     return new ShuffleBlockInfo(shuffleId, partitionId, blockId, compressed.length, crc32,
-        compressed, partitionToServers.get(partitionId), uncompressLength, wb.getMemoryUsed(), taskAttemptId);
+        compressed, partitionToServers.get(partitionId), uncompressLength, compressed.length, taskAttemptId);
   }
 
   // it's run in single thread, and is not thread safe
@@ -196,6 +185,9 @@ public class WriteBufferManager extends MemoryConsumer {
   }
 
   private void requestMemory(long requiredMem) {
+    if (requiredMem == 0) {
+      return;
+    }
     final long start = System.currentTimeMillis();
     if (allocatedBytes.get() - usedBytes.get() < requiredMem) {
       requestExecutorMemory(requiredMem);
@@ -205,10 +197,10 @@ public class WriteBufferManager extends MemoryConsumer {
   }
 
   private void requestExecutorMemory(long leastMem) {
-    long gotMem = acquireMemory(askExecutorMemory);
-    allocatedBytes.addAndGet(gotMem);
+    long gotMem = 0;
+    gotMem += acquireMemory(askExecutorMemory);
     int retry = 0;
-    while (allocatedBytes.get() - usedBytes.get() < leastMem) {
+    while (gotMem < leastMem) {
       LOG.info("Can't get memory for now, sleep and try[" + retry
           + "] again, request[" + askExecutorMemory + "], got[" + gotMem + "] less than "
           + leastMem);
@@ -217,19 +209,20 @@ public class WriteBufferManager extends MemoryConsumer {
       } catch (InterruptedException ie) {
         LOG.warn("Exception happened when waiting for memory.", ie);
       }
-      gotMem = acquireMemory(askExecutorMemory);
-      allocatedBytes.addAndGet(gotMem);
+      gotMem += acquireMemory(askExecutorMemory);
       retry++;
       if (retry > requireMemoryRetryMax) {
-        String message = "Can't get memory to cache shuffle data, request[" + askExecutorMemory
+        String message = "Can't get memory to cache shuffle data, request[" + leastMem
             + "], got[" + gotMem + "]," + " WriteBufferManager allocated[" + allocatedBytes
             + "] task used[" + used + "]. It may be caused by shuffle server is full of data"
             + " or consider to optimize 'spark.executor.memory',"
             + " 'spark.rss.writer.buffer.spill.size'.";
         LOG.error(message);
+        allocatedBytes.addAndGet(gotMem);
         throw new RssException(message);
       }
     }
+    allocatedBytes.addAndGet(gotMem);
   }
 
   @Override
@@ -258,6 +251,15 @@ public class WriteBufferManager extends MemoryConsumer {
     allocatedBytes.addAndGet(-freeMemory);
     usedBytes.addAndGet(-freeMemory);
     inSendListBytes.addAndGet(-freeMemory);
+  }
+
+  public void freeInnerUsed(long freeMemmory) {
+    if (freeMemmory < 0) {
+      // this will not happen in common case
+      requestMemory(-freeMemmory);
+    } else {
+      usedBytes.addAndGet(-freeMemmory);
+    }
   }
 
   public void freeAllMemory() {
